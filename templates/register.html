@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="big-container">
+  <div class="container">
+    <div class="title">Registration</div>
+    <div class="content">
+      <form class="register" method="POST" action="{{ url_for('register') }}">
+        <div class="user-details">
+          <div class="input-box">
+            <span class="details">Student ID Number</span>
+            <input type="text" id="idno" name="idno" required>
+          </div>
+
+          <div class="input-box">
+            <span class="details">Last Name</span>
+            <input type="text" id="lastname" name="lastname" required>
+          </div>
+
+          <div class="input-box">
+            <span class="details">First Name</span>
+            <input type="text" id="firstname" name="firstname" required>
+          </div>
+
+          <div class="input-box">
+            <span class="details">Middle Name</span>
+            <input type="text" id="midname" name="midname">
+          </div>
+
+          <!-- Course Dropdown -->
+          <div class="input-box">
+            <span class="details">Course</span>
+            <select id="course" name="course" required>
+              <option value=""></option>
+              <option value="BSIT">BSIT</option>
+              <option value="BSCPE">BSCPE</option>
+              <option value="BSBA">BSBA</option>
+              <option value="BSCS">BSCS</option>
+              <option value="BSE">BSE</option>
+              <option value="BSHRM">BSHRM</option>
+              <!-- Add more options as needed -->
+            </select>
+          </div>
+
+          <!-- Year Level Dropdown -->
+          <div class="input-box">
+            <span class="details">Year Level</span>
+            <select id="year_level" name="year_level" required>
+              <option value=""></option>
+              <option value="1">1st Year</option>
+              <option value="2">2nd Year</option>
+              <option value="3">3rd Year</option>
+              <option value="4">4th Year</option>
+            </select>
+          </div>
+        </div>
+
+
+     <div class="user-input">
+        <div class="input-box">
+            <span class="details">Username</span>
+            <input type="text" id="username" name="username" required>
+          </div>
+
+          <div class="input-box">
+            <span class="details">Password</span>
+            <input type="password" id="password" name="password" required>
+          </div>
+        </div>
+
+        <div class="email">
+          <div class="input-box">
+            <span class="details">Email</span>
+            <input type="email" id="email" name="email" required>
+          </div>
+      </div>
+
+        <div class="button">
+          <input type="submit" value="Register">
+        </div>
+        
+        
+      </form>
+      <div class="actions">
+        <p>If you already have an account, <a href="{{ url_for('login') }}" class="register-link">Login</a>.</p>
+    </div>
+    
+
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
