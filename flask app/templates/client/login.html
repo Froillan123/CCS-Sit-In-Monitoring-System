@@ -1,0 +1,45 @@
+{% extends 'client/clientbase.html' %}
+
+{% block content %}
+<!--=============== LOGIN ===============-->
+<div class="container">
+    <!-- Left Side - Login -->
+    <div class="login__access">
+        <h1 class="login__title">Log in to your account.</h1>
+        
+        <div class="login__area">
+            <form action="{{ url_for('login') }}" method="POST" class="login__form">
+                <div class="login__content grid">
+                    <div class="login__box">
+                        <input type="text" id="username" name="username" required placeholder="Username" class="login__input">
+                        <i class="ri-user-fill login__icon"></i>
+                    </div>
+            
+                    <div class="login__box">
+                        <input type="password" id="password" name="password" required placeholder="Password" class="login__input">
+                        <i class="ri-eye-off-fill login__icon login__password" id="loginPassword"></i>
+                    </div>
+                </div>
+                <a href="#" class="login__forgot">Forgot your password?</a>              
+                <button type="submit" class="login__button">Login</button>
+            </form>
+            
+            <p class="login__switch">
+                Don't have an account? 
+                <a href="{{ url_for('register') }}" class="login__register-link">Create Account</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Right Side - System Title & Logo -->
+    <div class="right-section">
+        <div class="top-section">
+            <h1 class="system-title">CCS Sit In Management System</h1>
+        </div>
+
+        <div class="bottom-section">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" class="logo">
+        </div>
+    </div>
+</div>
+{% endblock %}

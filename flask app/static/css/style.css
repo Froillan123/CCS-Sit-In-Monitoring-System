@@ -1,0 +1,539 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap");
+
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    outline: none;
+    font-family: "Poppins", sans-serif;
+}
+
+html {
+    font-size: 62.5%;
+}
+
+body {
+    background-color: #f5f5f5;
+    color: #333;
+    line-height: 1.6;
+}
+
+img {
+    image-rendering: pixelated;
+}
+
+.flash-message {
+    max-width: 390px;
+    height: 49px;
+    position: fixed;
+    bottom: 3rem;
+    left: 0;
+    right: 0;
+    margin: auto;
+    transition: opacity 0.4s ease-in, transform 0.4s ease-in;
+    gap: 1rem;
+    padding: 0;
+    z-index: 1000;
+    font-size: 1.5rem;
+}
+
+.flash-message i {
+    font-size: 2rem;
+}
+
+.fade-out {
+    animation: fadeSlideOut 0.8s backwards;
+}
+
+.flash-message.success {
+    background-color: #bcf3be;
+    border-radius: 0.4rem;
+    color: #1a5f1b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flash-message.warning {
+    background-color: #f1d19a;
+    border-radius: 0.4rem;
+    color: #aa6d04;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flash-message.error {
+    background-color: #f5c4c4;
+    border-radius: 0.4rem;
+    color: #a40000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flash-message.delete-success {
+    background-color: #f5c4c4;
+    border-radius: 0.4rem;
+    color: #a40000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flash-message.info {
+    background-color: #c5daf2;
+    border-radius: 0.4rem;
+    color: #074a91;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@keyframes fadeSlideOut {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+}
+
+.logo {
+    max-width: 250px;
+    height: auto;
+    margin-bottom: 1.5rem;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+
+/* Centering register container */
+.big-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.register_container {
+  max-width: 800px;
+  width: 100%;
+  background-color: #fff;
+  padding: 25px 30px;
+  border-radius: 5px;
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
+  
+}
+
+.register_container .title {
+  font-size: 25px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.user-details {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin: 20px 0;
+}
+
+.input-box {
+  margin-bottom: 15px;
+  width: calc(50% - 10px);
+}
+
+.input-box span.details {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 5px;
+  font-size: 1.6rem;
+}
+
+.input-box input,
+.input-box select {
+  height: 45px;
+  width: 100%;
+  outline: none;
+  font-size: 1.6rem;
+  border-radius: 5px;
+  padding-left: 15px;
+  border: 1px solid #ccc;
+  border-bottom-width: 2px;
+  transition: all 0.3s ease;
+}
+
+.input-box input:focus,
+.input-box select:focus {
+  border-color: var(--first-color);
+}
+.input-box select {
+  appearance: none;
+  background: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231e3c72' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") no-repeat right 12px center;
+  background-size: 16px;
+}
+
+select:disabled,
+select option:disabled {
+  color: #ccc;
+}
+
+select:disabled 
+{
+  color: #ccc;
+}
+
+
+.email {
+  width: 100%;  
+  display: flex;
+  justify-content: center;
+}
+
+.email .input-box {
+  width: 100%;
+}
+
+.button {
+  height: 45px;
+  margin: 35px 0;
+}
+
+.button input {
+  height: 100%;
+  width: 100%;
+  border-radius: 5px;
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--first-color);
+}
+
+.button input:hover {
+  background: #71b7e6;
+}
+
+@media (max-width: 584px) {
+  .register_container {
+      max-width: 100%;
+  }
+  .input-box {
+      width: 100%;
+  }
+  .user-details {
+      max-height: 300px;
+      overflow-y: scroll;
+  }
+  .user-details::-webkit-scrollbar {
+      width: 5px;
+  }
+}
+
+@media (max-width: 459px) {
+  .register_container .content .category {
+      flex-direction: column;
+  }
+}
+
+
+@media(max-width: 584px) {
+    .container {
+        max-width: 100%;
+    }
+    form .user-details .input-box {
+        margin-bottom: 15px;
+        width: 100%;
+    }
+    form .category {
+        width: 100%;
+    }
+    .content form .user-details {
+        max-height: 300px;
+        overflow-y: scroll;
+    }
+    .user-details::-webkit-scrollbar {
+        width: 5px;
+    }
+}
+
+@media(max-width: 459px) {
+    .container .content .category {
+        flex-direction: column;
+    }
+}
+/*=============== GOOGLE FONTS ===============*/
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap");
+
+/*=============== VARIABLES CSS ===============*/
+:root {
+  /*========== Colors ==========*/
+  /*Color mode HSL(hue, saturation, lightness)*/
+  --first-color: hsl(273, 77%, 65%);
+  --first-color-alt: hsl(295, 56%, 52%);
+  --title-color: hsl(220, 68%, 4%);
+  --white-color: hsl(0, 0%, 100%);
+  --text-color: hsl(220, 15%, 66%);
+  --body-color: hsl(0, 0%, 100%);
+  --container-color: hsl(220, 50%, 97%);
+
+  /*========== Font and typography ==========*/
+  /*.5rem = 8px | 1rem = 16px ...*/
+  --body-font: "Montserrat", system-ui;
+  --big-font-size: 1.5rem;
+  --normal-font-size: 1.4rem;
+  --small-font-size: 1.2rem;
+  --tiny-font-size: 1.1rem;
+
+  /*========== Font weight ==========*/
+  --font-regular: 400;
+  --font-medium: 500;
+  --font-semi-bold: 600;
+
+  /*========== z index ==========*/
+  --z-tooltip: 10;
+  --z-fixed: 100;
+}
+
+/*========== Responsive typography ==========*/
+@media screen and (min-width: 1150px) {
+  :root {
+    --big-font-size: 3rem;
+    --normal-font-size: 1.6rem;
+    --small-font-size: 1.3rem;
+    --tiny-font-size: 1rem;
+  }
+}
+
+/*=============== BASE ===============*/
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+body,
+input,
+button {
+  font-family: var(--body-font);
+  font-size: var(--normal-font-size);
+}
+
+body {
+  background-color: var(--body-color);
+  color: var(--text-color);
+}
+
+input,
+button {
+  border: none;
+  outline: none;
+}
+
+a {
+  text-decoration: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+
+
+
+/* Container Layout */
+.container {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+}
+
+/* Left Side - Login */
+.login__access {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem;
+}
+
+/* Right Side - Logo & System Title */
+.right-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--first-color);
+  color: white;
+  text-align: center;
+  padding: 2rem;
+}
+
+/* System Title */
+.system-title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 2rem;
+}
+
+/* Login Form */
+.login__title {
+  font-size: 3rem;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: var(--first-color);
+}
+
+.login__area {
+  width: 100%;
+  max-width: 400px;
+}
+
+.login__box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background-color: var(--container-color);
+  border-radius: 1rem;
+  margin-top: 2rem;
+}
+
+.login__icon {
+  position: absolute;
+  right: 1rem;
+  font-size: 2rem;
+  transition: color 0.4s;
+  cursor: pointer;
+}
+
+.login__input {
+  width: 100%;
+  padding: 1.5rem;
+  border: 3px solid transparent;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+  border-radius: 1rem;
+  transition: border-color 0.4s, background-color 0.4s; /* Add background-color transition */
+}
+
+.login__input::placeholder {
+  color: #868686; /* Default placeholder color */
+
+}
+
+/* Input Focus Effects */
+.login__input:focus {
+  border-color: var(--first-color);
+  background-color: rgba(255, 255, 255, 0.1); /* Light transparent background on focus */
+}
+
+
+/* Login Button */
+.login__button {
+  width: 100%;
+  display: inline-flex;
+  justify-content: center;
+  background-color: var(--first-color);
+  color: var(--white-color);
+  font-weight: var(--font-semi-bold);
+  padding-block: 1.5rem;
+  border-radius: 4rem;
+  margin-block: 2rem;
+  cursor: pointer;
+  transition: background-color 0.4s, box-shadow 0.4s;
+}
+
+.login__button:hover {
+  background-color: var(--first-color-alt);
+  box-shadow: 0 8px 24px hsla(208, 92%, 32%, 0.3);
+}
+
+/* Forgot Password Link */
+.login__forgot {
+  display: block;
+  width: max-content;
+  margin: 1rem 0 0 auto;
+  font-size: var(--normal-font-size);
+  font-weight: var(--font-semi-bold);
+  color: var(--text-color);
+  transition: color 0.4s;
+}
+
+.login__forgot:hover {
+  color: var(--first-color);
+}
+
+/* Register Link */
+.actions
+{
+  font-size: var(--normal-font-size)
+}
+.actions .login__link 
+{
+  color: var(--first-color);
+  font-weight: bold;
+  text-decoration: none;
+  font-size: var(--normal-font-size);
+}
+.actions .login__link:hover
+{
+  text-decoration: underline;
+}
+.login__register-link {
+  color: var(--first-color);
+  font-weight: bold;
+  text-decoration: none;
+  font-size: var(--normal-font-size);
+}
+
+.login__register-link:hover {
+  text-decoration: underline;
+}
+
+/* Switch between login/register */
+.login__switch {
+  text-align: center;
+  font-size: var(--normal-font-size);
+}
+
+.login__switch button {
+  background: none;
+  color: var(--first-color);
+  font-size: var(--small-font-size);
+  font-weight: var(--font-semi-bold);
+  cursor: pointer;
+  transition: color 0.4s;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 768px) {
+  .container {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .login__access,
+  .right-section {
+    width: 100%;
+    padding: 2rem;
+  }
+
+  .system-title {
+    font-size: 1.5rem;
+  }
+
+  .logo {
+    max-width: 180px;
+  }
+}
+

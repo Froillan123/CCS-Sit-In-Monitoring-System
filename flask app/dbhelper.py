@@ -34,9 +34,15 @@ def getall_records(table: str) -> list:
     return getprocess(sql)
 
 
+
 def get_student_by_id(idno: str) -> dict:
     sql = 'SELECT * FROM students WHERE idno = ?'
     student = getprocess(sql, (idno,))
+    return student[0] if student else None
+
+def get_student_by_email(email: str) -> dict:
+    sql = 'SELECT * FROM students WHERE email = ?'
+    student = getprocess(sql, (email,))
     return student[0] if student else None
 
 def get_user_by_credentials(username: str, password: str) -> dict:
@@ -44,7 +50,19 @@ def get_user_by_credentials(username: str, password: str) -> dict:
     user = getprocess(sql, (username, password))
     return user[0] if user else None
 
-# Function to add a new record to a table
+def get_count_students() -> int:
+    sql = 'SELECT COUNT(*) FROM students'
+    
+    results = getprocess(sql)
+    
+    return results[0][0] if results else 0
+
+
+def get_admin_user_by_credentials(username: str, password: str) -> dict:
+    sql = 'SELECT * FROM admin_users WHERE username = ? AND password = ?'
+    admin_user = getprocess(sql,(username,password))
+    return admin_user[0] if admin_user else None
+
 def add_record(table: str, **kwargs) -> bool:
     keys = list(kwargs.keys())
     values = list(kwargs.values())
@@ -53,17 +71,12 @@ def add_record(table: str, **kwargs) -> bool:
     sql = f"INSERT INTO `{table}` (`{fields}`) VALUES ({placeholders})"
     return postprocess(sql, values)
 
-# Function to update an existing record in a table
 def update_record(table: str, **kwargs) -> bool:
     keys = list(kwargs.keys())
     values = list(kwargs.values())
-    set_clause = ", ".join([f"`{key}` = ?" for key in keys[1:]])  # Exclude the first key (idno)
+    set_clause = ", ".join([f"`{key}` = ?" for key in keys[1:]]) 
     sql = f"UPDATE `{table}` SET {set_clause} WHERE `{keys[0]}` = ?"
-    result = postprocess(sql, values[1:] + [values[0]])  # Pass values excluding the idno in the set clause
-
-    if result and table == "students":  # Update the attendance table too
-        update_attendance(kwargs)
-    
+    result = postprocess(sql, values[1:] + [values[0]]) 
     return result
 
 # Function to delete a record from a table
