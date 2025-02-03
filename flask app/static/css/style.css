@@ -126,7 +126,6 @@ img {
   padding: 25px 30px;
   border-radius: 5px;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
-  
 }
 
 .register_container .title {
@@ -171,6 +170,7 @@ img {
 .input-box select:focus {
   border-color: var(--first-color);
 }
+
 .input-box select {
   appearance: none;
   background: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231e3c72' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") no-repeat right 12px center;
@@ -182,14 +182,12 @@ select option:disabled {
   color: #ccc;
 }
 
-select:disabled 
-{
+select:disabled {
   color: #ccc;
 }
 
-
 .email {
-  width: 100%;  
+  width: 100%;
   display: flex;
   justify-content: center;
 }
@@ -222,52 +220,74 @@ select:disabled
 
 @media (max-width: 584px) {
   .register_container {
-      max-width: 100%;
+    max-width: 100%;
   }
+  
   .input-box {
-      width: 100%;
+    width: 100%;
   }
+
   .user-details {
-      max-height: 300px;
-      overflow-y: scroll;
+    max-height: 300px;
+    overflow-y: scroll;
   }
+
+  /* Custom Scrollbar */
   .user-details::-webkit-scrollbar {
-      width: 5px;
+    width: 6px;  /* Thinner scrollbar */
+  }
+
+  .user-details::-webkit-scrollbar-thumb {
+    background-color: #888; /* Color of the scrollbar thumb */
+    border-radius: 10px; /* Round the edges of the scrollbar thumb */
+  }
+
+  .user-details::-webkit-scrollbar-thumb:hover {
+    background-color: #555; /* Slightly darker when hovered */
+  }
+
+  .user-details::-webkit-scrollbar-track {
+    background: #f1f1f1; /* Light background for the track */
+    border-radius: 10px; /* Round the track edges */
+  }
+
+  .user-details::-webkit-scrollbar-track-piece {
+    background: #f1f1f1; /* Track background */
   }
 }
 
 @media (max-width: 459px) {
   .register_container .content .category {
-      flex-direction: column;
+    flex-direction: column;
   }
 }
 
-
 @media(max-width: 584px) {
-    .container {
-        max-width: 100%;
-    }
-    form .user-details .input-box {
-        margin-bottom: 15px;
-        width: 100%;
-    }
-    form .category {
-        width: 100%;
-    }
-    .content form .user-details {
-        max-height: 300px;
-        overflow-y: scroll;
-    }
-    .user-details::-webkit-scrollbar {
-        width: 5px;
-    }
+  .container {
+    max-width: 100%;
+  }
+  form .user-details .input-box {
+    margin-bottom: 15px;
+    width: 100%;
+  }
+  form .category {
+    width: 100%;
+  }
+  .content form .user-details {
+    max-height: 300px;
+    overflow-y: scroll;
+  }
+  .user-details::-webkit-scrollbar {
+    width: 6px;
+  }
 }
 
 @media(max-width: 459px) {
-    .container .content .category {
-        flex-direction: column;
-    }
+  .container .content .category {
+    flex-direction: column;
+  }
 }
+
 /*=============== GOOGLE FONTS ===============*/
 @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap");
 
@@ -513,7 +533,10 @@ img {
   cursor: pointer;
   transition: color 0.4s;
 }
-
+.logo-mobile
+{
+  display: none;
+}
 /* Responsive Design */
 @media screen and (max-width: 768px) {
   .container {
@@ -522,10 +545,15 @@ img {
     justify-content: center;
   }
 
-  .login__access,
+  .logo-mobile
+  {
+    display: block;
+    margin-top: -15rem;
+    margin-bottom: 5rem;
+  }
+
   .right-section {
-    width: 100%;
-    padding: 2rem;
+   display: none;
   }
 
   .system-title {
@@ -533,7 +561,7 @@ img {
   }
 
   .logo {
-    max-width: 180px;
+    max-width: 150px;
   }
 }
 
