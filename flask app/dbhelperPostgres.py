@@ -3,7 +3,7 @@ import psycopg2.extras
 from psycopg2 import Error
 
 database_config = {
-    'host': 'dpg-cuinej3qf0us73drhcq0-a',
+    'host': 'dpg-cuinej3qf0us73drhcq0-a.singapore-postgres.render.com',
     'user': 'root',
     'password': 'Q1mVmkv85tQ70kSjZoYmYyxAqudsdZvN',
     'dbname': 'student_8ri4',

@@ -2,6 +2,11 @@ from flask import Flask, render_template, redirect, url_for, session, request, f
 from dbhelperPostgres import * 
 from flask_caching import Cache
 import redis
+import logging
+import time
+import threading
+import requests
+import redis
 
 app = Flask(__name__)
 app.config['SESSION_TYPE'] = 'redis'
@@ -13,6 +18,48 @@ app.config['CACHE_DEFAULT_TIMEOUT'] = 300
 
 app.secret_key = '%:%:'
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+@app.before_request
+def log_request():
+    logging.info(f"{request.method} request to {request.url}")
+
+def ping_server():
+    urls = [
+        "https://css-sit-in-monitoring-system.onrender.com",
+        "https://finalprojectpython.onrender.com"
+    ]
+    sleep_time_seconds = 600  
+
+    while True:
+        if app.config['DEBUG']:  
+            logging.info("Skipping ping because the app is in debug mode.")
+            time.sleep(sleep_time_seconds) 
+            continue
+        
+        for url in urls:
+            try:
+                response = requests.get(url, timeout=10)
+                response.raise_for_status()
+                logging.info(f"Ping to {url} successful: {response.status_code} (OK)")
+
+            except requests.exceptions.HTTPError as http_err:
+                logging.error(f"HTTP error occurred while pinging {url}: {http_err}")
+
+            except requests.exceptions.RequestException as e:
+                logging.error(f"Error while pinging {url}: {e}")
+
+            except Exception as e:
+                logging.exception(f"An unexpected error occurred: {e}")
+
+        time.sleep(sleep_time_seconds)
+
+
+def start_ping_thread():
+    ping_thread = threading.Thread(target=ping_server)
+    ping_thread.daemon = True 
+    ping_thread.start()
+
 @app.after_request
 def after_request(response):
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
@@ -23,6 +70,7 @@ def after_request(response):
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '-1'
     return response
+
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
@@ -72,8 +120,6 @@ def forgot_password():
         return redirect(url_for('forgot_password'))
 
     return render_template('client/forgotpassword.html')
-
-
 
 
 @app.route('/student_dashboard')
@@ -221,4 +267,5 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    start_ping_thread()  
+    app.run(debug=True, threaded=True) 
