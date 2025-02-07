@@ -3,3 +3,4 @@ mysql-connector-python==8.1.0
 flask-cors
 gunicorn
 psycopg2
+psycopg2-binary

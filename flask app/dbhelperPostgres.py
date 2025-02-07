@@ -1,4 +1,5 @@
 import psycopg2
+import psycopg2.extras
 from psycopg2 import Error
 
 database_config = {
