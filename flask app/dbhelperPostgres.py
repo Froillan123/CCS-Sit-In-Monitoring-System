@@ -5,7 +5,7 @@ database_config = {
     'host': 'dpg-cuinej3qf0us73drhcq0-a',
     'user': 'root',
     'password': 'Q1mVmkv85tQ70kSjZoYmYyxAqudsdZvN',
-    'dbname': 'student',
+    'dbname': 'student_8ri4',
 }
 
 def connect_to_db():
