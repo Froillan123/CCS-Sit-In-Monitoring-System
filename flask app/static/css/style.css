@@ -132,6 +132,7 @@ img {
   font-size: 25px;
   font-weight: 500;
   text-align: center;
+  color: var(--first-color);
 }
 
 .user-details {
@@ -262,6 +263,26 @@ select:disabled {
   }
 }
 
+@media(max-width: 397px)
+{
+  .flash-message{
+    max-width: 300px;
+    top: -80%;
+  }
+  .flash-message i
+  {
+    font-size: 1.7rem;
+  }
+}
+
+
+@media(max-width: 320px)
+{
+  .flash-message{
+    max-width: 290px;
+  }
+}
+
 @media(max-width: 584px) {
   .container {
     max-width: 100%;
@@ -372,7 +393,7 @@ img {
 /* Container Layout */
 .container {
   display: flex;
-  height: 100vh;
+  min-height: 100vh;
   width: 100%;
 }
 

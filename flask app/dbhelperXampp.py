@@ -84,12 +84,17 @@ def get_count_students() -> int:
 def get_fname_student(firstname: str) -> list:
     sql = 'SELECT * FROM students WHERE firstname = %s'
     students = getprocess(sql, (firstname,))
-    return students  # Now returns a list of students
+    return students  
 
 def get_admin_user_by_credentials(username: str, password: str) -> dict:
     sql = 'SELECT * FROM admin_users WHERE username = %s AND password = %s'
     admin_user = getprocess(sql, (username, password))
     return admin_user[0] if admin_user else None
+
+def get_admin_by_username(username: str) -> dict:
+    sql = 'SELECT * FROM admin_users WHERE username = %s'
+    student = getprocess(sql, (username,))
+    return student[0] if student else None
 
 def add_record(table: str, **kwargs) -> bool:
     keys = list(kwargs.keys())

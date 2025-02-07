@@ -1,11 +1,17 @@
 from flask import Flask, render_template, redirect, url_for, session, request, flash
 from dbhelperPostgres import * 
+from flask_caching import Cache
+import redis
 
 app = Flask(__name__)
-app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_TYPE'] = 'redis'
 app.config['SESSION_PERMANENT'] = False
-app.secret_key = '%:%:'  
+app.config['SESSION_REDIS'] = redis.StrictRedis.from_url('redis://red-cuis0p23esus739lbi20:6379')
+app.config['CACHE_TYPE'] = 'redis'
+app.config['CACHE_REDIS_URL'] = 'redis://red-cuis0p23esus739lbi20:6379'
+app.config['CACHE_DEFAULT_TIMEOUT'] = 300
 
+app.secret_key = '%:%:'
 
 @app.after_request
 def after_request(response):
@@ -158,6 +164,38 @@ def admin_login():
             return redirect(url_for('admin_login'))
 
     return render_template('admin/adminlogin.html', pagetitle=pagetitle)
+
+
+@app.route('/admin/super-secret-admin-register', methods=['GET', 'POST'])
+def admin_register():
+    if request.method == 'POST':
+        secret_key = request.form.get('secret_key')
+        username = request.form.get('username')
+        password = request.form.get('password')
+        email = request.form.get('email')
+        name = request.form.get('name')
+
+        if secret_key != "kimperor123":
+            flash("Unauthorized access!", 'error')
+            return render_template('admin/adminregister.html')  
+
+        if not username.startswith("admin-"):
+            flash("Invalid admin username format!", 'error')
+            return render_template('admin/adminregister.html')  
+
+        existing_admin = get_admin_by_username(username)
+        if existing_admin:
+            flash("Admin username already exists!", 'error')
+            return render_template('admin/adminregister.html')  
+
+        if add_record('admin_users', username=username, password=password, email=email, name=name):
+            flash("Admin registered successfully!", 'success')
+            return redirect(url_for('admin_login')) 
+        else:
+            flash("Error registering admin. Please try again.", 'error')
+            return render_template('admin/adminregister.html') 
+    
+    return render_template('admin/adminregister.html')
 
 
 @app.route('/dashboard')

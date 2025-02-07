@@ -91,6 +91,11 @@ def get_admin_user_by_credentials(username: str, password: str) -> dict:
     admin_user = getprocess(sql, (username, password))
     return admin_user[0] if admin_user else None
 
+def get_admin_by_username(username: str) -> dict:
+    sql = 'SELECT * FROM admin_users WHERE username = %s'
+    student = getprocess(sql, (username,))
+    return student[0] if student else None
+
 def add_record(table: str, **kwargs) -> bool:
     keys = list(kwargs.keys())
     values = list(kwargs.values())

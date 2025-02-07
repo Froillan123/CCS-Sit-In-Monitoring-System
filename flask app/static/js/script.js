@@ -27,3 +27,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     passwordAccess('password', 'loginPassword'); // For Login
 });
+
+
+   // Function to update the title based on the width
+   function updateTitle() {
+    const titleElement = document.querySelector('.login__title');
+    if (window.innerWidth <= 410) {
+        titleElement.textContent = 'Login';  // Set the text to 'Login' if width is 410px or less
+    } else {
+        titleElement.textContent = 'Log in to your account.';  // Default text
+    }
+}
+
+window.onload = updateTitle;
+
+window.onresize = updateTitle;

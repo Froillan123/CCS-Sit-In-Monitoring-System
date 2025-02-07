@@ -1,0 +1,181 @@
+{% extends 'admin/adminbase.html' %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Registration</title>
+    <style>
+        /* CSS Variables */
+        :root {
+            --first-color: hsl(273, 77%, 65%);
+            --text-color: #8590AD;
+        }
+
+        /* Internal CSS */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            background-image: url('/static/images/administratorbackground.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            margin: 0;
+            padding: 0;
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h2 {
+            text-align: center;
+            color: var(--first-color);
+            margin-bottom: 20px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #555;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input[type="text"], input[type="password"], input[type="email"] {
+            width: 100%;
+            padding: 12px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focus {
+            border-color: var(--first-color);
+            outline: none;
+        }
+
+        input[type="submit"] {
+            background-color: var(--first-color);
+            color: #fff;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            transition: background-color 0.3s ease;
+        }
+
+        input[type="submit"]:hover {
+            background-color: hsl(273, 77%, 50%);
+        }
+
+        .error, .success {
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .form-group input::placeholder {
+            color: #999;
+        }
+
+        .form-group input:focus::placeholder {
+            color: transparent;
+        }
+
+        .form-group input[type="text"], 
+        .form-group input[type="password"], 
+        .form-group input[type="email"] {
+            background-color: #f9f9f9;
+        }
+
+        .form-group input[type="text"]:hover, 
+        .form-group input[type="password"]:hover, 
+        .form-group input[type="email"]:hover {
+            background-color: #f1f1f1;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Admin Registration</h2>
+
+        <!-- Admin Registration Form -->
+        <form action="{{ url_for('admin_register') }}" method="POST">
+            <div class="form-group">
+                <label for="username">Username (Starts with "admin-")</label>
+                <input type="text" id="username" name="username" placeholder="Enter your username" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter your password" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" placeholder="Enter your email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" name="name" placeholder="Enter your full name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="secret_key">Secret Key</label>
+                <input type="text" id="secret_key" name="secret_key" placeholder="Enter the secret key" required>
+            </div>
+
+            <input type="submit" value="Register Admin">
+        </form>
+    </div>
+
+</body>
+</html>
+
+{% endblock %}
