@@ -116,7 +116,7 @@ img {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100vh;
+  min-height: 100vh;
 }
 
 .register_container {
@@ -218,7 +218,13 @@ select:disabled {
 .button input:hover {
   background: #633877;
 }
-
+@media (max-width: 790px)
+{
+  .container
+  {
+    box-shadow: 0 0px 0px rgba(0, 0, 0, 0);
+  }
+}
 @media (max-width: 584px) {
   .register_container {
     max-width: 100%;
@@ -235,7 +241,7 @@ select:disabled {
 
   /* Custom Scrollbar */
   .user-details::-webkit-scrollbar {
-    width: 6px;  /* Thinner scrollbar */
+    width: 4px;  /* Thinner scrollbar */
   }
 
   .user-details::-webkit-scrollbar-thumb {
@@ -299,7 +305,7 @@ select:disabled {
     overflow-y: scroll;
   }
   .user-details::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
   }
 }
 

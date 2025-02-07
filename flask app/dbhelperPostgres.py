@@ -142,5 +142,4 @@ def create_tables_if_not_exists():
     """
     return postprocess(create_tables_sql)
 
-# Call create_tables_if_not_exists to ensure tables are created if they don't exist
 create_tables_if_not_exists()
