@@ -1,5 +1,5 @@
 from flask import Flask, render_template, redirect, url_for, session, request, flash
-from dbhelperXampp import * 
+from dbhelperPostgres import * 
 
 app = Flask(__name__)
 app.config['SESSION_TYPE'] = 'filesystem'
