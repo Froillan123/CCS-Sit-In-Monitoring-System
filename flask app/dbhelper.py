@@ -57,6 +57,15 @@ def get_count_students() -> int:
     
     return results[0][0] if results else 0
 
+def get_student_by_username(username: str) -> dict:
+    sql = 'SELECT * FROM students WHERE username = ?'
+    student = getprocess(sql, (username,))
+    return student[0] if student else None
+
+def get_fname_student(firstname: str) -> list:
+    sql = 'SELECT * FROM students WHERE firstname = ?'
+    students = getprocess(sql, (firstname,))
+    return students 
 
 def get_admin_user_by_credentials(username: str, password: str) -> dict:
     sql = 'SELECT * FROM admin_users WHERE username = ? AND password = ?'

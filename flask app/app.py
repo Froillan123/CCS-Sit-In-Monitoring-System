@@ -1,5 +1,5 @@
 from flask import Flask, render_template, redirect, url_for, session, request, flash
-from dbhelper import * 
+from dbhelperXampp import * 
 
 app = Flask(__name__)
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -33,7 +33,7 @@ def login():
         if user:
             session['username'] = username  
             flash("Login successful!", 'success')
-            return redirect(url_for('student_list')) 
+            return redirect(url_for('student_dashboard')) 
         else:
             flash("Invalid username or password", 'error')
             return redirect(url_for('login'))
@@ -41,13 +41,47 @@ def login():
     return render_template('client/login.html', pagetitle=pagetitle)
 
 
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email')  
+        new_password = request.form.get('new_password')  
 
-@app.route('/student_list')
-def student_list():
+        if email and new_password:
+            student = get_student_by_email(email)
+            if not student:
+                flash('Student does not exist.', 'error')
+                return redirect(url_for('forgot_password'))
+
+            result = update_record('students', email=email, password=new_password)
+            
+            if result:
+                flash('Password updated successfully!', 'success')
+                return redirect(url_for('login'))  
+            else:
+                flash('Error updating password. Please try again.', 'warning')
+                return redirect(url_for('forgot_password'))
+
+        flash('Invalid input. Please provide both email and new password.', 'warning')
+        return redirect(url_for('forgot_password'))
+
+    return render_template('client/forgotpassword.html')
+
+
+
+
+@app.route('/student_dashboard')
+def student_dashboard():
+    pagetitle = "Student Dashboard"
     if 'username' not in session:
         flash("You need to login first", 'warning')
         return redirect(url_for('login'))
-    return render_template('client/studentlist.html')
+    student = get_student_by_username(session['username'])
+    if not student:
+        flash("Student not found", 'danger')
+        return redirect(url_for('login'))
+    return render_template('client/studentdashboard.html', student=student, pagetitle=pagetitle)
+
 
 
 @app.route('/register', methods=['GET', 'POST'])

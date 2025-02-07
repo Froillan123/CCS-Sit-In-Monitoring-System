@@ -215,7 +215,7 @@ select:disabled {
 }
 
 .button input:hover {
-  background: #71b7e6;
+  background: #633877;
 }
 
 @media (max-width: 584px) {
