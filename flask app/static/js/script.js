@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-
     // Handling Flash Messages
     const flashMessages = document.querySelectorAll('.flash-message');
     flashMessages.forEach((flashMessage) => {
@@ -18,21 +17,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (input && iconEye) {
             iconEye.addEventListener('click', () => {
-                // Toggle password visibility
                 input.type = input.type === 'password' ? 'text' : 'password';
-
-                // Toggle eye icon
                 iconEye.classList.toggle('ri-eye-fill');
                 iconEye.classList.toggle('ri-eye-off-fill');
             });
         }
     };
 
-    // Apply password visibility toggle
-    passwordAccess('password', 'loginPassword'); // For Login
-    passwordAccess('registerPassword', 'registerEye'); // For Registration
+    passwordAccess('password', 'loginPasswordEye');
+    passwordAccess('password', 'passwordEye');
+    passwordAccess('repeat_password', 'repeatPasswordEye');
 
-    // Function to update the title based on window width
+    // Function to update title on small screens
     const updateTitle = () => {
         const titleElement = document.querySelector('.login__title');
         if (titleElement) {
@@ -40,26 +36,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Run updateTitle on load and on window resize
     window.onload = updateTitle;
     window.onresize = updateTitle;
 
+    // Password validation
+    const passwordInput = document.getElementById('password');
+    const repeatPasswordInput = document.getElementById('repeat_password');
+
+    if (passwordInput) {
+        passwordInput.addEventListener('input', () => {
+            validatePassword(passwordInput);
+            if (repeatPasswordInput) {
+                validateRepeatPassword(repeatPasswordInput, passwordInput);
+            }
+        });
+    }
+
+    if (repeatPasswordInput) {
+        repeatPasswordInput.addEventListener('input', () => {
+            validateRepeatPassword(repeatPasswordInput, passwordInput);
+        });
+    }
 });
 
+// Form validation logic
 const form = document.querySelector('.register');
-const inputs = form.querySelectorAll('input, select');
 
 form.addEventListener('submit', (e) => {
     e.preventDefault();
     if (validateInputs()) {
-        form.submit(); // Submit only if validation passes
+        form.submit();
     } else {
         alert('Please fill out all fields correctly before submitting.');
     }
 });
 
 const setError = (element, message) => {
-    const inputControl = element.parentElement;
+    const inputControl = element.closest('.input-box');
     let errorDisplay = inputControl.querySelector('.error-message');
 
     if (!errorDisplay) {
@@ -74,7 +87,7 @@ const setError = (element, message) => {
 };
 
 const setSuccess = (element) => {
-    const inputControl = element.parentElement;
+    const inputControl = element.closest('.input-box');
     const errorDisplay = inputControl.querySelector('.error-message');
 
     if (errorDisplay) {
@@ -90,56 +103,58 @@ const isValidEmail = (email) => {
     return re.test(String(email).toLowerCase());
 };
 
+// Validate password
+const validatePassword = (passwordInput) => {
+    const value = passwordInput.value.trim();
+
+    if (value.length < 8) {
+        setError(passwordInput, 'Password must be at least 8 characters');
+        return false;
+    }
+
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(value)) {
+        setError(passwordInput, 'Password must contain at least one special character');
+        return false;
+    }
+
+    setSuccess(passwordInput);
+    return true;
+};
+
+const validateRepeatPassword = (repeatPasswordInput, passwordInput) => {
+    if (repeatPasswordInput.value.trim() !== passwordInput.value.trim()) {
+        setError(repeatPasswordInput, 'Passwords do not match');
+        return false;
+    }
+
+    setSuccess(repeatPasswordInput);
+    return true;
+};
+
 const validateInputs = () => {
     let isValid = true;
 
-    inputs.forEach((input) => {
-        const value = input.value.trim();
-        const name = input.name;
+    const emailInput = form.querySelector('input[name="email"]');
+    const passwordInput = form.querySelector('input[name="password"]');
+    const repeatPasswordInput = form.querySelector('input[name="repeat_password"]');
 
-        if (value === '') {
-            setError(input, `${input.previousElementSibling.innerText} is required`);
-            isValid = false;
-        } else {
-            setSuccess(input);
-        }
+    if (!emailInput.value.trim()) {
+        setError(emailInput, 'Email is required');
+        isValid = false;
+    } else if (!isValidEmail(emailInput.value)) {
+        setError(emailInput, 'Provide a valid email address');
+        isValid = false;
+    } else {
+        setSuccess(emailInput);
+    }
 
-        if (name === 'email' && value !== '' && !isValidEmail(value)) {
-            setError(input, 'Provide a valid email address');
-            isValid = false;
-        }
+    if (!passwordInput.value.trim() || !validatePassword(passwordInput)) {
+        isValid = false;
+    }
 
-        if (name === 'password' && value !== '' && value.length < 8) {
-            setError(input, 'Password must be at least 8 characters');
-            isValid = false;
-        }
-    });
-
-    // Validate password and repeat password match
-    const password = form.querySelector('input[name="password"]').value.trim();
-    const repeatPassword = form.querySelector('input[name="repeat_password"]').value.trim();
-
-    if (password !== repeatPassword) {
-        setError(form.querySelector('input[name="repeat_password"]'), 'Passwords do not match');
+    if (!validateRepeatPassword(repeatPasswordInput, passwordInput)) {
         isValid = false;
     }
 
     return isValid;
 };
-
-// Add focus and blur event listeners to inputs
-inputs.forEach((input) => {
-    input.addEventListener('focus', () => {
-        const inputControl = input.parentElement;
-        inputControl.classList.remove('error'); // Reset to default (main) color on focus
-    });
-
-    input.addEventListener('blur', () => {
-        const value = input.value.trim();
-        if (value === '') {
-            setError(input, `${input.previousElementSibling.innerText} is required`);
-        } else {
-            setSuccess(input);
-        }
-    });
-});

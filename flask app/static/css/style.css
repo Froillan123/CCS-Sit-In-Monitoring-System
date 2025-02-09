@@ -112,7 +112,7 @@ img {
 
 
 /* Centering register container */
-/* Centering register container */
+
 .big-container {
   display: flex;
   align-items: center;
@@ -219,9 +219,11 @@ select:disabled {
 .button {
   height: 45px;
   margin: 35px 0;
+  gap: 2rem;
 }
 
-.button input {
+.button input,
+.buttontologin {
   height: 100%;
   width: 100%;
   border-radius: 5px;
@@ -232,8 +234,17 @@ select:disabled {
   cursor: pointer;
   transition: all 0.3s ease;
   background: var(--first-color);
+  text-align: center;
+  padding: 10px 0;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-
+.buttontologin 
+{
+  display: none;
+}
 .button input:hover {
   background: #633877;
 }
@@ -244,6 +255,38 @@ select:disabled {
   margin-top: 5px;
 }
 
+.error-message {
+  color: #ff3860;
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+.input-box.error input,
+.input-box.error select {
+  border-color: #ff3860;
+}
+
+.input-box.success input,
+.input-box.success select {
+  border-color: #09c372;
+}
+
+.password-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-container input {
+  width: 100%;
+  padding-right: 35px;
+}
+
+.password-container i {
+  position: absolute;
+  right: 10px;
+  cursor: pointer;
+}
 .input-box.error input,
 .input-box.error select {
   border-color: #ff3860;
@@ -281,7 +324,7 @@ select:disabled {
   }
 
   .user-details::-webkit-scrollbar-thumb {
-    background-color: #888; /* Color of the scrollbar thumb */
+    background-color: var(--first-color);
     border-radius: 10px; /* Round the edges of the scrollbar thumb */
   }
 
@@ -292,6 +335,7 @@ select:disabled {
   .user-details::-webkit-scrollbar-track {
     background: #f1f1f1; /* Light background for the track */
     border-radius: 10px; /* Round the track edges */
+    margin: 2px;
   }
 
   .user-details::-webkit-scrollbar-track-piece {
@@ -309,12 +353,42 @@ select:disabled {
 {
   .flash-message{
     max-width: 300px;
-    top: -80%;
+    top: -85%;
   }
   .flash-message i
   {
     font-size: 1.7rem;
   }
+  .login-message
+  {
+    display: none;
+  }
+  .buttontologin 
+  {
+    display: block;
+    margin-top: 1rem;
+    background: #ccc;
+    color: #333;
+    font-size: var(--normal-font-size);
+  }
+  .button input 
+  {
+    font-size: var(--normal-font-size);
+  }
+  .login__link
+  {
+    display: none;
+  }
+  @keyframes fadeSlideOut {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}
 }
 
 
@@ -582,6 +656,7 @@ img {
   text-decoration: underline;
 }
 
+
 /* Switch between login/register */
 .login__switch {
   text-align: center;
@@ -606,14 +681,17 @@ img {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
+  }
+  .login__box 
+  {
+    margin-top: 1rem;
   }
 
   .logo-mobile
   {
     display: block;
     margin-top: -11rem;
-    margin-bottom: 1.6rem;
+    margin-bottom: 1rem;
   }
 
   .right-section {
@@ -629,3 +707,9 @@ img {
   }
 }
 
+@media(max-width: 380px)
+{
+  .logo {
+    max-width: 100px;
+  }
+}

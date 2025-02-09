@@ -117,29 +117,4 @@ def delete_record(table: str, **kwargs) -> bool:
     sql = f"DELETE FROM \"{table}\" WHERE \"{keys[0]}\" = %s"
     return postprocess(sql, (values[0],))
 
-def create_tables_if_not_exists():
-    create_tables_sql = """
-    CREATE TABLE IF NOT EXISTS students (
-        id SERIAL PRIMARY KEY,
-        idno INTEGER NOT NULL UNIQUE,
-        lastname VARCHAR(255),
-        firstname VARCHAR(255),
-        midname VARCHAR(255),
-        course VARCHAR(255),
-        year_level INTEGER,
-        email VARCHAR(255) UNIQUE,
-        username VARCHAR(255) UNIQUE,
-        password VARCHAR(255)
-    );
 
-    CREATE TABLE IF NOT EXISTS admin_users (
-        id SERIAL PRIMARY KEY,
-        username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        email TEXT UNIQUE,
-        name TEXT
-    );
-    """
-    return postprocess(create_tables_sql)
-
-create_tables_if_not_exists()
