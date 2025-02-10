@@ -265,10 +265,9 @@ def adminLogout():
 
 @app.route('/logout')
 def logout():
-    if 'username in session':
-        # Check if the logged-in user is an admin
+    if 'username' in session:
         student = get_student_by_username(session['username'])  
-        
+
         if student:  # If the user exists in the students table, allow logout
             session.pop('username', None)  # Logs out the student
             flash("You have been logged out.", 'info')
