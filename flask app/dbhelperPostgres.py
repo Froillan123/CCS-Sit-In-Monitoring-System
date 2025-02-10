@@ -69,6 +69,11 @@ def get_student_by_email(email: str) -> dict:
 def get_user_by_credentials(username: str, password: str) -> dict:
     sql = 'SELECT * FROM students WHERE username = %s AND password = %s'
     user = getprocess(sql, (username, password))
+
+    if user:
+        # Update last_login timestamp
+        update_sql = 'UPDATE students SET last_login = CURRENT_TIMESTAMP WHERE username = %s'
+        postprocess(update_sql, (username,))
     return user[0] if user else None
 
 def get_student_by_username(username: str) -> dict:
@@ -86,15 +91,20 @@ def get_fname_student(firstname: str) -> list:
     students = getprocess(sql, (firstname,))
     return students  # Now returns a list of students
 
-def get_admin_user_by_credentials(username: str, password: str) -> dict:
-    sql = 'SELECT * FROM admin_users WHERE username = %s AND password = %s'
-    admin_user = getprocess(sql, (username, password))
+def get_admin_user_by_credentials(admin_username: str, password: str) -> dict:
+    sql = 'SELECT * FROM admin_users WHERE admin_username = %s AND password = %s'
+    admin_user = getprocess(sql,(admin_username,password))
     return admin_user[0] if admin_user else None
 
-def get_admin_by_username(username: str) -> dict:
-    sql = 'SELECT * FROM admin_users WHERE username = %s'
-    student = getprocess(sql, (username,))
+def get_admin_by_username(admin_username: str) -> dict:
+    sql = 'SELECT * FROM admin_users WHERE admin_username = %s'
+    student = getprocess(sql, (admin_username,))
     return student[0] if student else None
+
+def get_active_users() -> int:
+    sql = 'SELECT COUNT(*) FROM students WHERE last_login IS NOT NULL'
+    result = getprocess(sql)
+    return result[0][0] if result else 0
 
 def add_record(table: str, **kwargs) -> bool:
     keys = list(kwargs.keys())

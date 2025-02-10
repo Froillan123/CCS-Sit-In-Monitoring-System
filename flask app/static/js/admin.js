@@ -39,17 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Disable Right Click (Context Menu)
-document.addEventListener('contextmenu', (e) => {
-    e.preventDefault(); // Prevent right-click menu
-});
-
-// Disable F12/DevTools Shortcuts
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
-        e.preventDefault(); // Disable DevTools shortcuts
-    }
-});
 
 
 
@@ -73,3 +62,50 @@ darkMode.addEventListener('click', () => {
     darkMode.querySelector('span:nth-child(1)').classList.toggle('active');
     darkMode.querySelector('span:nth-child(2)').classList.toggle('active');
 })
+
+function updateUserCount() {
+    fetch('/get_user_count')
+    .then(response => response.json())
+    .then(data => {
+        document.querySelector('.info h1').textContent = data.student_count;
+    });
+}
+
+// Refresh count every 10 seconds
+setInterval(updateUserCount, 10000);
+updateUserCount();
+
+
+const socket = io.connect("http://127.0.0.1:5000");
+
+socket.on("connect", function () {
+    console.log("Connected to WebSocket!");
+});
+
+socket.on("update_active_users", function (activeUsers) {
+    console.log("Active users received:", activeUsers);
+    
+    let activeUsersCountElement = document.querySelector("#activeUsersCount");
+    if (activeUsersCountElement) {
+        activeUsersCountElement.textContent = activeUsers.length;
+    } else {
+        console.error("Element #activeUsersCount not found!");
+    }
+});
+
+function updateActiveUsers() {
+    fetch("/fetch_active_users")
+        .then(response => response.json())
+        .then(data => {
+            let activeUsersCountElement = document.querySelector("#activeUsersCount");
+            if (activeUsersCountElement) {
+                activeUsersCountElement.textContent = data.active_users;
+            } else {
+                console.error("Element #activeUsersCount not found!");
+            }
+        });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    updateActiveUsers();
+});

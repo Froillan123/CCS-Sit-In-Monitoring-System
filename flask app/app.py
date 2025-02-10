@@ -1,18 +1,58 @@
-from flask import Flask, render_template, redirect, url_for, session, request, flash
-from dbhelperPostgres import * 
+from flask import Flask, render_template, redirect, url_for, session, request, flash, jsonify
+from dbhelper import * 
 from flask_caching import Cache
 import redis
+from flask_socketio import SocketIO, emit, join_room, leave_room
+from datetime import datetime, timedelta
+
 
 
 app = Flask(__name__)
 app.config['SESSION_TYPE'] = 'redis'
-app.config['SESSION_PERMANENT'] = False
+app.permanent_session_lifetime = timedelta(hours=1)
 app.config['SESSION_REDIS'] = redis.StrictRedis.from_url('redis://red-cuis0p23esus739lbi20:6379')
 app.config['CACHE_TYPE'] = 'redis'
 app.config['CACHE_REDIS_URL'] = 'redis://red-cuis0p23esus739lbi20:6379'
 app.config['CACHE_DEFAULT_TIMEOUT'] = 300
 
 app.secret_key = '%:%:'
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+active_users_dict = {}  # Dictionary to store active users (username -> session ID)
+
+@socketio.on('connect')
+def handle_connect():
+    if 'username' in session:
+        username = session['username']
+        if not username.startswith('admin-'):  # Exclude admin users
+            sid = request.sid  # Get unique session ID
+            active_users_dict[username] = sid  # Store session ID for each user
+            emit('update_active_users', list(active_users_dict.keys()), broadcast=True)  # Send updates
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    username = None
+    for user, sid in list(active_users_dict.items()):
+        if sid == request.sid:
+            username = user
+            break
+
+    if username:
+        del active_users_dict[username]  # Remove user on disconnect
+        emit('update_active_users', list(active_users_dict.keys()), broadcast=True)
+
+@app.route('/fetch_active_users')
+def fetch_active_users():
+    active_users_count = len(active_users_dict)  
+    total_users = get_count_students()
+
+    percentage_change = round((active_users_count / total_users) * 100, 2) if total_users > 0 else 0
+
+    return jsonify({'active_users': active_users_count, 'percentage_change': percentage_change})
+
+@app.route('/get_active_users')
+def get_active_users():
+    return jsonify(active_users=[user for user in active_users_dict.keys() if not user.startswith('admin-')])
 
 
 @app.after_request
@@ -37,10 +77,15 @@ def login():
         if not username or not password:
             flash("Username and Password are required", 'error')
             return redirect(url_for('login'))
+
         user = get_user_by_credentials(username, password)
 
         if user:
             session['username'] = username  
+
+            # Update last login timestamp
+            update_record('students', id=user['id'], last_login=datetime.now())
+
             flash("Login successful!", 'success')
             return redirect(url_for('student_dashboard')) 
         else:
@@ -134,7 +179,7 @@ def register():
             flash("Registration successful!", 'success')
             return redirect(url_for('login'))
         else:
-            flash("An error occurred during registration. Please try again.", 'error')
+            flash("Registration failed. Try again.", 'error')
 
     return render_template('client/register.html')
 
@@ -168,7 +213,7 @@ def admin_login():
 def admin_register():
     if request.method == 'POST':
         secret_key = request.form.get('secret_key')
-        username = request.form.get('username')
+        admin_username = request.form.get('username')
         password = request.form.get('password')
         email = request.form.get('email')
         name = request.form.get('name')
@@ -177,16 +222,16 @@ def admin_register():
             flash("Unauthorized access!", 'error')
             return render_template('admin/adminregister.html')  
 
-        if not username.startswith("admin-"):
+        if not admin_username.startswith("admin-"):
             flash("Invalid admin username format!", 'error')
             return render_template('admin/adminregister.html')  
 
-        existing_admin = get_admin_by_username(username)
+        existing_admin = get_admin_by_username(admin_username)
         if existing_admin:
             flash("Admin username already exists!", 'error')
             return render_template('admin/adminregister.html')  
 
-        if add_record('admin_users', username=username, password=password, email=email, name=name):
+        if add_record('admin_users', admin_username=admin_username, password=password, email=email, name=name):
             flash("Admin registered successfully!", 'success')
             return redirect(url_for('admin_login')) 
         else:
@@ -206,17 +251,30 @@ def dashboard():
     
     return render_template('admin/dashboard.html', student_count=student_count)
 
+@app.route('/get_user_count')
+def get_user_count():
+    return jsonify(student_count=get_count_students())
+
 @app.route('/adminLogout')
 def adminLogout():
-    session.pop('username', None)
-    flash("You have been logged out", 'info')
+    if 'admin_username' in session:
+        session.pop('admin_username', None)  # Logs out only the admin
+        flash("Admin has been logged out.", 'info')
     return redirect(url_for('admin_login'))
+
 
 @app.route('/logout')
 def logout():
-    session.pop('username', None)  
-    flash("You have been logged out.", 'info')
+    if 'username in session':
+        # Check if the logged-in user is an admin
+        student = get_student_by_username(session['username'])  
+        
+        if student:  # If the user exists in the students table, allow logout
+            session.pop('username', None)  # Logs out the student
+            flash("You have been logged out.", 'info')
+        else:
+            flash("Admins cannot log out here.", 'warning')  # Prevent admin logout
     return redirect(url_for('login'))
 
-if __name__ == '__main__':
-    app.run(debug=True) 
+if __name__ == "__main__":
+    socketio.run(app, debug=True)

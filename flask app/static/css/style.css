@@ -353,11 +353,11 @@ select:disabled {
 {
   .flash-message{
     max-width: 300px;
-    top: -85%;
+    font-size: var(--normal-font-size);
   }
   .flash-message i
   {
-    font-size: 1.7rem;
+    font-size:var(--normal-font-size);
   }
   .login-message
   {
@@ -379,16 +379,7 @@ select:disabled {
   {
     display: none;
   }
-  @keyframes fadeSlideOut {
-    0% {
-        opacity: 1;
-        transform: translateY(0);
-    }
-    100% {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-}
+
 }
 
 

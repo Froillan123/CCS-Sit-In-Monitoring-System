@@ -98,11 +98,11 @@
             <h1>Analytics</h1>
             <!-- Analyses -->
             <div class="analyse">
-                <div class="sales">
+                <div class="all_users">
                     <div class="status">
                         <div class="info">
-                            <h3>Total Sales</h3>
-                            <h1>$65,024</h1>
+                            <h3>All Users</h3>
+                            <h1 id=""></h1>
                         </div>
                         <div class="progresss">
                             <svg>
@@ -112,24 +112,26 @@
                                 <p>+81%</p>
                             </div>
                         </div>
-                    </div>
+                    </div> 
                 </div>
+
                 <div class="visits">
                     <div class="status">
                         <div class="info">
-                            <h3>Site Visit</h3>
-                            <h1>24,981</h1>
+                            <h3>Active Users</h3>
+                            <h1 id="activeUsersCount">0</h1>
                         </div>
                         <div class="progresss">
                             <svg>
                                 <circle cx="38" cy="38" r="36"></circle>
                             </svg>
                             <div class="percentage">
-                                <p>-48%</p>
+                                <p>0%</p> <!-- Will be updated dynamically -->
                             </div>
                         </div>
                     </div>
                 </div>
+
                 <div class="searches">
                     <div class="status">
                         <div class="info">
@@ -291,7 +293,11 @@
 
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+
     <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+
+
 </body>
 
 </html>

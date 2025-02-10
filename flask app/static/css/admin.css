@@ -393,3 +393,16 @@ img{
         justify-self: center;
     }
 }
+
+@media(max-width: 397px)
+{
+  .flash-message{
+    max-width: 300px;
+    font-size: var(--normal-font-size);
+  }
+  .flash-message i
+  {
+    font-size:var(--normal-font-size);
+  }
+}
+
