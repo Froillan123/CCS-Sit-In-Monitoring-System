@@ -41,18 +41,18 @@ def handle_disconnect():
         del active_users_dict[username]  # Remove user on disconnect
         emit('update_active_users', list(active_users_dict.keys()), broadcast=True)
 
-@app.route('/fetch_active_users')
-def fetch_active_users():
-    active_users_count = len(active_users_dict)  
-    total_users = get_count_students()
+@socketio.on('user_login')
+def handle_user_login(username):
+    if not username.startswith('admin-'):  # Exclude admin users
+        sid = request.sid  # Get unique session ID
+        active_users_dict[username] = sid  # Store session ID for each user
+        emit('update_active_users', list(active_users_dict.keys()), broadcast=True)
 
-    percentage_change = round((active_users_count / total_users) * 100, 2) if total_users > 0 else 0
-
-    return jsonify({'active_users': active_users_count, 'percentage_change': percentage_change})
-
-@app.route('/get_active_users')
-def get_active_users():
-    return jsonify(active_users=[user for user in active_users_dict.keys() if not user.startswith('admin-')])
+@socketio.on('user_logout')
+def handle_user_logout(username):
+    if username in active_users_dict:
+        del active_users_dict[username]  # Remove user on logout
+        emit('update_active_users', list(active_users_dict.keys()), broadcast=True)
 
 
 @app.after_request
@@ -70,6 +70,7 @@ def after_request(response):
 @app.route('/', methods=['GET', 'POST'])
 def login():
     pagetitle = "Login"
+    
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
@@ -82,12 +83,19 @@ def login():
 
         if user:
             session['username'] = username  
+            student_id = user['id']
+            lastname = user['lastname']  # Get lastname
+            firstname = user['firstname']  # Get firstname
+            session_token = generate_session_token()
 
-            # Update last login timestamp
-            update_record('students', id=user['id'], last_login=datetime.now())
-
-            flash("Login successful!", 'success')
-            return redirect(url_for('student_dashboard')) 
+            # ✅ Pass lastname and firstname to save_session()
+            if save_session(student_id, session_token, lastname, firstname):
+                socketio.emit('user_login', {'username': username, 'session_token': session_token}, to='/')
+                flash("Login successful!", 'success')
+                return redirect(url_for('student_dashboard'))
+            else:
+                flash("Error saving session", 'error')
+                return redirect(url_for('login'))
         else:
             flash("Invalid username or password", 'error')
             return redirect(url_for('login'))
@@ -265,15 +273,53 @@ def adminLogout():
 
 @app.route('/logout')
 def logout():
-    if 'username' in session:
-        student = get_student_by_username(session['username'])  
+    username = session.get('username')
+    
+    # Fetch student details (modify this function as needed)
+    student = get_student_by_username(username)  # Use existing function
 
-        if student:  # If the user exists in the students table, allow logout
-            session.pop('username', None)  # Logs out the student
-            flash("You have been logged out.", 'info')
-        else:
-            flash("Admins cannot log out here.", 'warning')  # Prevent admin logout
+    if not student:
+        flash("Error: Student not found", 'error')
+        return redirect(url_for('login'))
+
+    student_id = student.get('id')  # Adjust according to your function's return value
+    session.pop('username', None)
+
+    connection = connect_to_db()
+    if not connection:
+        return redirect(url_for('login'))
+
+    timeout = datetime.now()
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE student_sessions 
+                SET timeout = %s 
+                WHERE student_id = %s 
+                AND timeout IS NULL
+                """,
+                (timeout, student_id)
+            )
+            connection.commit()
+
+            # DEBUGGING: Check if the row was actually updated
+            cursor.execute(
+                "SELECT timeout FROM student_sessions WHERE student_id = %s ORDER BY id DESC LIMIT 1", 
+                (student_id,)
+            )
+            result = cursor.fetchone()
+            print(f"Updated timeout: {result[0] if result else 'No update'}")  # Debugging
+
+    except Exception as e:
+        print(f"Error during logout: {e}")
+
+    socketio.emit('user_logout', {'username': username}, to='/')
+    flash("Logout successful", 'info')
     return redirect(url_for('login'))
+
+
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)

@@ -72,10 +72,6 @@ def get_fname_student(firstname: str) -> list:
     students = getprocess(sql, (firstname,))
     return students 
 
-def get_active_users() -> int:
-    sql = 'SELECT COUNT(*) FROM students WHERE last_login IS NOT NULL'
-    result = getprocess(sql)
-    return result[0][0] if result else 0
 
 
 def get_admin_user_by_credentials(admin_username: str, password: str) -> dict:

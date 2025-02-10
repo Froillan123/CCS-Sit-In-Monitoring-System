@@ -80,7 +80,6 @@ const socket = io.connect(window.location.origin, {
     transports: ["websocket", "polling"]
 });
 
-
 socket.on("connect", function () {
     console.log("Connected to WebSocket!");
 });
@@ -94,6 +93,16 @@ socket.on("update_active_users", function (activeUsers) {
     } else {
         console.error("Element #activeUsersCount not found!");
     }
+});
+
+socket.on("user_login", function (username) {
+    console.log("User logged in:", username);
+    updateActiveUsers();
+});
+
+socket.on("user_logout", function (username) {
+    console.log("User logged out:", username);
+    updateActiveUsers();
 });
 
 function updateActiveUsers() {

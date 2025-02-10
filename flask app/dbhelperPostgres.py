@@ -1,6 +1,8 @@
 import psycopg2
 import psycopg2.extras
 from psycopg2 import Error
+import uuid
+from datetime import datetime
 
 database_config = {
     'host': 'dpg-cuinej3qf0us73drhcq0-a.singapore-postgres.render.com',
@@ -69,11 +71,6 @@ def get_student_by_email(email: str) -> dict:
 def get_user_by_credentials(username: str, password: str) -> dict:
     sql = 'SELECT * FROM students WHERE username = %s AND password = %s'
     user = getprocess(sql, (username, password))
-
-    if user:
-        # Update last_login timestamp
-        update_sql = 'UPDATE students SET last_login = CURRENT_TIMESTAMP WHERE username = %s'
-        postprocess(update_sql, (username,))
     return user[0] if user else None
 
 def get_student_by_username(username: str) -> dict:
@@ -101,10 +98,86 @@ def get_admin_by_username(admin_username: str) -> dict:
     student = getprocess(sql, (admin_username,))
     return student[0] if student else None
 
-def get_active_users() -> int:
-    sql = 'SELECT COUNT(*) FROM students WHERE last_login IS NOT NULL'
-    result = getprocess(sql)
-    return result[0][0] if result else 0
+
+
+def generate_session_token():
+    """Generate a unique session token."""
+    return str(uuid.uuid4())
+
+def login_user(student_id, lastname, firstname):
+    """Handles user login, generates a session token, and stores login time with student name."""
+    connection = connect_to_db()
+    if not connection:
+        return None
+
+    token = generate_session_token()
+    login_time = datetime.now()
+    student_name = f"{lastname} {firstname}"  # Concatenate lastname + firstname
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO student_sessions (student_id, session_token, login_time, student_name) 
+                VALUES (%s, %s, %s, %s)
+                """,
+                (student_id, token, login_time, student_name)
+            )
+            connection.commit()
+        return token
+    except Exception as e:
+        print(f"Error during login: {e}")
+        return None
+    finally:
+        connection.close()
+
+def logout_user(student_id, token):
+    """Handles user logout and updates the session timeout time."""
+    connection = connect_to_db()
+    if not connection:
+        return False
+
+    timeout = datetime.now()
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "UPDATE student_sessions SET timeout = %s WHERE student_id = %s AND session_token = %s AND timeout IS NULL",
+                (timeout, student_id, token)
+            )
+            connection.commit()
+        return True
+    except Exception as e:
+        print(f"Error during logout: {e}")
+        return False
+    finally:
+        connection.close()
+
+
+def save_session(student_id, token, lastname, firstname):
+    """Save login session to student_sessions table."""
+    connection = connect_to_db()
+    if not connection:
+        return False
+
+    login_time = datetime.now()
+    student_name = f"{lastname} {firstname}"  # Concatenate lastname + firstname
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO student_sessions (student_id, session_token, login_time, timeout, student_name) VALUES (%s, %s, %s, NULL, %s)",
+                (student_id, token, login_time, student_name)
+            )
+            connection.commit()
+        return True
+    except Exception as e:
+        print(f"Error saving session: {e}")
+        return False
+    finally:
+        connection.close()
+
+
 
 def add_record(table: str, **kwargs) -> bool:
     keys = list(kwargs.keys())
