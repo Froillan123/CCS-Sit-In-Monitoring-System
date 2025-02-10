@@ -76,7 +76,10 @@ setInterval(updateUserCount, 10000);
 updateUserCount();
 
 
-const socket = io.connect("http://127.0.0.1:5000");
+const socket = io.connect(window.location.origin, {
+    transports: ["websocket", "polling"]
+});
+
 
 socket.on("connect", function () {
     console.log("Connected to WebSocket!");
