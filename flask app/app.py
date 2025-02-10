@@ -1,5 +1,5 @@
 from flask import Flask, render_template, redirect, url_for, session, request, flash, jsonify
-from dbhelperPostgres import * 
+from dbhelperRailway import * 
 from flask_caching import Cache
 import redis
 from flask_socketio import SocketIO, emit, join_room, leave_room
@@ -221,7 +221,7 @@ def admin_login():
 def admin_register():
     if request.method == 'POST':
         secret_key = request.form.get('secret_key')
-        admin_username = request.form.get('username')
+        admin_username = request.form.get('admin_username')
         password = request.form.get('password')
         email = request.form.get('email')
         name = request.form.get('name')
