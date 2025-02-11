@@ -50,10 +50,6 @@ def get_student_by_email(email: str) -> dict:
 def get_user_by_credentials(username: str, password: str) -> dict:
     sql = "SELECT * FROM students WHERE username = ? AND password = ?"
     user = getprocess(sql, (username, password))
-
-    if user:
-        update_sql = "UPDATE students SET last_login = ? WHERE username = ?"
-        postprocess(update_sql, (datetime.now(), username))
     return user[0] if user else None
 
 # Retrieve the total count of students

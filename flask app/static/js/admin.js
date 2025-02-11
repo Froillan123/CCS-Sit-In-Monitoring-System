@@ -87,7 +87,7 @@ socket.on('disconnect', function () {
 socket.on('update_active_users', function(activeUsers) {
     console.log("Active users received:", activeUsers);
     
-    // Ensure the element exists before updating
+    // Update the active users count
     let counterElement = document.getElementById('active-users-count');
     if (counterElement) {
         counterElement.textContent = activeUsers.length;

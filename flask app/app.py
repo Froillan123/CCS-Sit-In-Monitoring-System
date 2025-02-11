@@ -1,66 +1,19 @@
 from flask import Flask, render_template, redirect, url_for, session, request, flash, jsonify
-from dbhelper import * 
-from flask_caching import Cache
-from flask_socketio import SocketIO, emit
-import redis
+from dbhelper import *
+from flask_socketio import SocketIO, emit, disconnect
 import os
 
 app = Flask(__name__)
-REDIS_URL = "rediss://red-cuis0p23esus739lbi20:OtiJ6rapHQtFl5QMIVU6YBf9Rko3UW4I@singapore-redis.render.com:6379"
-
-# Configure Flask Session to use Redis
-app.config['SESSION_TYPE'] = 'redis'
-app.config['SESSION_REDIS'] = redis.StrictRedis.from_url(REDIS_URL)
-
-# Configure Flask Caching to use Redis
-app.config['CACHE_TYPE'] = 'redis'
-app.config['CACHE_REDIS_URL'] = REDIS_URL
-app.config['CACHE_DEFAULT_TIMEOUT'] = 300
 
 # Session Configuration
 app.config["SESSION_COOKIE_NAME"] = "main_app_session"
 app.secret_key = os.urandom(24)
 
-# Initialize Redis Client
-redis_client = redis.StrictRedis.from_url(REDIS_URL, decode_responses=True)
-
-cache = Cache(app)
+# Initialize SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-ACTIVE_USERS_KEY = "active_students"
-
-# Shared active users dictionary
+# In-memory dictionary to store active users
 active_users_dict = {}
-
-@socketio.on('connect')
-def handle_connect():
-    if 'user_username' in session:
-        username = session['user_username']
-        if not username.startswith('admin-'):  # Only track students
-            sid = request.sid
-            redis_client.hset(ACTIVE_USERS_KEY, username.encode('utf-8'), sid.encode('utf-8'))  # Store as binary
-            
-            # Emit updated count to all clients
-            emit_active_users()
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    username = None
-    for user, sid in redis_client.hgetall(ACTIVE_USERS_KEY).items():
-        if sid == request.sid.encode('utf-8'):  # Compare binary data
-            username = user
-            break
-
-    if username:
-        redis_client.hdel(ACTIVE_USERS_KEY, username)  # Remove from Redis
-        
-        # Emit updated count to all clients
-        emit_active_users()
-
-def emit_active_users():
-    """ Helper function to emit the active users count """
-    active_users = redis_client.hkeys(ACTIVE_USERS_KEY)  # Get active users (binary keys)
-    emit('update_active_users', active_users, broadcast=True)
 
 @app.after_request
 def after_request(response):
@@ -89,6 +42,10 @@ def login():
         if user:
             session['user_username'] = username
             flash("Login successful!", 'success')
+            
+            # Emit active users after successful login
+            emit_active_users()
+            
             return redirect(url_for('student_dashboard'))
         else:
             flash("Invalid username or password", 'error')
@@ -191,8 +148,12 @@ def logout():
 
     session.pop('user_username', None)  
 
+    # Emit active users after successful logout
+    emit_active_users()
+
     flash("Logout successful", 'info')
     return redirect(url_for('login'))
+
 
 @app.route('/dashboard')
 def dashboard():
@@ -201,9 +162,9 @@ def dashboard():
         flash("You need to login first", 'warning')
         return redirect(url_for('admin_login'))
 
-    # Fetch active students from Redis
-    active_students = redis_client.hkeys(ACTIVE_USERS_KEY)
-    active_students_count = redis_client.hlen(ACTIVE_USERS_KEY) 
+    # Fetch active students from the in-memory dictionary
+    active_students = list(active_users_dict.keys())
+    active_students_count = len(active_students)
 
     student_count = get_count_students()
     return render_template('admin/dashboard.html', student_count=student_count, active_students=active_students, pagetitle=pagetitle)
@@ -271,10 +232,44 @@ def adminLogout():
 
 @app.route('/get_user_count')
 def get_user_count():
-    # Fetch active students from Redis
-    active_students = redis_client.hkeys(ACTIVE_USERS_KEY)
+    # Fetch active students from the in-memory dictionary
+    active_students = list(active_users_dict.keys())
     active_students_count = len(active_students)
     return jsonify(student_count=get_count_students(), active_students_count=active_students_count)
+
+# SocketIO Events
+from flask_socketio import disconnect
+
+@socketio.on('connect')
+def handle_connect():
+    sid = request.sid  # Get the session ID
+    if 'user_username' in session:
+        username = session['user_username']
+        if not username.startswith('admin-'):  # Only track students
+            active_users_dict[username] = sid
+            emit_active_users()
+            print(f"User {username} connected with SID {sid}")  # Debugging
+    else:
+        disconnect()  # Disconnect if user session is missing
+        print("Disconnected user with no session")  # Debugging
+
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    sid = request.sid
+    username = next((user for user, user_sid in active_users_dict.items() if user_sid == sid), None)
+
+    if username:
+        del active_users_dict[username]  # Remove user from active list
+        emit_active_users()
+        print(f"User {username} disconnected with SID {sid}")  # Debugging
+
+
+def emit_active_users():
+    """ Helper function to emit the active users count """
+    active_users = list(active_users_dict.keys())  # Get active users
+    print(f"Emitting active users: {active_users}")  # Debugging
+    socketio.emit('update_active_users', active_users)
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)
