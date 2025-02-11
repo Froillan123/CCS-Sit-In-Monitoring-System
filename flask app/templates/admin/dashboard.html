@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Sharp" rel="stylesheet">
     <link rel='stylesheet' href="{{ url_for('static', filename='css/dashboard.css') }}">
-    <title>Responsive Dashboard Design #1 | AsmrProg</title>
+    <title>Dashboard</title>
 </head>
 
 <body>
@@ -119,7 +119,9 @@
                     <div class="status">
                         <div class="info">
                             <h3>Active Users</h3>
-                            <h1 id="activeUsersCount">0</h1>
+                            <ul id="active-users-list">
+                                <h1 id="active-users-count">{{ active_students_count }}</h1>
+                            </ul>
                         </div>
                         <div class="progresss">
                             <svg>
@@ -294,7 +296,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
-
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 
 

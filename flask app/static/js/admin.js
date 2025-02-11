@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Prevent form fields from retaining values when pressing the back button
     const inputs = document.querySelectorAll('.form__input');
-    
+
     // Clear values and reset form styles when the page loads
     inputs.forEach(input => {
         input.value = ''; // Clear the input field value
@@ -39,10 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-
-
-
-
 const sideMenu = document.querySelector('aside');
 const menuBtn = document.getElementById('menu-btn');
 const closeBtn = document.getElementById('close-btn');
@@ -61,63 +57,41 @@ darkMode.addEventListener('click', () => {
     document.body.classList.toggle('dark-mode-variables');
     darkMode.querySelector('span:nth-child(1)').classList.toggle('active');
     darkMode.querySelector('span:nth-child(2)').classList.toggle('active');
-})
+});
 
 function updateUserCount() {
     fetch('/get_user_count')
-    .then(response => response.json())
-    .then(data => {
-        document.querySelector('.info h1').textContent = data.student_count;
-    });
+        .then(response => response.json())
+        .then(data => {
+            document.querySelector('.info h1').textContent = data.student_count;
+        });
 }
 
 // Refresh count every 10 seconds
 setInterval(updateUserCount, 10000);
 updateUserCount();
 
+const socket = io();
 
-const socket = io.connect(window.location.origin, {
-    transports: ["websocket", "polling"]
+// Log when connected
+socket.on('connect', function () {
+    console.log("Connected to WebSocket server!");
 });
 
-socket.on("connect", function () {
-    console.log("Connected to WebSocket!");
+// Log when disconnected
+socket.on('disconnect', function () {
+    console.log("Disconnected from WebSocket server.");
 });
 
-socket.on("update_active_users", function (activeUsers) {
+// Listen for updates to active users
+socket.on('update_active_users', function(activeUsers) {
     console.log("Active users received:", activeUsers);
     
-    let activeUsersCountElement = document.querySelector("#activeUsersCount");
-    if (activeUsersCountElement) {
-        activeUsersCountElement.textContent = activeUsers.length;
+    // Ensure the element exists before updating
+    let counterElement = document.getElementById('active-users-count');
+    if (counterElement) {
+        counterElement.textContent = activeUsers.length;
     } else {
-        console.error("Element #activeUsersCount not found!");
+        console.error("Element #active-users-count not found!");
     }
-});
-
-socket.on("user_login", function (username) {
-    console.log("User logged in:", username);
-    updateActiveUsers();
-});
-
-socket.on("user_logout", function (username) {
-    console.log("User logged out:", username);
-    updateActiveUsers();
-});
-
-function updateActiveUsers() {
-    fetch("/fetch_active_users")
-        .then(response => response.json())
-        .then(data => {
-            let activeUsersCountElement = document.querySelector("#activeUsersCount");
-            if (activeUsersCountElement) {
-                activeUsersCountElement.textContent = data.active_users;
-            } else {
-                console.error("Element #activeUsersCount not found!");
-            }
-        });
-}
-
-document.addEventListener("DOMContentLoaded", function () {
-    updateActiveUsers();
 });

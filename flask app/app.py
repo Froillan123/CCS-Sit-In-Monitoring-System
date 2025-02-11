@@ -1,76 +1,82 @@
 from flask import Flask, render_template, redirect, url_for, session, request, flash, jsonify
-from dbhelperRailway import * 
+from dbhelper import * 
 from flask_caching import Cache
+from flask_socketio import SocketIO, emit
 import redis
-from flask_socketio import SocketIO, emit, join_room, leave_room
-from datetime import datetime, timedelta
-
-
+import os
 
 app = Flask(__name__)
+REDIS_URL = "rediss://red-cuis0p23esus739lbi20:OtiJ6rapHQtFl5QMIVU6YBf9Rko3UW4I@singapore-redis.render.com:6379"
+
+# Configure Flask Session to use Redis
 app.config['SESSION_TYPE'] = 'redis'
-app.permanent_session_lifetime = timedelta(hours=1)
-app.config['SESSION_REDIS'] = redis.StrictRedis.from_url('redis://red-cuis0p23esus739lbi20:6379')
+app.config['SESSION_REDIS'] = redis.StrictRedis.from_url(REDIS_URL)
+
+# Configure Flask Caching to use Redis
 app.config['CACHE_TYPE'] = 'redis'
-app.config['CACHE_REDIS_URL'] = 'redis://red-cuis0p23esus739lbi20:6379'
+app.config['CACHE_REDIS_URL'] = REDIS_URL
 app.config['CACHE_DEFAULT_TIMEOUT'] = 300
 
-app.secret_key = '%:%:'
+# Session Configuration
+app.config["SESSION_COOKIE_NAME"] = "main_app_session"
+app.secret_key = os.urandom(24)
+
+# Initialize Redis Client
+redis_client = redis.StrictRedis.from_url(REDIS_URL, decode_responses=True)
+redis_client = redis.StrictRedis(host='localhost', port=6379, db=0, decode_responses=False)  # Keep binary
+
+cache = Cache(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-active_users_dict = {}  # Dictionary to store active users (username -> session ID)
+ACTIVE_USERS_KEY = "active_students"
+
+# Shared active users dictionary
+active_users_dict = {}
 
 @socketio.on('connect')
 def handle_connect():
-    if 'username' in session:
-        username = session['username']
-        if not username.startswith('admin-'):  # Exclude admin users
-            sid = request.sid  # Get unique session ID
-            active_users_dict[username] = sid  # Store session ID for each user
-            emit('update_active_users', list(active_users_dict.keys()), broadcast=True)  # Send updates
+    if 'user_username' in session:
+        username = session['user_username']
+        if not username.startswith('admin-'):  # Only track students
+            sid = request.sid
+            redis_client.hset(ACTIVE_USERS_KEY, username.encode('utf-8'), sid.encode('utf-8'))  # Store as binary
+            
+            # Emit updated count to all clients
+            emit_active_users()
 
 @socketio.on('disconnect')
 def handle_disconnect():
     username = None
-    for user, sid in list(active_users_dict.items()):
-        if sid == request.sid:
+    for user, sid in redis_client.hgetall(ACTIVE_USERS_KEY).items():
+        if sid == request.sid.encode('utf-8'):  # Compare binary data
             username = user
             break
 
     if username:
-        del active_users_dict[username]  # Remove user on disconnect
-        emit('update_active_users', list(active_users_dict.keys()), broadcast=True)
+        redis_client.hdel(ACTIVE_USERS_KEY, username)  # Remove from Redis
+        
+        # Emit updated count to all clients
+        emit_active_users()
 
-@socketio.on('user_login')
-def handle_user_login(username):
-    if not username.startswith('admin-'):  # Exclude admin users
-        sid = request.sid  # Get unique session ID
-        active_users_dict[username] = sid  # Store session ID for each user
-        emit('update_active_users', list(active_users_dict.keys()), broadcast=True)
-
-@socketio.on('user_logout')
-def handle_user_logout(username):
-    if username in active_users_dict:
-        del active_users_dict[username]  # Remove user on logout
-        emit('update_active_users', list(active_users_dict.keys()), broadcast=True)
-
+def emit_active_users():
+    """ Helper function to emit the active users count """
+    active_users = redis_client.hkeys(ACTIVE_USERS_KEY)  # Get active users (binary keys)
+    emit('update_active_users', active_users, broadcast=True)
 
 @app.after_request
 def after_request(response):
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '-1'
-    if hasattr(session, 'username') and 'username' not in session:
+    if hasattr(session, 'user_username') and 'user_username' not in session:
         response.headers['Cache-Control'] = 'no-store'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '-1'
     return response
 
-
 @app.route('/', methods=['GET', 'POST'])
 def login():
     pagetitle = "Login"
-    
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
@@ -82,26 +88,14 @@ def login():
         user = get_user_by_credentials(username, password)
 
         if user:
-            session['username'] = username  
-            student_id = user['id']
-            lastname = user['lastname']  # Get lastname
-            firstname = user['firstname']  # Get firstname
-            session_token = generate_session_token()
-
-            # ✅ Pass lastname and firstname to save_session()
-            if save_session(student_id, session_token, lastname, firstname):
-                socketio.emit('user_login', {'username': username, 'session_token': session_token}, to='/')
-                flash("Login successful!", 'success')
-                return redirect(url_for('student_dashboard'))
-            else:
-                flash("Error saving session", 'error')
-                return redirect(url_for('login'))
+            session['user_username'] = username
+            flash("Login successful!", 'success')
+            return redirect(url_for('student_dashboard'))
         else:
             flash("Invalid username or password", 'error')
             return redirect(url_for('login'))
 
     return render_template('client/login.html', pagetitle=pagetitle)
-
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
@@ -129,20 +123,17 @@ def forgot_password():
 
     return render_template('client/forgotpassword.html')
 
-
 @app.route('/student_dashboard')
 def student_dashboard():
     pagetitle = "Student Dashboard"
-    if 'username' not in session:
+    if 'user_username' not in session:
         flash("You need to login first", 'warning')
         return redirect(url_for('login'))
-    student = get_student_by_username(session['username'])
+    student = get_student_by_username(session['user_username'])
     if not student:
         flash("Student not found", 'danger')
         return redirect(url_for('login'))
     return render_template('client/studentdashboard.html', student=student, pagetitle=pagetitle)
-
-
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -191,7 +182,32 @@ def register():
 
     return render_template('client/register.html')
 
+@app.route('/logout')
+def logout():
+    username = session.get('user_username')
 
+    if not username:
+        flash("Error: No user is logged in", 'error')
+        return redirect(url_for('login'))
+
+    session.pop('user_username', None)  
+
+    flash("Logout successful", 'info')
+    return redirect(url_for('login'))
+
+@app.route('/dashboard')
+def dashboard():
+    pagetitle = 'Dashboard'
+    if 'admin_username' not in session:
+        flash("You need to login first", 'warning')
+        return redirect(url_for('admin_login'))
+
+    # Fetch active students from Redis
+    active_students = redis_client.hkeys(ACTIVE_USERS_KEY)
+    active_students_count = redis_client.hlen(ACTIVE_USERS_KEY) 
+
+    student_count = get_count_students()
+    return render_template('admin/dashboard.html', student_count=student_count, active_students=active_students, pagetitle=pagetitle)
 
 @app.route('/admin', methods=['GET', 'POST'])  
 def admin_login():
@@ -202,12 +218,12 @@ def admin_login():
 
         if not username or not password:
             flash("Username and Password are required", 'error')
-            return redirect(url_for('login'))
+            return redirect(url_for('admin_login'))
 
         admin = get_admin_user_by_credentials(username, password)
 
         if admin:
-            session['username'] = username  
+            session['admin_username'] = username  
             flash("Login successful!", 'success')
             return redirect(url_for('dashboard'))  
         else:
@@ -215,7 +231,6 @@ def admin_login():
             return redirect(url_for('admin_login'))
 
     return render_template('admin/adminlogin.html', pagetitle=pagetitle)
-
 
 @app.route('/admin/super-secret-admin-register', methods=['GET', 'POST'])
 def admin_register():
@@ -248,21 +263,6 @@ def admin_register():
     
     return render_template('admin/adminregister.html')
 
-
-@app.route('/dashboard')
-def dashboard():
-    if 'username' not in session:
-        flash("You need to login first", 'warning')
-        return redirect(url_for('admin_login'))
-    
-    student_count = get_count_students()
-    
-    return render_template('admin/dashboard.html', student_count=student_count)
-
-@app.route('/get_user_count')
-def get_user_count():
-    return jsonify(student_count=get_count_students())
-
 @app.route('/adminLogout')
 def adminLogout():
     if 'admin_username' in session:
@@ -270,56 +270,12 @@ def adminLogout():
         flash("Admin has been logged out.", 'info')
     return redirect(url_for('admin_login'))
 
-
-@app.route('/logout')
-def logout():
-    username = session.get('username')
-    
-    # Fetch student details (modify this function as needed)
-    student = get_student_by_username(username)  # Use existing function
-
-    if not student:
-        flash("Error: Student not found", 'error')
-        return redirect(url_for('login'))
-
-    student_id = student.get('id')  # Adjust according to your function's return value
-    session.pop('username', None)
-
-    connection = connect_to_db()
-    if not connection:
-        return redirect(url_for('login'))
-
-    timeout = datetime.now()
-
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                UPDATE student_sessions 
-                SET timeout = %s 
-                WHERE student_id = %s 
-                AND timeout IS NULL
-                """,
-                (timeout, student_id)
-            )
-            connection.commit()
-
-            # DEBUGGING: Check if the row was actually updated
-            cursor.execute(
-                "SELECT timeout FROM student_sessions WHERE student_id = %s ORDER BY id DESC LIMIT 1", 
-                (student_id,)
-            )
-            result = cursor.fetchone()
-            print(f"Updated timeout: {result[0] if result else 'No update'}")  # Debugging
-
-    except Exception as e:
-        print(f"Error during logout: {e}")
-
-    socketio.emit('user_logout', {'username': username}, to='/')
-    flash("Logout successful", 'info')
-    return redirect(url_for('login'))
-
-
+@app.route('/get_user_count')
+def get_user_count():
+    # Fetch active students from Redis
+    active_students = redis_client.hkeys(ACTIVE_USERS_KEY)
+    active_students_count = len(active_students)
+    return jsonify(student_count=get_count_students(), active_students_count=active_students_count)
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)
