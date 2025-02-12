@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
 
 :root{
-    --color-primary: #6C9BCF;
-    --color-danger: #FF0060;
+    --color-primary: hsl(273, 77%, 65%);
+    --color-danger: hsl(273, 77%, 65%);
     --color-success: #1B9C85;
     --color-warning: #F7D060;
     --color-white: #fff;
@@ -11,7 +11,7 @@
     --color-light: rgba(132, 139, 200, 0.18);
     --color-dark-variant: #677483;
     --color-background: #f6f6f9;
-
+    --first-color: hsl(273, 77%, 65%);
     --card-border-radius: 2rem;
     --border-radius-1: 0.4rem;
     --border-radius-2: 1.2rem;
@@ -119,6 +119,11 @@ b{
     margin: 0 auto;
     gap: 1.8rem;
     grid-template-columns: 12rem auto 23rem;
+}
+
+.analytics
+{
+    color: var(--first-color);
 }
 
 aside{

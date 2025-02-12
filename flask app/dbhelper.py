@@ -69,6 +69,12 @@ def get_fname_student(firstname: str) -> list:
     sql = "SELECT * FROM students WHERE firstname = ?"
     return getprocess(sql, (firstname,))
 
+
+def get_username_admin(admin_username: str) -> list:
+    sql = "SELECT * FROM admin_users WHERE admin_username = ?"
+    return getprocess(sql, (admin_username,))
+
+
 # Retrieve an admin user by username and password
 def get_admin_user_by_credentials(admin_username: str, password: str) -> dict:
     sql = "SELECT * FROM admin_users WHERE admin_username = ? AND password = ?"

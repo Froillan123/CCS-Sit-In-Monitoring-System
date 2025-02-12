@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Sharp" rel="stylesheet">
     <link rel='stylesheet' href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/dashboard.png') }}" type="image/x-icon">
     <title>Dashboard</title>
 </head>
 
@@ -102,14 +103,13 @@
                     <div class="status">
                         <div class="info">
                             <h3>All Users</h3>
-                            <h1 id=""></h1>
+                            <h1 class="analytics" id=""></h1>
                         </div>
                         <div class="progresss">
                             <svg>
                                 <circle cx="38" cy="38" r="36"></circle>
                             </svg>
                             <div class="percentage">
-                                <p>+81%</p>
                             </div>
                         </div>
                     </div> 
@@ -119,17 +119,9 @@
                     <div class="status">
                         <div class="info">
                             <h3>Active Users</h3>
-                            <ul id="active-users-list">
-                                <h1 id="active-users-count">{{ active_students_count }}</h1>
-                            </ul>
+                            <h1 class="analytics" id="active-users-count">{{ active_students_count }}</h1>
                         </div>
                         <div class="progresss">
-                            <svg>
-                                <circle cx="38" cy="38" r="36"></circle>
-                            </svg>
-                            <div class="percentage">
-                                <p>0%</p> <!-- Will be updated dynamically -->
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -141,12 +133,6 @@
                             <h1>14,147</h1>
                         </div>
                         <div class="progresss">
-                            <svg>
-                                <circle cx="38" cy="38" r="36"></circle>
-                            </svg>
-                            <div class="percentage">
-                                <p>+21%</p>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -158,24 +144,16 @@
                 <h2>New Users</h2>
                 <div class="user-list">
                     <div class="user">
-                        <img src="images/profile-2.jpg">
-                        <h2>Jack</h2>
-                        <p>54 Min Ago</p>
+                        
                     </div>
                     <div class="user">
-                        <img src="images/profile-3.jpg">
-                        <h2>Amir</h2>
-                        <p>3 Hours Ago</p>
+                     
                     </div>
                     <div class="user">
-                        <img src="images/profile-4.jpg">
-                        <h2>Ember</h2>
-                        <p>6 Hours Ago</p>
+                        
                     </div>
                     <div class="user">
-                        <img src="images/plus.png">
-                        <h2>More</h2>
-                        <p>New User</p>
+                        
                     </div>
                 </div>
             </div>
@@ -222,13 +200,13 @@
 
                 <div class="profile">
                     <div class="info">
-                        <p>Hey, <b> </b></p>
+                        <p>Hey, <b>{{ admin_username }}</b></p> <!-- Display the admin username here -->
                         <small class="text-muted">Admin</small>
                     </div>
                     <div class="profile-photo">
-                        <img src="images/profile-1.jpg">
+                        <img src="{{ url_for('static', filename='images/profile-1.jpg') }}" alt="Profile Image">
                     </div>
-                </div>
+                </div>                
 
             </div>
             <!-- End of Nav -->

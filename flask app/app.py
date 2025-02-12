@@ -1,7 +1,9 @@
-from flask import Flask, render_template, redirect, url_for, session, request, flash, jsonify
+from flask import Flask, render_template, redirect, url_for, session, request, flash, jsonify, Response
 from dbhelper import *
 from flask_socketio import SocketIO, emit, disconnect
 import os
+import time
+import json
 
 app = Flask(__name__)
 
@@ -43,8 +45,9 @@ def login():
             session['user_username'] = username
             flash("Login successful!", 'success')
             
-            # Emit active users after successful login
-            emit_active_users()
+            # Add user to active users dictionary
+            active_users_dict[username] = time.time()  # Track login time
+            notify_active_users_update()
             
             return redirect(url_for('student_dashboard'))
         else:
@@ -52,6 +55,7 @@ def login():
             return redirect(url_for('login'))
 
     return render_template('client/login.html', pagetitle=pagetitle)
+
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
@@ -148,12 +152,36 @@ def logout():
 
     session.pop('user_username', None)  
 
-    # Emit active users after successful logout
-    emit_active_users()
+    # Remove user from active users dictionary
+    if username in active_users_dict:
+        del active_users_dict[username]
+        notify_active_users_update()
 
     flash("Logout successful", 'info')
     return redirect(url_for('login'))
 
+
+@app.route('/sse/active_users')
+def sse_active_users():
+    def event_stream():
+        while True:
+            active_users_count = len(active_users_dict)  # Get the count of active users
+            data = f"data: {json.dumps(active_users_count)}\n\n"  # Send the count as JSON
+            yield data
+            time.sleep(0.5)  # Send updates every 5 seconds
+
+    return Response(event_stream(), mimetype="text/event-stream")
+
+
+def notify_active_users_update():
+    """Notify all connected clients about active users update."""
+    active_users_count = len(active_users_dict)  
+
+def emit_active_users():
+    """Helper function to emit the active users count."""
+    active_users_count = len(active_users_dict)  
+    print(f"Emitting active users count: {active_users_count}") 
+    socketio.emit('update_active_users', active_users_count)
 
 @app.route('/dashboard')
 def dashboard():
@@ -161,13 +189,12 @@ def dashboard():
     if 'admin_username' not in session:
         flash("You need to login first", 'warning')
         return redirect(url_for('admin_login'))
-
-    # Fetch active students from the in-memory dictionary
     active_students = list(active_users_dict.keys())
     active_students_count = len(active_students)
+    admin_username = session['admin_username']
 
     student_count = get_count_students()
-    return render_template('admin/dashboard.html', student_count=student_count, active_students=active_students, pagetitle=pagetitle)
+    return render_template('admin/dashboard.html', student_count=student_count, active_students=active_students,  admin_username=admin_username, pagetitle=pagetitle)
 
 @app.route('/admin', methods=['GET', 'POST'])  
 def admin_login():
@@ -226,43 +253,15 @@ def admin_register():
 @app.route('/adminLogout')
 def adminLogout():
     if 'admin_username' in session:
-        session.pop('admin_username', None)  # Logs out only the admin
+        session.pop('admin_username', None)  
         flash("Admin has been logged out.", 'info')
     return redirect(url_for('admin_login'))
 
 @app.route('/get_user_count')
 def get_user_count():
-    # Fetch active students from the in-memory dictionary
     active_students = list(active_users_dict.keys())
     active_students_count = len(active_students)
     return jsonify(student_count=get_count_students(), active_students_count=active_students_count)
-
-# SocketIO Events
-from flask_socketio import disconnect
-
-@socketio.on('connect')
-def handle_connect():
-    sid = request.sid  # Get the session ID
-    if 'user_username' in session:
-        username = session['user_username']
-        if not username.startswith('admin-'):  # Only track students
-            active_users_dict[username] = sid
-            emit_active_users()
-            print(f"User {username} connected with SID {sid}")  # Debugging
-    else:
-        disconnect()  # Disconnect if user session is missing
-        print("Disconnected user with no session")  # Debugging
-
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    sid = request.sid
-    username = next((user for user, user_sid in active_users_dict.items() if user_sid == sid), None)
-
-    if username:
-        del active_users_dict[username]  # Remove user from active list
-        emit_active_users()
-        print(f"User {username} disconnected with SID {sid}")  # Debugging
 
 
 def emit_active_users():
@@ -272,4 +271,4 @@ def emit_active_users():
     socketio.emit('update_active_users', active_users)
 
 if __name__ == "__main__":
-    socketio.run(app, debug=True)
+    app.run(debug=True)

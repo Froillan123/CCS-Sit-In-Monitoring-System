@@ -71,27 +71,29 @@ function updateUserCount() {
 setInterval(updateUserCount, 10000);
 updateUserCount();
 
-const socket = io();
+const eventSource = new EventSource("/sse/active_users");
 
-// Log when connected
-socket.on('connect', function () {
-    console.log("Connected to WebSocket server!");
-});
+eventSource.onmessage = function (event) {
+    console.log("Received event:", event); // Debugging
+    const activeUsersCount = JSON.parse(event.data); // Parse the count
+    console.log("Active users count received:", activeUsersCount);
 
-// Log when disconnected
-socket.on('disconnect', function () {
-    console.log("Disconnected from WebSocket server.");
-});
-
-// Listen for updates to active users
-socket.on('update_active_users', function(activeUsers) {
-    console.log("Active users received:", activeUsers);
-    
     // Update the active users count
-    let counterElement = document.getElementById('active-users-count');
-    if (counterElement) {
-        counterElement.textContent = activeUsers.length;
-    } else {
-        console.error("Element #active-users-count not found!");
+    const activeUsersCountElement = document.getElementById('active-users-count');
+    if (activeUsersCountElement) {
+        activeUsersCountElement.textContent = activeUsersCount; // Update the count
     }
-});
+
+    // Optionally, you can remove the active users list update if it's no longer needed
+    const activeUsersListElement = document.getElementById('active-users-list');
+    if (activeUsersListElement) {
+        activeUsersListElement.innerHTML = ''; // Clear the list or display the count
+    }
+};
+
+// Handle errors
+eventSource.onerror = function (error) {
+    console.error("SSE error:", error);
+    eventSource.close();
+};
+

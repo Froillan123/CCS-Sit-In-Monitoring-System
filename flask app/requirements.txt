@@ -8,3 +8,4 @@ redis
 flask-caching
 requests
 flask-socketio
+flask-login
