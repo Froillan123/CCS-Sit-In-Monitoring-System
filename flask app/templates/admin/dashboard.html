@@ -10,88 +10,46 @@
     <link rel="icon" href="{{ url_for('static', filename='images/dashboard.png') }}" type="image/x-icon">
     <title>Dashboard</title>
 </head>
-
+<style>
+    
+</style>
 <body>
-
     <div class="container">
         <!-- Sidebar Section -->
         <aside>
             <div class="toggle">
                 <div class="logo">
-                    
                     <h2><span class="danger">Administrator</span></h2>
                 </div>
                 <div class="close" id="close-btn">
-                    <span class="material-icons-sharp">
-                        close
-                    </span>
+                    <span class="material-icons-sharp">close</span>
                 </div>
             </div>
-
+        
             <div class="sidebar">
-                <a href="#">
-                    <span class="material-icons-sharp">
-                        dashboard
-                    </span>
+                <a href="#" class="active">
+                    <span class="material-icons-sharp">dashboard</span>
                     <h3>Dashboard</h3>
                 </a>
                 <a href="#">
-                    <span class="material-icons-sharp">
-                        person_outline
-                    </span>
+                    <span class="material-icons-sharp">person_outline</span>
                     <h3>Users</h3>
                 </a>
                 <a href="#">
-                    <span class="material-icons-sharp">
-                        receipt_long
-                    </span>
+                    <span class="material-icons-sharp">receipt_long</span>
                     <h3>History</h3>
                 </a>
-                <a href="#" class="active">
-                    <span class="material-icons-sharp">
-                        insights
-                    </span>
-                    <h3>Analytics</h3>
-                </a>
                 <a href="#">
-                    <span class="material-icons-sharp">
-                        mail_outline
-                    </span>
-                    <h3>Tickets</h3>
-                    <span class="message-count">27</span>
-                </a>
-                <a href="#">
-                    <span class="material-icons-sharp">
-                        inventory
-                    </span>
-                    <h3>Sale List</h3>
-                </a>
-                <a href="#">
-                    <span class="material-icons-sharp">
-                        report_gmailerrorred
-                    </span>
-                    <h3>Reports</h3>
-                </a>
-                <a href="#">
-                    <span class="material-icons-sharp">
-                        settings
-                    </span>
+                    <span class="material-icons-sharp">settings</span>
                     <h3>Settings</h3>
                 </a>
-                <a href="#">
-                    <span class="material-icons-sharp">
-                        add
-                    </span>
-                    <h3>New Login</h3>
-                </a>
                 <a href="{{ url_for('adminLogout') }}">
-                    <span class="material-icons-sharp">
-                        logout
-                    </span>
+                    <span class="material-icons-sharp">logout</span>
                     <h3>Logout</h3>
                 </a>
             </div>
         </aside>
+        
         <!-- End of Sidebar Section -->
 
         <!-- Main Content -->
@@ -129,8 +87,8 @@
                 <div class="searches">
                     <div class="status">
                         <div class="info">
-                            <h3>Searches</h3>
-                            <h1>14,147</h1>
+                            <h3>All Laboratories</h3>
+                            <h1 class="analytics">{{ laboratories }}</h1>
                         </div>
                         <div class="progresss">
                         </div>
@@ -141,7 +99,7 @@
 
             <!-- New Users Section -->
             <div class="new-users">
-                <h2>New Users</h2>
+                <h2>Student Sit in Monitoring</h2>
                 <div class="user-list">
                     <div class="user">
                         
@@ -213,23 +171,23 @@
 
             <div class="reminders">
                 <div class="header">
-                    <h2>Reminders</h2>
+                    <h2>System Notifications</h2>
                     <span class="material-icons-sharp">
                         notifications_none
                     </span>
                 </div>
-
+            
                 <div class="notification">
                     <div class="icon">
                         <span class="material-icons-sharp">
-                            volume_up
+                            schedule
                         </span>
                     </div>
                     <div class="content">
                         <div class="info">
-                            <h3>Workshop</h3>
+                            <h3>Upcoming Lab Schedule</h3>
                             <small class="text_muted">
-                                08:00 AM - 12:00 PM
+                                Lab 203 - 10:00 AM - 12:00 PM
                             </small>
                         </div>
                         <span class="material-icons-sharp">
@@ -237,18 +195,18 @@
                         </span>
                     </div>
                 </div>
-
-                <div class="notification deactive">
+            
+                <div class="notification">
                     <div class="icon">
                         <span class="material-icons-sharp">
-                            edit
+                            warning
                         </span>
                     </div>
                     <div class="content">
                         <div class="info">
-                            <h3>Workshop</h3>
+                            <h3>Security Alert</h3>
                             <small class="text_muted">
-                                08:00 AM - 12:00 PM
+                                Multiple failed login attempts detected.
                             </small>
                         </div>
                         <span class="material-icons-sharp">
@@ -256,20 +214,55 @@
                         </span>
                     </div>
                 </div>
-
+            
+                <div class="notification">
+                    <div class="icon">
+                        <span class="material-icons-sharp">
+                            error
+                        </span>
+                    </div>
+                    <div class="content">
+                        <div class="info">
+                            <h3>System Maintenance</h3>
+                            <small class="text_muted">
+                                Scheduled downtime at 11:00 PM for updates.
+                            </small>
+                        </div>
+                        <span class="material-icons-sharp">
+                            more_vert
+                        </span>
+                    </div>
+                </div>
+            
+                <div class="notification">
+                    <div class="icon">
+                        <span class="material-icons-sharp">
+                            check_circle
+                        </span>
+                    </div>
+                    <div class="content">
+                        <div class="info">
+                            <h3>Task Completed</h3>
+                            <small class="text_muted">
+                                System backup was successfully completed.
+                            </small>
+                        </div>
+                        <span class="material-icons-sharp">
+                            more_vert
+                        </span>
+                    </div>
+                </div>
+            
                 <div class="notification add-reminder">
                     <div>
                         <span class="material-icons-sharp">
                             add
                         </span>
-                        <h3>Add Reminder</h3>
+                        <h3>Add Notification</h3>
                     </div>
                 </div>
-
             </div>
-
-        </div>
-
+            
 
     </div>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>

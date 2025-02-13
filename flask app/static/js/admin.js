@@ -1,15 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Prevent form fields from retaining values when pressing the back button
     const inputs = document.querySelectorAll('.form__input');
 
-    // Clear values and reset form styles when the page loads
     inputs.forEach(input => {
-        input.value = ''; // Clear the input field value
+        input.value = '';
         let parent = input.parentNode.parentNode;
-        parent.classList.remove("focus"); // Ensure the label isn't floating
+        parent.classList.remove("focus");
     });
 
-    // Handling Flash Messages
     const flashMessages = document.querySelectorAll('.flash-message');
     flashMessages.forEach((flashMessage) => {
         setTimeout(() => {
@@ -20,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Focus and blur handlers for form inputs
     function addfocus() {
         let parent = this.parentNode.parentNode;
         parent.classList.add("focus");
@@ -43,7 +39,7 @@ const sideMenu = document.querySelector('aside');
 const menuBtn = document.getElementById('menu-btn');
 const closeBtn = document.getElementById('close-btn');
 
-const darkMode = document.querySelector('.dark-mode');
+
 
 menuBtn.addEventListener('click', () => {
     sideMenu.style.display = 'block';
@@ -53,10 +49,37 @@ closeBtn.addEventListener('click', () => {
     sideMenu.style.display = 'none';
 });
 
+
+const darkMode = document.querySelector('.dark-mode');
+
+function applyDarkModePreference() {
+    const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
+
+    if (isDarkMode) {
+        document.body.classList.add('dark-mode-variables');
+        darkMode.querySelector('span:nth-child(1)').classList.remove('active');
+        darkMode.querySelector('span:nth-child(2)').classList.add('active');
+    } else {
+        document.body.classList.remove('dark-mode-variables');
+        darkMode.querySelector('span:nth-child(1)').classList.add('active');
+        darkMode.querySelector('span:nth-child(2)').classList.remove('active');
+    }
+}
+
+applyDarkModePreference();
+
 darkMode.addEventListener('click', () => {
-    document.body.classList.toggle('dark-mode-variables');
-    darkMode.querySelector('span:nth-child(1)').classList.toggle('active');
-    darkMode.querySelector('span:nth-child(2)').classList.toggle('active');
+    const isDarkMode = document.body.classList.toggle('dark-mode-variables');
+
+    if (isDarkMode) {
+        localStorage.setItem('darkMode', 'enabled');
+        darkMode.querySelector('span:nth-child(1)').classList.remove('active');
+        darkMode.querySelector('span:nth-child(2)').classList.add('active');
+    } else {
+        localStorage.setItem('darkMode', 'disabled');
+        darkMode.querySelector('span:nth-child(1)').classList.add('active');
+        darkMode.querySelector('span:nth-child(2)').classList.remove('active');
+    }
 });
 
 function updateUserCount() {
@@ -67,33 +90,25 @@ function updateUserCount() {
         });
 }
 
-// Refresh count every 10 seconds
 setInterval(updateUserCount, 10000);
 updateUserCount();
 
 const eventSource = new EventSource("/sse/active_users");
 
 eventSource.onmessage = function (event) {
-    console.log("Received event:", event); // Debugging
-    const activeUsersCount = JSON.parse(event.data); // Parse the count
-    console.log("Active users count received:", activeUsersCount);
-
-    // Update the active users count
+    const activeUsersCount = JSON.parse(event.data);
     const activeUsersCountElement = document.getElementById('active-users-count');
+
     if (activeUsersCountElement) {
-        activeUsersCountElement.textContent = activeUsersCount; // Update the count
+        activeUsersCountElement.textContent = activeUsersCount;
     }
 
-    // Optionally, you can remove the active users list update if it's no longer needed
     const activeUsersListElement = document.getElementById('active-users-list');
     if (activeUsersListElement) {
-        activeUsersListElement.innerHTML = ''; // Clear the list or display the count
+        activeUsersListElement.innerHTML = '';
     }
 };
 
-// Handle errors
-eventSource.onerror = function (error) {
-    console.error("SSE error:", error);
+eventSource.onerror = function () {
     eventSource.close();
 };
-

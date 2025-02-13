@@ -58,6 +58,13 @@ def get_count_students() -> int:
     result = getprocess(sql)
     return result[0]["COUNT(*)"] if result else 0
 
+# Retrieve the total count of laboratories
+def get_count_laboratories() -> int:
+    sql = "SELECT COUNT(*) FROM laboratories"
+    result = getprocess(sql)
+    return result[0]["COUNT(*)"] if result else 0
+
+
 # Retrieve a student by username
 def get_student_by_username(username: str) -> dict:
     sql = "SELECT * FROM students WHERE username = ?"
@@ -73,6 +80,13 @@ def get_fname_student(firstname: str) -> list:
 def get_username_admin(admin_username: str) -> list:
     sql = "SELECT * FROM admin_users WHERE admin_username = ?"
     return getprocess(sql, (admin_username,))
+
+def get_firstname_admin(admin_username: str) -> str:
+    sql = "SELECT admin_firstname FROM admin_users WHERE admin_username = ?"
+    result = getprocess(sql, (admin_username,))
+    if result:
+        return result[0]['admin_firstname']  # Return the first name
+    return None
 
 
 # Retrieve an admin user by username and password

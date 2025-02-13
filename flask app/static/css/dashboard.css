@@ -3,7 +3,7 @@
 :root{
     --color-primary: hsl(273, 77%, 65%);
     --color-danger: hsl(273, 77%, 65%);
-    --color-success: #1B9C85;
+    --color-success: hsl(273, 77%, 65%);
     --color-warning: #F7D060;
     --color-white: #fff;
     --color-info-dark: #7d8da1;

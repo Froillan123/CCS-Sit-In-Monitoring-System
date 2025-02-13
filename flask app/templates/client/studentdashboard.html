@@ -2,51 +2,202 @@
 
 {% block content %}
 
-<!-- Container for the welcome message and the log out button -->
-<div class="dashboard-container">
-  <!-- Welcome Message -->
-  <div class="welcome-message">
-    <h1>Welcome, {{ student.firstname }}!</h1>
-    <p>We're glad to have you back on your student dashboard.</p>
+<!-- Dashboard Container -->
+<div class="dashboard-wrapper">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <!-- Profile Section -->
+    <div class="profile-section">
+      <div class="profile-image">
+        <img src="https://via.placeholder.com/100" alt="Profile Picture" />
+      </div>
+      <div class="profile-info">
+        <h3>{{ student.firstname }} {{ student.lastname }}</h3>
+        <p>Student</p>
+      </div>
+    </div>
+
+    <!-- Sidebar Links -->
+    <div class="sidebar-links">
+      <a href="#" class="active">Dashboard</a>
+      <a href="#">Profile</a>
+      <a href="#">Announcements</a>
+      <a href="#">Rules</a>
+      <a href="#">Lab Rules</a>
+      <a href="#">History</a>
+      <a href="#">Reservations</a>
+      <a href="#">Laboratories</a>
+    </div>
   </div>
 
-  <!-- Log Out Button Section -->
-  <div class="button-container">
-    <a href="{{ url_for('logout') }}">
-      <button type="button" class="btn btn-danger">Log Out</button>
-    </a>
+  <!-- Main Content -->
+  <div class="dashboard-container">
+    <!-- Welcome Message and Log Out Button -->
+    <div class="dashboard-header">
+      <div class="welcome-message">
+        <h1>Welcome, {{ student.firstname }}!</h1>
+        <p>We're glad to have you back on your student dashboard.</p>
+      </div>
+      <div class="button-container">
+        <a href="{{ url_for('logout') }}">
+          <button type="button" class="btn btn-danger">Log Out</button>
+        </a>
+      </div>
+    </div>
+
+    <!-- Rules Section -->
+    <div class="rules-section">
+      <h2>Rules</h2>
+      <p>Please adhere to the following rules while using the laboratories:</p>
+      <ul>
+        <li>Always wear proper lab attire.</li>
+        <li>Do not bring food or drinks into the lab.</li>
+        <li>Follow the instructions of the lab supervisor.</li>
+        <li>Report any equipment malfunctions immediately.</li>
+      </ul>
+    </div>
+
+    <!-- Laboratories Section -->
+    <div class="laboratories-section">
+      <h2>Laboratories</h2>
+      <div class="laboratory-grid">
+        <a href="#" class="laboratory-card">
+          <h3>Lab 1</h3>
+          <p>Chemistry Lab</p>
+        </a>
+        <a href="#" class="laboratory-card">
+          <h3>Lab 2</h3>
+          <p>Physics Lab</p>
+        </a>
+        <a href="#" class="laboratory-card">
+          <h3>Lab 3</h3>
+          <p>Biology Lab</p>
+        </a>
+        <a href="#" class="laboratory-card">
+          <h3>Lab 4</h3>
+          <p>Computer Lab</p>
+        </a>
+        <a href="#" class="laboratory-card">
+          <h3>Lab 5</h3>
+          <p>Engineering Lab</p>
+        </a>
+        <a href="#" class="laboratory-card">
+          <h3>Lab 6</h3>
+          <p>Research Lab</p>
+        </a>
+      </div>
+    </div>
   </div>
 </div>
 
 <!-- Internal CSS -->
 <style>
+  /* General Styles */
+  :root {
+    --first-color: hsl(273, 77%, 65%);
+    --first-color-dark: hsl(273, 77%, 55%);
+    --text-color: #333;
+    --background-color: #f8f9fa;
+    --sidebar-color: hsl(240, 20%, 15%);
+    --sidebar-text-color: #bdc3c7;
+    --card-background: #fff;
+    --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--background-color);
+  }
+
+  .dashboard-wrapper {
+    display: flex;
+  }
+
+  /* Sidebar Styles */
+  .sidebar {
+    width: 250px;
+    background-color: var(--sidebar-color);
+    color: var(--sidebar-text-color);
+    padding: 20px;
+    height: 100vh;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  }
+
+  .profile-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-image img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 3px solid var(--first-color);
+  display: block;
+}
+
+
+  .profile-info h3 {
+    margin: 10px 0 5px;
+    font-size: 18px;
+    color: #fff;
+  }
+
+  .profile-info p {
+    font-size: 14px;
+    color: var(--sidebar-text-color);
+  }
+
+  .sidebar-links {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-links a {
+    color: var(--sidebar-text-color);
+    text-decoration: none;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  .sidebar-links a.active,
+  .sidebar-links a:hover {
+    background-color: var(--first-color);
+    color: #fff;
+  }
+
+  /* Dashboard Container Styles */
   .dashboard-container {
-    background-color: #f4f4f9;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    max-width: 600px;
-    margin: 0 auto;
-    text-align: center;
+    flex: 1;
+    padding: 20px;
+    background-color: var(--card-background);
+  }
+
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
   }
 
   .welcome-message h1 {
     font-size: 32px;
-    color: #333;
+    color: var(--text-color);
     margin-bottom: 10px;
   }
 
   .welcome-message p {
     font-size: 16px;
     color: #666;
-    margin-bottom: 30px;
   }
 
-  .button-container {
-    text-align: center;
-  }
-
-  .btn-danger {
+  .button-container .btn-danger {
     background-color: #e74c3c;
     color: white;
     border: none;
@@ -57,8 +208,101 @@
     transition: background-color 0.3s ease;
   }
 
-  .btn-danger:hover {
+  .button-container .btn-danger:hover {
     background-color: #c0392b;
+  }
+
+  /* Rules Section */
+  .rules-section {
+    background-color: var(--background-color);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    box-shadow: var(--card-shadow);
+  }
+
+  .rules-section h2 {
+    font-size: 24px;
+    color: var(--text-color);
+    margin-bottom: 15px;
+  }
+
+  .rules-section ul {
+    list-style-type: disc;
+    padding-left: 20px;
+  }
+
+  .rules-section li {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 10px;
+  }
+
+  /* Laboratories Section */
+  .laboratories-section h2 {
+    font-size: 24px;
+    color: var(--text-color);
+    margin-bottom: 20px;
+  }
+
+  .laboratory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+  }
+
+  .laboratory-card {
+    background-color: var(--first-color);
+    color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    text-decoration: none;
+    transition: transform 0.3s ease, background-color 0.3s ease;
+  }
+
+  .laboratory-card:hover {
+    transform: translateY(-5px);
+    background-color: var(--first-color-dark);
+  }
+
+  .laboratory-card h3 {
+    font-size: 20px;
+    margin-bottom: 10px;
+  }
+
+  .laboratory-card p {
+    font-size: 14px;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .dashboard-wrapper {
+      flex-direction: column;
+    }
+
+    .sidebar {
+      width: 100%;
+      height: auto;
+      padding: 10px;
+    }
+
+    .dashboard-container {
+      padding: 10px;
+    }
+
+    .dashboard-header {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .button-container {
+      margin-top: 20px;
+    }
+
+    .laboratory-grid {
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
   }
 </style>
 

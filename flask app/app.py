@@ -7,6 +7,7 @@ import json
 
 app = Flask(__name__)
 
+
 # Session Configuration
 app.config["SESSION_COOKIE_NAME"] = "main_app_session"
 app.secret_key = os.urandom(24)
@@ -165,12 +166,15 @@ def logout():
 def sse_active_users():
     def event_stream():
         while True:
-            active_users_count = len(active_users_dict)  # Get the count of active users
-            data = f"data: {json.dumps(active_users_count)}\n\n"  # Send the count as JSON
-            yield data
-            time.sleep(0.5)  # Send updates every 5 seconds
+            yield f"data: {json.dumps(len(active_users_dict))}\n\n"
+            time.sleep(0.1)
 
-    return Response(event_stream(), mimetype="text/event-stream")
+    response = Response(event_stream(), mimetype="text/event-stream")
+    response.headers["X-Accel-Buffering"] = "no"  # Disable buffering
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["Connection"] = "keep-alive"
+    return response
+
 
 
 def notify_active_users_update():
@@ -190,11 +194,11 @@ def dashboard():
         flash("You need to login first", 'warning')
         return redirect(url_for('admin_login'))
     active_students = list(active_users_dict.keys())
-    active_students_count = len(active_students)
     admin_username = session['admin_username']
+    laboratories = get_count_laboratories()
 
     student_count = get_count_students()
-    return render_template('admin/dashboard.html', student_count=student_count, active_students=active_students,  admin_username=admin_username, pagetitle=pagetitle)
+    return render_template('admin/dashboard.html', student_count=student_count, active_students=active_students, laboratories=laboratories,  admin_username=admin_username, pagetitle=pagetitle)
 
 @app.route('/admin', methods=['GET', 'POST'])  
 def admin_login():
@@ -228,26 +232,40 @@ def admin_register():
         email = request.form.get('email')
         name = request.form.get('name')
 
+        # Validate secret key
         if secret_key != "kimperor123":
             flash("Unauthorized access!", 'error')
-            return render_template('admin/adminregister.html')  
+            return render_template('admin/adminregister.html')
 
+        # Validate admin username format
         if not admin_username.startswith("admin-"):
             flash("Invalid admin username format!", 'error')
-            return render_template('admin/adminregister.html')  
+            return render_template('admin/adminregister.html')
 
+        # Check if admin username already exists
         existing_admin = get_admin_by_username(admin_username)
         if existing_admin:
             flash("Admin username already exists!", 'error')
-            return render_template('admin/adminregister.html')  
+            return render_template('admin/adminregister.html')
 
-        if add_record('admin_users', admin_username=admin_username, password=password, email=email, name=name):
+        # Split the full name into first name and last name
+        name_parts = name.strip().split(maxsplit=1)  # Split into 2 parts
+        admin_firstname = name_parts[0] if len(name_parts) > 0 else ""
+        admin_lastname = name_parts[1] if len(name_parts) > 1 else ""
+
+        # Add the new admin to the database
+        if add_record('admin_users', 
+                      admin_username=admin_username, 
+                      password=password, 
+                      email=email, 
+                      admin_firstname=admin_firstname, 
+                      admin_lastname=admin_lastname):
             flash("Admin registered successfully!", 'success')
-            return redirect(url_for('admin_login')) 
+            return redirect(url_for('admin_login'))
         else:
             flash("Error registering admin. Please try again.", 'error')
-            return render_template('admin/adminregister.html') 
-    
+            return render_template('admin/adminregister.html')
+
     return render_template('admin/adminregister.html')
 
 @app.route('/adminLogout')
@@ -263,11 +281,10 @@ def get_user_count():
     active_students_count = len(active_students)
     return jsonify(student_count=get_count_students(), active_students_count=active_students_count)
 
-
 def emit_active_users():
     """ Helper function to emit the active users count """
-    active_users = list(active_users_dict.keys())  # Get active users
-    print(f"Emitting active users: {active_users}")  # Debugging
+    active_users = list(active_users_dict.keys()) 
+    print(f"Emitting active users: {active_users}") 
     socketio.emit('update_active_users', active_users)
 
 if __name__ == "__main__":

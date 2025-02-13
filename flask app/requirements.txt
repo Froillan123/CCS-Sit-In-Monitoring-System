@@ -9,3 +9,4 @@ flask-caching
 requests
 flask-socketio
 flask-login
+flask-session
