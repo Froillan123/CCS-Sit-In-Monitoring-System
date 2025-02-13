@@ -9,25 +9,22 @@
     <!-- Profile Section -->
     <div class="profile-section">
       <div class="profile-image">
-        <img src="https://via.placeholder.com/100" alt="Profile Picture" />
+        <img src="{{ url_for('static', filename='images/default.png') }}" alt="Profile Picture" />
       </div>
       <div class="profile-info">
         <h3>{{ student.firstname }} {{ student.lastname }}</h3>
-        <p>Student</p>
       </div>
     </div>
 
     <!-- Sidebar Links -->
     <div class="sidebar-links">
-      <a href="#" class="active">Dashboard</a>
-      <a href="#">Profile</a>
-      <a href="#">Announcements</a>
-      <a href="#">Rules</a>
-      <a href="#">Lab Rules</a>
-      <a href="#">History</a>
-      <a href="#">Reservations</a>
-      <a href="#">Laboratories</a>
-      
+      <a href="#" data-section="dashboard">Dashboard</a>
+      <a href="#" data-section="profile">Profile</a>
+      <a href="#" data-section="announcements">Announcements</a>
+      <a href="#" data-section="lab-rules">Lab Rules</a>
+      <a href="#" data-section="history">History</a>
+      <a href="#" data-section="reservations">Reservations</a>
+      <a href="#" data-section="laboratories">Laboratories</a>
     </div>
     <div class="button-container" style="margin-top: 4rem;">
       <a href="{{ url_for('logout') }}">
@@ -39,54 +36,92 @@
   <!-- Main Content -->
   <div class="dashboard-container">
     <!-- Welcome Message and Log Out Button -->
-    <div class="dashboard-header">
-      <div class="welcome-message">
-        <h1>Welcome, {{ student.firstname }}!</h1>
-        <p>We're glad to have you back on your student dashboard.</p>
+    <div id="dashboard" class="dashboard-section">
+      <div class="dashboard-header">
+        <div class="welcome-message">
+          <h1>Welcome, {{ student.firstname }}!</h1>
+          <p>We're glad to have you back on your student dashboard.</p>
+        </div>
+      </div>
+
+      <!-- Rules Section -->
+      <div class="rules-section">
+        <h2>Rules</h2>
+        <p>Please adhere to the following rules while using the laboratories:</p>
+        <ul>
+          <li>Always wear proper lab attire.</li>
+          <li>Do not bring food or drinks into the lab.</li>
+          <li>Follow the instructions of the lab supervisor.</li>
+          <li>Report any equipment malfunctions immediately.</li>
+        </ul>
+      </div>
+
+      <!-- Laboratories Section -->
+      <div class="laboratories-section">
+        <h2>Laboratories</h2>
+        <div class="laboratory-grid">
+          <a href="#" class="laboratory-card">
+            <h3>Lab 1</h3>
+            <p>Chemistry Lab</p>
+          </a>
+          <a href="#" class="laboratory-card">
+            <h3>Lab 2</h3>
+            <p>Physics Lab</p>
+          </a>
+          <a href="#" class="laboratory-card">
+            <h3>Lab 3</h3>
+            <p>Biology Lab</p>
+          </a>
+          <a href="#" class="laboratory-card">
+            <h3>Lab 4</h3>
+            <p>Computer Lab</p>
+          </a>
+          <a href="#" class="laboratory-card">
+            <h3>Lab 5</h3>
+            <p>Engineering Lab</p>
+          </a>
+          <a href="#" class="laboratory-card">
+            <h3>Lab 6</h3>
+            <p>Research Lab</p>
+          </a>
+        </div>
       </div>
     </div>
 
-    <!-- Rules Section -->
-    <div class="rules-section">
-      <h2>Rules</h2>
-      <p>Please adhere to the following rules while using the laboratories:</p>
-      <ul>
-        <li>Always wear proper lab attire.</li>
-        <li>Do not bring food or drinks into the lab.</li>
-        <li>Follow the instructions of the lab supervisor.</li>
-        <li>Report any equipment malfunctions immediately.</li>
-      </ul>
+    <!-- Profile Section -->
+    <div id="profile" class="dashboard-section" style="display: none;">
+      <h1>Profile</h1>
+      <p>This is the profile section. You can display user details here.</p>
+    </div>
+
+    <!-- Announcements Section -->
+    <div id="announcements" class="dashboard-section" style="display: none;">
+      <h1>Announcements</h1>
+      <p>This is the announcements section. You can display announcements here.</p>
+    </div>
+
+    <!-- Lab Rules Section -->
+    <div id="lab-rules" class="dashboard-section" style="display: none;">
+      <h1>Lab Rules</h1>
+      <p>This is the lab rules section. You can display lab rules here.</p>
+    </div>
+
+    <!-- History Section -->
+    <div id="history" class="dashboard-section" style="display: none;">
+      <h1>History</h1>
+      <p>This is the history section. You can display user history here.</p>
+    </div>
+
+    <!-- Reservations Section -->
+    <div id="reservations" class="dashboard-section" style="display: none;">
+      <h1>Reservations</h1>
+      <p>This is the reservations section. You can display reservations here.</p>
     </div>
 
     <!-- Laboratories Section -->
-    <div class="laboratories-section">
-      <h2>Laboratories</h2>
-      <div class="laboratory-grid">
-        <a href="#" class="laboratory-card">
-          <h3>Lab 1</h3>
-          <p>Chemistry Lab</p>
-        </a>
-        <a href="#" class="laboratory-card">
-          <h3>Lab 2</h3>
-          <p>Physics Lab</p>
-        </a>
-        <a href="#" class="laboratory-card">
-          <h3>Lab 3</h3>
-          <p>Biology Lab</p>
-        </a>
-        <a href="#" class="laboratory-card">
-          <h3>Lab 4</h3>
-          <p>Computer Lab</p>
-        </a>
-        <a href="#" class="laboratory-card">
-          <h3>Lab 5</h3>
-          <p>Engineering Lab</p>
-        </a>
-        <a href="#" class="laboratory-card">
-          <h3>Lab 6</h3>
-          <p>Research Lab</p>
-        </a>
-      </div>
+    <div id="laboratories" class="dashboard-section" style="display: none;">
+      <h1>Laboratories</h1>
+      <p>This is the laboratories section. You can display laboratory details here.</p>
     </div>
   </div>
 </div>
@@ -127,30 +162,24 @@
   }
 
   .profile-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
 
-.profile-image img {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  border: 3px solid var(--first-color);
-  display: block;
-}
-
+  .profile-image img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 3px solid var(--first-color);
+    display: block;
+  }
 
   .profile-info h3 {
     margin: 10px 0 5px;
     font-size: 18px;
     color: #fff;
-  }
-
-  .profile-info p {
-    font-size: 14px;
-    color: var(--sidebar-text-color);
   }
 
   .sidebar-links {
@@ -306,5 +335,53 @@
     }
   }
 </style>
+
+<!-- JavaScript for Section Toggling -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const links = document.querySelectorAll('.sidebar-links a');
+    const sections = document.querySelectorAll('.dashboard-section');
+
+    // Function to show the selected section and hide others
+    function showSection(sectionId) {
+      sections.forEach(section => {
+        if (section.id === sectionId) {
+          section.style.display = 'block';
+        } else {
+          section.style.display = 'none';
+        }
+      });
+
+      // Save the active section to localStorage
+      localStorage.setItem('activeSection', sectionId);
+    }
+
+    // Function to set the active link
+    function setActiveLink(sectionId) {
+      links.forEach(link => {
+        if (link.getAttribute('data-section') === sectionId) {
+          link.classList.add('active');
+        } else {
+          link.classList.remove('active');
+        }
+      });
+    }
+
+    // Load the active section from localStorage
+    const activeSection = localStorage.getItem('activeSection') || 'dashboard';
+    showSection(activeSection);
+    setActiveLink(activeSection);
+
+    // Add click event listeners to sidebar links
+    links.forEach(link => {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        const sectionId = this.getAttribute('data-section');
+        showSection(sectionId);
+        setActiveLink(sectionId);
+      });
+    });
+  });
+</script>
 
 {% endblock %}

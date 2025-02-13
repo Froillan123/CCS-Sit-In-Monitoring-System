@@ -90,7 +90,7 @@ function updateUserCount() {
         });
 }
 
-setInterval(updateUserCount, 10000);
+setInterval(updateUserCount, 10);
 updateUserCount();
 
 const eventSource = new EventSource("/sse/active_users");

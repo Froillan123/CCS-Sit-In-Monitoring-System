@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -11,7 +10,14 @@
     <title>Dashboard</title>
 </head>
 <style>
-    
+    /* Add this CSS to hide all sections by default and show only the active one */
+    .dashboard-section {
+        display: none;
+    }
+
+    .dashboard-section.active {
+        display: block;
+    }
 </style>
 <body>
     <div class="container">
@@ -27,115 +33,124 @@
             </div>
         
             <div class="sidebar">
-                <a href="#" class="active">
+                <a href="#" data-section="dashboard">
                     <span class="material-icons-sharp">dashboard</span>
                     <h3>Dashboard</h3>
                 </a>
-                <a href="#">
+                <a href="#" data-section="users">
                     <span class="material-icons-sharp">person_outline</span>
                     <h3>Users</h3>
                 </a>
-                <a href="#">
+                <a href="#" data-section="history">
                     <span class="material-icons-sharp">receipt_long</span>
                     <h3>History</h3>
                 </a>
-                <a href="#">
+                <a href="#" data-section="settings">
                     <span class="material-icons-sharp">settings</span>
                     <h3>Settings</h3>
                 </a>
+                <!-- Logout Link (No data-section attribute) -->
                 <a href="{{ url_for('adminLogout') }}">
                     <span class="material-icons-sharp">logout</span>
                     <h3>Logout</h3>
                 </a>
             </div>
         </aside>
-        
         <!-- End of Sidebar Section -->
 
         <!-- Main Content -->
         <main>
-            <h1>Analytics</h1>
-            <!-- Analyses -->
-            <div class="analyse">
-                <div class="all_users">
-                    <div class="status">
-                        <div class="info">
-                            <h3>All Users</h3>
-                            <h1 class="analytics" id=""></h1>
-                        </div>
-                        <div class="progresss">
-                            <svg>
-                                <circle cx="38" cy="38" r="36"></circle>
-                            </svg>
-                            <div class="percentage">
+            <!-- Dashboard Section -->
+            <div id="dashboard" class="dashboard-section">
+                <h1>Analytics</h1>
+                <!-- Analyses -->
+                <div class="analyse">
+                    <div class="all_users">
+                        <div class="status">
+                            <div class="info">
+                                <h3>All Users</h3>
+                                <h1 class="analytics" id=""></h1>
                             </div>
-                        </div>
-                    </div> 
-                </div>
+                            <div class="progresss">
+                                <svg>
+                                    <circle cx="38" cy="38" r="36"></circle>
+                                </svg>
+                                <div class="percentage"></div>
+                            </div>
+                        </div> 
+                    </div>
 
-                <div class="visits">
-                    <div class="status">
-                        <div class="info">
-                            <h3>Active Users</h3>
-                            <h1 class="analytics" id="active-users-count">{{ active_students_count }}</h1>
+                    <div class="visits">
+                        <div class="status">
+                            <div class="info">
+                                <h3>Active Users</h3>
+                                <h1 class="analytics" id="active-users-count">{{ active_students_count }}</h1>
+                            </div>
+                            <div class="progresss"></div>
                         </div>
-                        <div class="progresss">
+                    </div>
+
+                    <div class="searches">
+                        <div class="status">
+                            <div class="info">
+                                <h3>All Laboratories</h3>
+                                <h1 class="analytics">{{ laboratories }}</h1>
+                            </div>
+                            <div class="progresss"></div>
                         </div>
                     </div>
                 </div>
+                <!-- End of Analyses -->
 
-                <div class="searches">
-                    <div class="status">
-                        <div class="info">
-                            <h3>All Laboratories</h3>
-                            <h1 class="analytics">{{ laboratories }}</h1>
-                        </div>
-                        <div class="progresss">
-                        </div>
+                <!-- New Users Section -->
+                <div class="new-users">
+                    <h2>Student Sit in Monitoring</h2>
+                    <div class="user-list">
+                        <div class="user"></div>
+                        <div class="user"></div>
+                        <div class="user"></div>
+                        <div class="user"></div>
                     </div>
                 </div>
+                <!-- End of New Users Section -->
+
+                <!-- Recent Orders Table -->
+                <div class="recent-orders">
+                    <h2>Recent Orders</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Course Name</th>
+                                <th>Course Number</th>
+                                <th>Payment</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <a href="#">Show All</a>
+                </div>
+                <!-- End of Recent Orders -->
             </div>
-            <!-- End of Analyses -->
 
-            <!-- New Users Section -->
-            <div class="new-users">
-                <h2>Student Sit in Monitoring</h2>
-                <div class="user-list">
-                    <div class="user">
-                        
-                    </div>
-                    <div class="user">
-                     
-                    </div>
-                    <div class="user">
-                        
-                    </div>
-                    <div class="user">
-                        
-                    </div>
-                </div>
+            <!-- Users Section -->
+            <div id="users" class="dashboard-section">
+                <h1>Users</h1>
+                <p>This is the users section. You can display user-related information here.</p>
             </div>
-            <!-- End of New Users Section -->
 
-            <!-- Recent Orders Table -->
-            <div class="recent-orders">
-                <h2>Recent Orders</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Course Name</th>
-                            <th>Course Number</th>
-                            <th>Payment</th>
-                            <th>Status</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-                <a href="#">Show All</a>
+            <!-- History Section -->
+            <div id="history" class="dashboard-section">
+                <h1>History</h1>
+                <p>This is the history section. You can display historical data here.</p>
             </div>
-            <!-- End of Recent Orders -->
 
+            <!-- Settings Section -->
+            <div id="settings" class="dashboard-section">
+                <h1>Settings</h1>
+                <p>This is the settings section. You can configure system settings here.</p>
+            </div>
         </main>
         <!-- End of Main Content -->
 
@@ -143,133 +158,143 @@
         <div class="right-section">
             <div class="nav">
                 <button id="menu-btn">
-                    <span class="material-icons-sharp">
-                        menu
-                    </span>
+                    <span class="material-icons-sharp">menu</span>
                 </button>
                 <div class="dark-mode">
-                    <span class="material-icons-sharp active">
-                        light_mode
-                    </span>
-                    <span class="material-icons-sharp">
-                        dark_mode
-                    </span>
+                    <span class="material-icons-sharp active">light_mode</span>
+                    <span class="material-icons-sharp">dark_mode</span>
                 </div>
 
                 <div class="profile">
                     <div class="info">
-                        <p>Hey, <b>{{ admin_username }}</b></p> <!-- Display the admin username here -->
+                        <p>Hey, <b>{{ admin_username }}</b></p>
                         <small class="text-muted">Admin</small>
                     </div>
                     <div class="profile-photo">
                         <img src="{{ url_for('static', filename='images/profile-1.jpg') }}" alt="Profile Image">
                     </div>
                 </div>                
-
             </div>
             <!-- End of Nav -->
 
             <div class="reminders">
                 <div class="header">
                     <h2>System Notifications</h2>
-                    <span class="material-icons-sharp">
-                        notifications_none
-                    </span>
+                    <span class="material-icons-sharp">notifications_none</span>
                 </div>
             
                 <div class="notification">
                     <div class="icon">
-                        <span class="material-icons-sharp">
-                            schedule
-                        </span>
+                        <span class="material-icons-sharp">schedule</span>
                     </div>
                     <div class="content">
                         <div class="info">
                             <h3>Upcoming Lab Schedule</h3>
-                            <small class="text_muted">
-                                Lab 203 - 10:00 AM - 12:00 PM
-                            </small>
+                            <small class="text_muted">Lab 203 - 10:00 AM - 12:00 PM</small>
                         </div>
-                        <span class="material-icons-sharp">
-                            more_vert
-                        </span>
+                        <span class="material-icons-sharp">more_vert</span>
                     </div>
                 </div>
             
                 <div class="notification">
                     <div class="icon">
-                        <span class="material-icons-sharp">
-                            warning
-                        </span>
+                        <span class="material-icons-sharp">warning</span>
                     </div>
                     <div class="content">
                         <div class="info">
                             <h3>Security Alert</h3>
-                            <small class="text_muted">
-                                Multiple failed login attempts detected.
-                            </small>
+                            <small class="text_muted">Multiple failed login attempts detected.</small>
                         </div>
-                        <span class="material-icons-sharp">
-                            more_vert
-                        </span>
+                        <span class="material-icons-sharp">more_vert</span>
                     </div>
                 </div>
             
                 <div class="notification">
                     <div class="icon">
-                        <span class="material-icons-sharp">
-                            error
-                        </span>
+                        <span class="material-icons-sharp">error</span>
                     </div>
                     <div class="content">
                         <div class="info">
                             <h3>System Maintenance</h3>
-                            <small class="text_muted">
-                                Scheduled downtime at 11:00 PM for updates.
-                            </small>
+                            <small class="text_muted">Scheduled downtime at 11:00 PM for updates.</small>
                         </div>
-                        <span class="material-icons-sharp">
-                            more_vert
-                        </span>
+                        <span class="material-icons-sharp">more_vert</span>
                     </div>
                 </div>
             
                 <div class="notification">
                     <div class="icon">
-                        <span class="material-icons-sharp">
-                            check_circle
-                        </span>
+                        <span class="material-icons-sharp">check_circle</span>
                     </div>
                     <div class="content">
                         <div class="info">
                             <h3>Task Completed</h3>
-                            <small class="text_muted">
-                                System backup was successfully completed.
-                            </small>
+                            <small class="text_muted">System backup was successfully completed.</small>
                         </div>
-                        <span class="material-icons-sharp">
-                            more_vert
-                        </span>
+                        <span class="material-icons-sharp">more_vert</span>
                     </div>
                 </div>
             
                 <div class="notification add-reminder">
                     <div>
-                        <span class="material-icons-sharp">
-                            add
-                        </span>
+                        <span class="material-icons-sharp">add</span>
                         <h3>Add Notification</h3>
                     </div>
                 </div>
             </div>
-            
-
+        </div>
     </div>
+
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
     <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 
+    <script>
+        // JavaScript for Section Toggling
+        document.addEventListener('DOMContentLoaded', function () {
+            const links = document.querySelectorAll('.sidebar a[data-section]'); // Only select links with data-section
+            const sections = document.querySelectorAll('.dashboard-section');
 
+            // Function to show the selected section and hide others
+            function showSection(sectionId) {
+                sections.forEach(section => {
+                    if (section.id === sectionId) {
+                        section.classList.add('active');
+                    } else {
+                        section.classList.remove('active');
+                    }
+                });
+
+                // Save the active section to localStorage
+                localStorage.setItem('activeSection', sectionId);
+            }
+
+            // Function to set the active link
+            function setActiveLink(sectionId) {
+                links.forEach(link => {
+                    if (link.getAttribute('data-section') === sectionId) {
+                        link.classList.add('active');
+                    } else {
+                        link.classList.remove('active');
+                    }
+                });
+            }
+
+            // Load the active section from localStorage
+            const activeSection = localStorage.getItem('activeSection') || 'dashboard';
+            showSection(activeSection);
+            setActiveLink(activeSection);
+
+            // Add click event listeners to sidebar links
+            links.forEach(link => {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const sectionId = this.getAttribute('data-section');
+                    showSection(sectionId);
+                    setActiveLink(sectionId);
+                });
+            });
+        });
+    </script>
 </body>
-
 </html>
