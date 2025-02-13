@@ -27,6 +27,12 @@
       <a href="#">History</a>
       <a href="#">Reservations</a>
       <a href="#">Laboratories</a>
+      
+    </div>
+    <div class="button-container" style="margin-top: 4rem;">
+      <a href="{{ url_for('logout') }}">
+        <button type="button" class="btn btn-danger">Log Out</button>
+      </a>
     </div>
   </div>
 
@@ -37,11 +43,6 @@
       <div class="welcome-message">
         <h1>Welcome, {{ student.firstname }}!</h1>
         <p>We're glad to have you back on your student dashboard.</p>
-      </div>
-      <div class="button-container">
-        <a href="{{ url_for('logout') }}">
-          <button type="button" class="btn btn-danger">Log Out</button>
-        </a>
       </div>
     </div>
 
