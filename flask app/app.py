@@ -4,18 +4,17 @@ from flask_socketio import SocketIO, emit, disconnect
 import os
 import time
 import json
-
 app = Flask(__name__)
 
 
 # Session Configuration
 app.config["SESSION_COOKIE_NAME"] = "main_app_session"
 app.secret_key = os.urandom(24)
-
+app.config['UPLOAD_FOLDER'] = 'static/images'
 # Initialize SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# In-memory dictionary to store active users
+
 active_users_dict = {}
 
 @app.after_request
@@ -96,6 +95,30 @@ def student_dashboard():
         return redirect(url_for('login'))
     return render_template('client/studentdashboard.html', student=student, pagetitle=pagetitle)
 
+@app.route('/upload_profile_picture', methods=['POST'])
+def upload_profile_picture():
+    if 'user_username' not in session:
+        return jsonify({"success": False, "message": "You need to login first"})
+
+    if 'profile_picture' not in request.files:
+        return jsonify({"success": False, "message": "No file selected"})
+
+    file = request.files['profile_picture']
+
+    if file.filename == '':
+        return jsonify({"success": False, "message": "No file selected"})
+
+    if file:
+        # Save the file to the upload folder
+        filename = f"student_{session['user_username']}.png"
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+        # Update the student's profile picture in the database
+        update_record('students', username=session['user_username'], profile_picture=filename)
+        return jsonify({"success": True, "filename": filename})
+
+    return jsonify({"success": False, "message": "An error occurred"})
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -142,6 +165,27 @@ def register():
             flash("Registration failed. Try again.", 'error')
 
     return render_template('client/register.html')
+
+
+@app.route('/load_section/<section_id>')
+def load_section(section_id):
+    if section_id == 'dashboard':
+        return render_template('client/sections/dashboard.html')
+    elif section_id == 'profile':
+        student = get_student_by_username(session['user_username'])
+        return render_template('client/sections/profile.html', student=student)
+    elif section_id == 'announcements':
+        return render_template('client/sections/announcements.html')
+    elif section_id == 'lab-rules':
+        return render_template('client/sections/lab_rules.html')
+    elif section_id == 'history':
+        return render_template('client/sections/history.html')
+    elif section_id == 'reservations':
+        return render_template('client/sections/reservations.html')
+    elif section_id == 'laboratories':
+        return render_template('client/sections/laboratories.html')
+    else:
+        return "Section not found", 404
 
 @app.route('/logout')
 def logout():

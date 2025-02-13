@@ -9,7 +9,8 @@
     <!-- Profile Section -->
     <div class="profile-section">
       <div class="profile-image">
-        <img src="{{ url_for('static', filename='images/default.png') }}" alt="Profile Picture" />
+        <!-- Display the profile picture -->
+        <img src="{{ url_for('static', filename='images/' + student.profile_picture if student.profile_picture else 'default.png') }}" alt="Profile Picture" />
       </div>
       <div class="profile-info">
         <h3>{{ student.firstname }} {{ student.lastname }}</h3>
@@ -27,7 +28,7 @@
       <a href="#" data-section="laboratories">Laboratories</a>
     </div>
     <div class="button-container" style="margin-top: 4rem;">
-      <a href="{{ url_for('logout') }}">
+      <a href="{{ url_for('logout') }}" id="logout-link">
         <button type="button" class="btn btn-danger">Log Out</button>
       </a>
     </div>
@@ -35,7 +36,7 @@
 
   <!-- Main Content -->
   <div class="dashboard-container">
-    <!-- Welcome Message and Log Out Button -->
+    <!-- Dashboard Section -->
     <div id="dashboard" class="dashboard-section">
       <div class="dashboard-header">
         <div class="welcome-message">
@@ -91,8 +92,38 @@
     <!-- Profile Section -->
     <div id="profile" class="dashboard-section" style="display: none;">
       <h1>Profile</h1>
-      <p>This is the profile section. You can display user details here.</p>
+      <div class="profile-container">
+        <div class="profile-card">
+          <div class="profile-header">
+            <!-- Profile Picture with Edit Icon -->
+            <div class="profile-picture" onclick="document.getElementById('profile-picture-upload').click()">
+              <img id="profile-picture" src="{{ url_for('static', filename='images/' + student.profile_picture if student.profile_picture else 'default.png') }}" alt="Profile Picture" />
+            </div>
+            <!-- Student Name and Course -->
+            <h2>{{ student.firstname }} {{ student.lastname }}</h2>
+            <p>{{ student.course }} - Year {{ student.year_level }}</p>
+          </div>
+          <!-- Student Details -->
+          <div class="profile-details">
+            <div class="detail-item">
+              <span class="detail-label">ID Number:</span>
+              <span class="detail-value">{{ student.idno }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Email:</span>
+              <span class="detail-value">{{ student.email }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Username:</span>
+              <span class="detail-value">{{ student.username }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <!-- Hidden File Input for Profile Picture Upload -->
+    <input type="file" id="profile-picture-upload" accept="image/*" style="display: none;">
 
     <!-- Announcements Section -->
     <div id="announcements" class="dashboard-section" style="display: none;">
@@ -305,6 +336,74 @@
     font-size: 14px;
   }
 
+  /* Profile Section Styles */
+  .profile-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .profile-card {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+  }
+
+  .profile-header {
+    text-align: center;
+    padding: 20px;
+    background-color: #f8f9fa;
+  }
+  .profile-picture {
+    display: flex;
+    justify-content: center; /* Centers horizontally */
+    align-items: center; /* Centers vertically if needed */
+}
+
+.profile-picture img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 4px solid #fff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+  .profile-header h2 {
+    margin: 10px 0 5px;
+    font-size: 24px;
+    color: #333;
+  }
+
+  .profile-header p {
+    font-size: 16px;
+    color: #666;
+  }
+
+  .profile-details {
+    padding: 20px;
+  }
+
+  .detail-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+  }
+
+  .detail-item:last-child {
+    border-bottom: none;
+  }
+
+  .detail-label {
+    font-weight: bold;
+    color: #333;
+  }
+
+  .detail-value {
+    color: #666;
+  }
+
   /* Responsive Design */
   @media (max-width: 768px) {
     .dashboard-wrapper {
@@ -339,49 +438,101 @@
 <!-- JavaScript for Section Toggling -->
 <script>
   document.addEventListener('DOMContentLoaded', function () {
+    // Section Toggling Logic
     const links = document.querySelectorAll('.sidebar-links a');
     const sections = document.querySelectorAll('.dashboard-section');
-
+  
     // Function to show the selected section and hide others
     function showSection(sectionId) {
       sections.forEach(section => {
         if (section.id === sectionId) {
-          section.style.display = 'block';
+          section.style.display = 'block'; // Show the selected section
         } else {
-          section.style.display = 'none';
+          section.style.display = 'none'; // Hide all other sections
         }
       });
-
+  
       // Save the active section to localStorage
       localStorage.setItem('activeSection', sectionId);
     }
-
+  
     // Function to set the active link
     function setActiveLink(sectionId) {
       links.forEach(link => {
         if (link.getAttribute('data-section') === sectionId) {
-          link.classList.add('active');
+          link.classList.add('active'); // Add active class to the clicked link
         } else {
-          link.classList.remove('active');
+          link.classList.remove('active'); // Remove active class from other links
         }
       });
     }
-
+  
     // Load the active section from localStorage
     const activeSection = localStorage.getItem('activeSection') || 'dashboard';
     showSection(activeSection);
     setActiveLink(activeSection);
-
+  
     // Add click event listeners to sidebar links
     links.forEach(link => {
       link.addEventListener('click', function (e) {
         e.preventDefault();
         const sectionId = this.getAttribute('data-section');
-        showSection(sectionId);
-        setActiveLink(sectionId);
+        showSection(sectionId); // Show the selected section
+        setActiveLink(sectionId); // Set the active link
       });
     });
+  
+    // Profile Picture Upload Logic
+    const fileInput = document.getElementById('profile-picture-upload');
+    const profilePicture = document.getElementById('profile-picture');
+  
+    // Ensure event listeners are only attached once
+    if (!fileInput.hasEventListener) {
+      // Trigger file input when clicking the profile picture
+      document.querySelector('.profile-picture').addEventListener('click', function () {
+        fileInput.click();
+      });
+  
+      // Handle file upload
+      fileInput.addEventListener('change', function () {
+        if (fileInput.files.length > 0) {
+          const formData = new FormData();
+          formData.append('profile_picture', fileInput.files[0]);
+  
+          // Send the file to the server using AJAX
+          fetch("{{ url_for('upload_profile_picture') }}", {
+            method: 'POST',
+            body: formData,
+          })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                // Update the profile picture dynamically
+                profilePicture.src = "{{ url_for('static', filename='images/') }}" + data.filename + "?t=" + new Date().getTime();
+                alert("Profile picture updated successfully!");
+  
+                // Refresh the page after the user clicks "OK" in the alert
+                window.location.reload();
+              } else {
+                alert("Failed to update profile picture.");
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              alert("An error occurred while uploading the profile picture.");
+            });
+        }
+      });
+  
+      // Mark the file input as having event listeners
+      fileInput.hasEventListener = true;
+    }
+  
+    // Clear localStorage on logout
+    document.getElementById('logout-link').addEventListener('click', function () {
+      localStorage.removeItem('activeSection');
+    });
   });
-</script>
+  </script>
 
 {% endblock %}
