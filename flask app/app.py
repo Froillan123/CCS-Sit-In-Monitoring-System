@@ -43,6 +43,15 @@ def login():
         if user:
             session['user_username'] = username
             session['student_idno'] = user['idno']  # Use idno instead of id
+
+            # Add user to active_users_dict
+            active_users_dict[username] = True
+            notify_active_users_update()  # Notify SSE stream of the update
+
+            # Insert login time into session_history
+            login_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            insert_session_history(user['idno'], login_time)
+
             # Decrease the student's sessions left by 1
             if user['sessions_left'] > 0:
                 user['sessions_left'] -= 1
@@ -54,7 +63,6 @@ def login():
             return redirect(url_for('login'))
 
     return render_template('client/login.html', pagetitle=pagetitle)
-
 
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
@@ -145,8 +153,9 @@ def student_dashboard():
         return redirect(url_for('login'))
 
     labs = get_lab_names()  # Fetch the list of lab names
+    current_session = get_total_session(student['idno'])
 
-    return render_template('client/studentdashboard.html', student=student, pagetitle=pagetitle, labs=labs, idno=student['idno'])
+    return render_template('client/studentdashboard.html', student=student, pagetitle=pagetitle, labs=labs, idno=student['idno'], current_session=current_session)
 
 @app.route('/update_profile', methods=['POST'])
 def update_profile():
@@ -276,7 +285,6 @@ def load_section(section_id):
         return render_template('client/sections/laboratories.html')
     else:
         return "Section not found", 404
-
 @app.route('/logout')
 def logout():
     username = session.get('user_username')
@@ -290,24 +298,28 @@ def logout():
     # Remove user from active users dictionary
     if username in active_users_dict:
         del active_users_dict[username]
-        notify_active_users_update()
+        notify_active_users_update()  # Notify SSE stream of the update
+
+    # Update session_history with logout time and duration
+    student_idno = session.get('student_idno')
+    if student_idno:
+        logout_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        update_session_history(student_idno, logout_time)
 
     flash("Logout successful", 'info')
     return redirect(url_for('login'))
 
     
-@app.route('/get_sessions/<idno>', methods=['GET'])
-def get_sessions(idno):
-    student = get_student_by_idno(idno)
-    if student:
-        sessions_left = student.get('sessions_left', 0)
-        return jsonify({
-            "idno": idno,
-            "sessions_left": sessions_left
-        })
-    else:
-        return jsonify({"error": "Student not found"}), 404
-
+@app.route('/get_session_history/<student_idno>', methods=['GET'])
+def get_session_history(student_idno):
+    sql = """
+        SELECT * FROM session_history
+        WHERE student_idno = ?
+        ORDER BY login_time
+        LIMIT 30
+    """
+    history = getprocess(sql, (student_idno,))
+    return jsonify(history)
 
 @app.route('/sse/active_users')
 def sse_active_users():
@@ -321,7 +333,6 @@ def sse_active_users():
     response.headers["Cache-Control"] = "no-cache"
     response.headers["Connection"] = "keep-alive"
     return response
-
 
 
 def notify_active_users_update():
@@ -344,7 +355,8 @@ def dashboard():
     active_students = list(active_users_dict.keys())
     laboratories = get_count_laboratories()
     student_count = get_count_students()
-    return render_template('admin/dashboard.html', student_count=student_count, active_students=active_students, laboratories=laboratories, admin_username=admin_username, pagetitle=pagetitle)
+    active_students_count = len(active_students)
+    return render_template('admin/dashboard.html', student_count=student_count, active_students=active_students, laboratories=laboratories, admin_username=admin_username, pagetitle=pagetitle, active_students_count=active_students_count)
 
 @app.route('/admin', methods=['GET', 'POST'])  
 def admin_login():

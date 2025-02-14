@@ -91,7 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(updateUserCount, 1000); // Update every 1 second
     updateUserCount();
 
-    // EventSource for active users
     const eventSource = new EventSource("/sse/active_users");
 
     eventSource.onmessage = function (event) {
@@ -101,12 +100,11 @@ document.addEventListener('DOMContentLoaded', () => {
             activeUsersCountElement.textContent = activeUsersCount;
         }
     };
-
+    
     eventSource.onerror = function (error) {
         console.error('EventSource failed:', error);
         eventSource.close(); // Close the connection after error
     };
-
     // Fetch announcements
     const announcementForm = document.getElementById('announcement-form');
     const announcementsBody = document.getElementById('announcements-body');

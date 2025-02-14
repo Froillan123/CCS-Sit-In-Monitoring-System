@@ -216,59 +216,79 @@
   <h1>Reservation Form</h1>
   <form id="reservationForm">
     <div class="form-group">
-      <label for="lab_name">Lab:</label>
-      <select id="lab_name" name="lab_name" required>
-        <option value="">Select Lab</option>
-        {% for lab in labs %}
-          <option value="{{ lab.lab_name }}">{{ lab.lab_name }}</option>
-        {% endfor %}
-      </select>
+        <label for="lab_name">Lab:</label>
+        <select id="lab_name" name="lab_name" required>
+          <option value="" disabled selected>Select Lab</option> <!-- Default option -->
+          {% for lab in labs %}
+              <option value="{{ lab }}">{{ lab }}</option>
+          {% endfor %}
+      </select>      
     </div>
 
     <div class="form-group">
-      <label for="purpose">Purpose:</label>
-      <textarea id="purpose" name="purpose" placeholder="Enter the purpose of the reservation" required></textarea>
+        <label for="purpose">Purpose:</label>
+        <textarea id="purpose" name="purpose" placeholder="Enter the purpose of the reservation" required></textarea>
     </div>
 
     <div class="form-group">
-      <label for="reservation_date">Reservation Date:</label>
-      <input type="date" id="reservation_date" name="reservation_date" required />
+        <label for="reservation_date">Reservation Date:</label>
+        <input type="date" id="reservation_date" name="reservation_date" required />
     </div>
 
     <div class="form-group">
-      <label for="time_in">Time In:</label>
-      <input type="time" id="time_in" name="time_in" required />
+        <label for="time_in">Time In:</label>
+        <input type="time" id="time_in" name="time_in" required />
     </div>
 
     <div class="form-group">
-      <label for="time_out">Time Out:</label>
-      <input type="time" id="time_out" name="time_out" required />
+        <label for="time_out">Time Out:</label>
+        <input type="time" id="time_out" name="time_out" required />
     </div>
 
     <button type="submit">Submit Reservation</button>
-  </form>
+</form>
+
 
   <!-- Message Display -->
   <div id="message"></div>
 </div>
 
-    <!-- Laboratories Section -->
-    <div id="laboratories" class="dashboard-section" style="display: none;">
-      <h1>Laboratories</h1>
-      <p>This is the laboratories section. You can display laboratory details here.</p>
-    </div>
+          <div id="sessions" class="dashboard-section" style="display: none;">
+            <h1>Sessions</h1>
 
-    <div id="sessions" class="dashboard-section" style="display: none;">
-      <h1>Sessions</h1>
-      <p id="session-data">Loading sessions...</p>
-    </div>
-    
+            <!-- Current Session Status -->
+          <div id="current-session">
+            <h2>Current Session</h2>
+            <h3>{{ current_session['sessions_left'] if current_session else 'No session found' }}</h3>
+          </div>
 
-  </div>
-</div>
+
+            <!-- Session Duration Graph -->
+            <div id="session-graph">
+                <h2>Session Duration</h2>
+                <canvas id="sessionChart"></canvas>
+            </div>
+
+            <!-- Session History -->
+            <div id="session-history">
+                <h2>Session History</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Login Time</th>
+                            <th>Logout Time</th>
+                            <th>Duration (seconds)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="session-history-body">
+                        <!-- Session history rows will be dynamically inserted here -->
+                    </tbody>
+                </table>
+            </div>
+          </div>
 
 <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
   // Section Toggling Logic
@@ -278,27 +298,15 @@
   // Function to show the selected section and hide others
   function showSection(sectionId) {
     sections.forEach(section => {
-      if (section.id === sectionId) {
-        section.style.display = 'block'; // Show the selected section
-      } else {
-        section.style.display = 'none'; // Hide all other sections
-      }
+      section.style.display = section.id === sectionId ? 'block' : 'none';
     });
-
-    // Save the active section to localStorage
-    localStorage.setItem('activeSection', sectionId);
+    localStorage.setItem('activeSection', sectionId); // Save the active section
   }
 
-
-  
   // Function to set the active link
   function setActiveLink(sectionId) {
     links.forEach(link => {
-      if (link.getAttribute('data-section') === sectionId) {
-        link.classList.add('active'); // Add active class to the clicked link
-      } else {
-        link.classList.remove('active'); // Remove active class from other links
-      }
+      link.classList.toggle('active', link.getAttribute('data-section') === sectionId);
     });
   }
 
@@ -312,15 +320,18 @@
     link.addEventListener('click', function (e) {
       e.preventDefault();
       const sectionId = this.getAttribute('data-section');
-      showSection(sectionId); // Show the selected section
-      setActiveLink(sectionId); // Set the active link
+      showSection(sectionId);
+      setActiveLink(sectionId);
     });
   });
 
   // Clear localStorage on logout
-  document.getElementById('logout-link').addEventListener('click', function () {
-    localStorage.removeItem('activeSection');
-  });
+  const logoutLink = document.getElementById('logout-link');
+  if (logoutLink) {
+    logoutLink.addEventListener('click', function () {
+      localStorage.removeItem('activeSection');
+    });
+  }
 
   // Profile Picture Upload Handling
   const profilePictureUpload = document.getElementById('profile-picture-upload');
@@ -335,6 +346,50 @@
         reader.readAsDataURL(file);
       }
     });
+  }
+
+  // Fetch announcements
+  const announcementsList = document.getElementById('announcements-list');
+  if (announcementsList) {
+    fetchAnnouncements();
+  }
+
+  // Handle reservation form submission
+  const reservationForm = document.getElementById('reservationForm');
+  if (reservationForm) {
+    reservationForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+
+      fetch('/reservations', {
+        method: 'POST',
+        body: formData
+      })
+        .then(response => response.json())
+        .then(data => {
+          const messageDiv = document.getElementById('message');
+          if (data.status === 'success') {
+            messageDiv.textContent = data.message;
+            messageDiv.style.color = 'green';
+          } else {
+            messageDiv.textContent = data.message;
+            messageDiv.style.color = 'red';
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          document.getElementById('message').textContent = 'An error occurred. Please try again.';
+        });
+    });
+  }
+
+  // Fetch labs for dropdown
+  fetchLabs();
+
+  // Fetch session history for the logged-in student
+  const studentIdno = "{{ session.student_idno }}"; // Get student ID from session
+  if (studentIdno) {
+    fetchSessionHistory(studentIdno);
   }
 });
 
@@ -361,184 +416,154 @@ function saveProfileChanges() {
     method: 'POST',
     body: formData
   })
-  .then(response => {
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
-    }
-    return response.json();
-  })
-  .then(data => {
-    if (data.success) {
-      alert('Profile updated successfully!');
-      window.location.reload(); // Refresh the page to reflect changes
-    } else {
-      alert('Failed to update profile: ' + data.message);
-    }
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    alert('An error occurred while updating the profile.');
-  });
-}
-
-// Fetch announcements
-const announcementsList = document.getElementById('announcements-list');
-
-function fetchAnnouncements() {
-    fetch('/get_announcements')
-        .then(response => response.json())
-        .then(data => {
-            announcementsList.innerHTML = ''; // Clear existing announcements
-
-            data.forEach(announcement => {
-                const announcementDate = new Date(announcement.announcement_date).toLocaleString();
-
-                const announcementBox = document.createElement('div');
-                announcementBox.className = 'announcement-box';
-
-                announcementBox.innerHTML = `
-                    <div class="announcement-header">
-                        <span class="announcement-date">${announcementDate}</span>
-                        <span class="announcement-admin">Posted by: ${announcement.admin_username}</span>
-                    </div>
-                    <div class="announcement-content">
-                        <p>${announcement.announcement_text}</p>
-                    </div>
-                `;
-
-                announcementsList.appendChild(announcementBox);
-            });
-        })
-        .catch(error => console.error('Error fetching announcements:', error));
-}
-
-// Fetch announcements when the page loads
-document.addEventListener('DOMContentLoaded', fetchAnnouncements);
-
-
-// Handle reservation form submission
-document.getElementById('reservationForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-
-    const formData = new FormData(this);
-
-    fetch('/reservations', {
-        method: 'POST',
-        body: formData
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
     })
-    .then(response => response.json())
     .then(data => {
-        const messageDiv = document.getElementById('message');
-        if (data.status === 'success') {
-            messageDiv.textContent = data.message;
-            messageDiv.style.color = 'green';
-        } else {
-            messageDiv.textContent = data.message;
-            messageDiv.style.color = 'red';
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        document.getElementById('message').textContent = 'An error occurred. Please try again.';
-    });
-});
-
-function fetchLabs() {
-    fetch('/get_labs')
-        .then(response => response.json())
-        .then(data => {
-            console.log('Labs data:', data);  // Add this to check the data you're getting
-            const labSelect = document.getElementById('lab_name');
-            labSelect.innerHTML = '<option value="">Select Lab</option>'; // Reset options
-
-            if (data.success && data.labs.length > 0) {
-                data.labs.forEach(lab => {
-                    const option = document.createElement('option');
-                    option.value = lab.id;
-                    option.textContent = lab.lab_name;
-                    labSelect.appendChild(option);
-                });
-            } else {
-                console.error('No labs found or error in response');
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching labs:', error);
-        });
-}
- // Embed the idno in a JavaScript variable
- const studentIdno = "{{ idno }}";  // This will be replaced with the actual idno
-
-// Function to fetch session data
-function fetchSessionData(idno) {
-  fetch(`/get_sessions/${idno}`)
-    .then(response => response.json())
-    .then(data => {
-      if (data.error) {
-        document.getElementById('session-data').textContent = data.error;
+      if (data.success) {
+        alert('Profile updated successfully!');
+        window.location.reload(); // Refresh the page to reflect changes
       } else {
-        document.getElementById('session-data').textContent = `Sessions Left: ${data.sessions_left}`;
+        alert('Failed to update profile: ' + data.message);
       }
     })
     .catch(error => {
-      console.error('Error fetching session data:', error);
-      document.getElementById('session-data').textContent = 'Failed to load session data.';
+      console.error('Error:', error);
+      alert('An error occurred while updating the profile.');
     });
 }
 
-// Fetch session data for the logged-in student
-fetchSessionData(studentIdno);
+// Function to fetch announcements
+function fetchAnnouncements() {
+  fetch('/get_announcements')
+    .then(response => response.json())
+    .then(data => {
+      const announcementsList = document.getElementById('announcements-list');
+      if (announcementsList) {
+        announcementsList.innerHTML = ''; // Clear existing announcements
 
-// Function to switch sections
-function switchSection(sectionId) {
-  // Hide all sections
-  document.querySelectorAll('.dashboard-section').forEach(section => {
-    section.style.display = 'none';
-  });
+        data.forEach(announcement => {
+          const announcementDate = new Date(announcement.announcement_date).toLocaleString();
 
-  // Show the selected section
-  document.getElementById(sectionId).style.display = 'block';
+          const announcementBox = document.createElement('div');
+          announcementBox.className = 'announcement-box';
+
+          announcementBox.innerHTML = `
+            <div class="announcement-header">
+              <span class="announcement-date">${announcementDate}</span>
+              <span class="announcement-admin">Posted by: ${announcement.admin_username}</span>
+            </div>
+            <div class="announcement-content">
+              <p>${announcement.announcement_text}</p>
+            </div>
+          `;
+
+          announcementsList.appendChild(announcementBox);
+        });
+      }
+    })
+    .catch(error => console.error('Error fetching announcements:', error));
 }
 
-// Add event listeners to sidebar links
-document.querySelectorAll('.sidebar-links a').forEach(link => {
-  link.addEventListener('click', function (e) {
-    e.preventDefault();
-    const sectionId = this.getAttribute('data-section');
-    switchSection(sectionId);
-  });
-});
+// Function to fetch labs
+function fetchLabs() {
+  fetch('/get_labs')
+    .then(response => response.json())
+    .then(data => {
+      const labSelect = document.getElementById('lab_name');
+      if (labSelect) {
+        labSelect.innerHTML = '<option value="">Select Lab</option>'; // Reset options
 
-function toggleSidebar() {
-  const sidebar = document.querySelector('.sidebar');
-  sidebar.classList.toggle('expanded');
+        if (data.success && data.labs.length > 0) {
+          data.labs.forEach(lab => {
+            const option = document.createElement('option');
+            option.value = lab.id;
+            option.textContent = lab.lab_name;
+            labSelect.appendChild(option);
+          });
+        } else {
+          console.error('No labs found or error in response');
+        }
+      }
+    })
+    .catch(error => console.error('Error fetching labs:', error));
 }
 
-// Add event listeners to sidebar links
-document.querySelectorAll('.sidebar-links a').forEach(link => {
-  link.addEventListener('click', function (e) {
-    e.preventDefault();
-    const sectionId = this.getAttribute('data-section');
-    switchSection(sectionId);
-  });
-});
+function fetchSessionHistory(studentIdno) {
+  fetch(`/get_session_history/${studentIdno}`)
+    .then(response => response.json())
+    .then(data => {
+      const sessionHistoryBody = document.getElementById('session-history-body');
+      const loginTimes = [];
+      const durationsInMinutes = [];
 
-// Initialize Swiper
-const swiper = new Swiper('.swiper', {
-      slidesPerView: 1,
-      spaceBetween: 10,
-      navigation: {
-        nextEl: '.swiper-button-next',
-        prevEl: '.swiper-button-prev',
-      },
-      breakpoints: {
-        530: {
-          slidesPerView: 2,
-        },
-        768: {
-          slidesPerView: 3,
-        },
-      },
-    });
+      if (sessionHistoryBody) {
+        sessionHistoryBody.innerHTML = ''; // Clear existing rows
+
+        data.forEach(session => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${session.login_time}</td>
+            <td>${session.logout_time || 'Active'}</td>
+            <td>${session.duration ? (session.duration / 60).toFixed(2) : 'N/A'} minutes</td>
+          `;
+          sessionHistoryBody.appendChild(row);
+
+          // Collect data for the chart
+          if (session.logout_time) {
+            loginTimes.push(session.login_time);
+            durationsInMinutes.push((session.duration / 60).toFixed(2)); // Convert seconds to minutes
+          }
+        });
+
+        // Render Chart.js line graph
+        const ctx = document.getElementById('sessionChart')?.getContext('2d');
+        if (ctx) {
+          new Chart(ctx, {
+            type: 'line', // Use line chart
+            data: {
+              labels: loginTimes,
+              datasets: [{
+                label: 'Session Duration (minutes)',
+                data: durationsInMinutes,
+                backgroundColor: 'hsla(273, 77%, 65%, 0.2)', // Use hsla for transparency
+                borderColor: 'hsl(273, 77%, 65%)', // Solid color for the line
+                borderWidth: 2,
+                fill: true, // Fill area under the line
+                tension: 0.4 // Smooth the line
+              }]
+            },
+            options: {
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  title: {
+                    display: true,
+                    text: 'Duration (minutes)'
+                  }
+                },
+                x: {
+                  title: {
+                    display: true,
+                    text: 'Login Time'
+                  }
+                }
+              },
+              plugins: {
+                legend: {
+                  display: true,
+                  position: 'top'
+                }
+              }
+            }
+          });
+        }
+      }
+    })
+    .catch(error => console.error('Error fetching session history:', error));
+}
 </script>
 {% endblock %}

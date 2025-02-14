@@ -1,5 +1,6 @@
 from sqlite3 import connect, Row
 from datetime import datetime
+import sqlite3
 database = "student.db"
 
 # Function to execute queries that modify data (INSERT, UPDATE, DELETE)
@@ -102,6 +103,14 @@ def get_admin_by_username(admin_username: str) -> dict:
     return admin[0] if admin else None
 
 
+def get_total_session(idno: str) -> dict:
+    sql = "SELECT sessions_left FROM students WHERE idno = ?"
+    session = getprocess(sql, (idno,))
+    return session[0] if session else None
+
+
+
+
 # Function to retrieve all announcements from the database
 def get_all_announcements() -> list:
     sql = "SELECT * FROM announcements ORDER BY announcement_date DESC"
@@ -185,3 +194,20 @@ def update_student_sessions(idno, sessions_left):
     else:
         print("Failed to update sessions.")
     return success
+
+
+def insert_session_history(student_idno, login_time):
+    sql = "INSERT INTO session_history (student_idno, login_time) VALUES (?, ?)"
+    return postprocess(sql, (student_idno, login_time))
+
+
+def update_session_history(student_idno, logout_time):
+    sql = """
+        UPDATE session_history
+        SET logout_time = ?,
+            duration = strftime('%s', ?) - strftime('%s', login_time)
+        WHERE student_idno = ? AND logout_time IS NULL
+    """
+    return postprocess(sql, (logout_time, logout_time, student_idno))
+
+
