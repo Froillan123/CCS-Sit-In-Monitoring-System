@@ -112,11 +112,11 @@ def get_laboratories() -> list:
     labs = getprocess(sql)
     return labs
     
-# Retrieve a student by idno
 def get_student_by_idno(student_idno):
     # Function to fetch student data by idno
-    query = "SELECT firstname, lastname FROM students WHERE idno = ?"
-    return getprocess(query, (student_idno,))
+    query = "SELECT * FROM students WHERE idno = ?"
+    students = getprocess(query, (student_idno,))
+    return students[0] if students else None  # Return the first student or None
 
 
 # Function to get the announcement by its ID
@@ -130,6 +130,8 @@ def update_announcement(announcement_id: int, announcement_text: str) -> bool:
     sql = "UPDATE announcements SET announcement_text = ? WHERE id = ?"
     params = (announcement_text, announcement_id)
     return postprocess(sql, params)
+
+
 
 # Function to delete an announcement
 def delete_announcement(announcement_id: int) -> bool:
@@ -167,3 +169,12 @@ def delete_record(table: str, **kwargs) -> bool:
 
     sql = f"DELETE FROM {table} WHERE {key} = ?"
     return postprocess(sql, (value,))
+
+def update_student_sessions(idno, sessions_left):
+    query = "UPDATE students SET sessions_left = ? WHERE idno = ?"
+    success = postprocess(query, (sessions_left, idno))
+    if success:
+        print("Sessions updated successfully!")
+    else:
+        print("Failed to update sessions.")
+    return success

@@ -31,6 +31,7 @@
       <a href="#" data-section="history">History</a>
       <a href="#" data-section="reservations">Reservations</a>
       <a href="#" data-section="laboratories">Laboratories</a>
+      <a href="" data-section="sessions">View Session</a>
     </div>
     <div class="button-container" style="margin-top: 4rem;">
       <a href="{{ url_for('logout') }}" id="logout-link">
@@ -262,6 +263,13 @@
       <h1>Laboratories</h1>
       <p>This is the laboratories section. You can display laboratory details here.</p>
     </div>
+
+    <div id="sessions" class="dashboard-section" style="display: none;">
+      <h1>Sessions</h1>
+      <p id="session-data">Loading sessions...</p>
+    </div>
+    
+
   </div>
 </div>
 <script>
@@ -459,6 +467,27 @@ function fetchLabs() {
             console.error('Error fetching labs:', error);
         });
 }
+ // Embed the idno in a JavaScript variable
+ const studentIdno = "{{ idno }}";  // This will be replaced with the actual idno
 
+// Function to fetch session data
+function fetchSessionData(idno) {
+  fetch(`/get_sessions/${idno}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.error) {
+        document.getElementById('session-data').textContent = data.error;
+      } else {
+        document.getElementById('session-data').textContent = `Sessions Left: ${data.sessions_left}`;
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching session data:', error);
+      document.getElementById('session-data').textContent = 'Failed to load session data.';
+    });
+}
+
+// Fetch session data for the logged-in student
+fetchSessionData(studentIdno);
 </script>
 {% endblock %}

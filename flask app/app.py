@@ -43,6 +43,10 @@ def login():
         if user:
             session['user_username'] = username
             session['student_idno'] = user['idno']  # Use idno instead of id
+            # Decrease the student's sessions left by 1
+            if user['sessions_left'] > 0:
+                user['sessions_left'] -= 1
+                update_student_sessions(user['idno'], user['sessions_left'])
             flash("Login successful!", 'success')
             return redirect(url_for('student_dashboard'))
         else:
@@ -50,6 +54,7 @@ def login():
             return redirect(url_for('login'))
 
     return render_template('client/login.html', pagetitle=pagetitle)
+
 
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
@@ -141,8 +146,8 @@ def student_dashboard():
     # Get available laboratories
     labs = get_laboratories()
 
-    return render_template('client/studentdashboard.html', student=student, pagetitle=pagetitle, labs=labs)
-
+    # Pass the student's idno to the template
+    return render_template('client/studentdashboard.html', student=student, pagetitle=pagetitle, labs=labs, idno=student['idno'])
 @app.route('/update_profile', methods=['POST'])
 def update_profile():
     if 'user_username' not in session:
@@ -283,7 +288,7 @@ def logout():
         flash("Error: No user is logged in", 'error')
         return redirect(url_for('login'))
 
-    session.pop('user_username', None)  
+    session.pop('user_username', None)
 
     # Remove user from active users dictionary
     if username in active_users_dict:
@@ -292,6 +297,19 @@ def logout():
 
     flash("Logout successful", 'info')
     return redirect(url_for('login'))
+
+    
+@app.route('/get_sessions/<idno>', methods=['GET'])
+def get_sessions(idno):
+    student = get_student_by_idno(idno)
+    if student:
+        sessions_left = student.get('sessions_left', 0)
+        return jsonify({
+            "idno": idno,
+            "sessions_left": sessions_left
+        })
+    else:
+        return jsonify({"error": "Student not found"}), 404
 
 
 @app.route('/sse/active_users')
