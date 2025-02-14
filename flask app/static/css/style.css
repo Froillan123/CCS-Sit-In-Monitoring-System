@@ -669,7 +669,7 @@ img {
 :root {
   --first-color-dark: hsl(273, 77%, 55%); /* Dark Purple */
   --background-color: #f8f9fa; /* Light Grayish Background */
-  --sidebar-color: hsl(273, 93%, 27%); /* Dark Sidebar */
+  --sidebar-color: hsl(273, 77%, 55%); /* Dark Sidebar */
   --sidebar-text-color: #ffffff; /* White Text */
   --card-background: #fff; /* White Card Background */
   --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Light Shadow */
@@ -677,16 +677,127 @@ img {
 
 .dashboard-wrapper {
   display: flex;
+  position: relative;
 }
-/* Sidebar Styles */
 .sidebar {
-  width: 250px;
+  width: 300px;
   background-color: var(--sidebar-color);
   color: var(--sidebar-text-color);
   border-right: 1px solid var(--first-color);
   padding: 20px;
   min-height: 100vh;
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  position: fixed;
+  top: 0;
+  left: 0;
+  overflow-y: auto;
+  transition: width 0.3s ease;
+  z-index: 1000;
+}
+
+.sidebar-toggle {
+  display: none;
+  cursor: pointer;
+  font-size: 24px;
+  margin-bottom: 20px;
+  color: var(--sidebar-text-color);
+}
+
+.profile-section {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.profile-image img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  margin-bottom: 1rem;
+}
+
+.profile-info h3 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.sidebar-links a {
+  display: flex;
+  align-items: center;
+  color: var(--sidebar-text-color);
+  text-decoration: none;
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+}
+
+.sidebar-links a:hover {
+  background-color: var(--first-color);
+}
+
+.sidebar-links a i {
+  margin-right: 10px;
+}
+
+.sidebar-links a span {
+  display: inline;
+}
+
+.button-container {
+  margin-top: 2rem;
+}
+
+/* Main Content Styles */
+.dashboard-container {
+  flex: 1;
+  padding: 20px;
+  background-color: var(--card-background);
+  margin-left: 300px;
+  transition: margin-left 0.3s ease;
+}
+
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 60px;
+    padding: 10px;
+  }
+
+  .profile-image img {
+    display: none !important;
+  }
+  .logout-text {
+    display: none;
+  }
+  .btn-danger i {
+    margin-right: 0;
+  }
+
+  
+  .sidebar-toggle {
+    display: block;
+  }
+
+  .profile-info,
+  .sidebar-links a span {
+    display: none;
+  }
+
+  .sidebar.expanded {
+    width: 300px;
+  }
+
+  .sidebar.expanded .profile-info,
+  .sidebar.expanded .sidebar-links a span {
+    display: inline;
+  }
+
+  .dashboard-container {
+    margin-left: 60px;
+  }
+
+  .sidebar.expanded + .dashboard-container {
+    margin-left: 300px;
+  }
 }
 
 .profile-section {
@@ -700,7 +811,6 @@ img {
 .profile-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 20px;
 }
 
 .profile-card {
@@ -879,7 +989,6 @@ button:hover {
 }
 
 .button-container .btn-danger {
-  background-color: #e74c3c;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -890,7 +999,7 @@ button:hover {
 }
 
 .button-container .btn-danger:hover {
-  background-color: #c0392b;
+  background-color: #696969;
 }
 
 /* Lab Rules Section Styles */
@@ -1031,70 +1140,122 @@ button:hover {
 /* Profile Section Styles */
 .profile-container {
   max-width: 800px;
-  margin: 0 auto;
   padding: 20px;
 }
 
 .profile-card {
   background-color: #fff;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 15px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
+
 .profile-header {
   text-align: center;
-  padding: 20px;
-  background-color: #f8f9fa;
+  padding: 30px 20px;
+  background: var(--first-color);
+  color: #fff;
 }
+
 .profile-picture {
-  display: flex;
-  justify-content: center; /* Centers horizontally */
-  align-items: center; /* Centers vertically if needed */
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
 }
 
 .profile-picture img {
-  width: 120px;
-  height: 120px;
+  width: 150px;
+  height: 150px;
   border-radius: 50%;
-  border: 4px solid #fff;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border: 5px solid #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease;
 }
 
-.profile-header h2 {
-  margin: 10px 0 5px;
+.profile-picture:hover img {
+  transform: scale(1.1);
+}
+
+.edit-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.profile-picture:hover .edit-overlay {
+  opacity: 1;
+}
+
+.edit-overlay i {
+  color: #fff;
   font-size: 24px;
-  color: #333;
-}
-
-.profile-header p {
-  font-size: 16px;
-  color: #666;
 }
 
 .profile-details {
-  padding: 20px;
+  padding: 30px;
+}
+
+.detail-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
 }
 
 .detail-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid #eee;
+  flex: 1;
 }
 
-.detail-item:last-child {
-  border-bottom: none;
-}
-
-.detail-label {
+.detail-item label {
+  display: block;
   font-weight: bold;
-  color: #333;
+  color: #555;
+  margin-bottom: 5px;
 }
 
-.detail-value {
-  color: #666;
+.detail-item input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
+
+.detail-item input:focus {
+  border-color: #6a11cb;
+  box-shadow: 0 0 8px rgba(106, 17, 203, 0.3);
+  outline: none;
+}
+
+.detail-item input[readonly] {
+  background-color: #f9f9f9;
+  cursor: not-allowed;
+}
+
+.save-button {
+  display: block;
+  width: 100%;
+  padding: 15px;
+  background: var(--first-color);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+
 
 /* Styling for the announcement section */
 #announcements {
@@ -1234,28 +1395,6 @@ button:hover {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .dashboard-wrapper {
-    flex-direction: column;
-  }
-
-  .sidebar {
-    width: 100%;
-    height: auto;
-    padding: 10px;
-  }
-
-  .dashboard-container {
-    padding: 10px;
-  }
-
-  .dashboard-header {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .button-container {
-    margin-top: 20px;
-  }
 
   .laboratory-grid {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));

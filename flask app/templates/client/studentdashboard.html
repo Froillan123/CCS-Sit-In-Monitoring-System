@@ -8,37 +8,45 @@
   }
 </style>
 <!-- Dashboard Container -->
-<div class="dashboard-wrapper">
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <!-- Profile Section -->
-    <div class="profile-section">
-      <div class="profile-image">
-        <!-- Display the profile picture -->
-        <img src="{{ url_for('static', filename='images/' + student.profile_picture if student.profile_picture else 'default.png') }}" alt="Profile Picture" />
-      </div>
-      <div class="profile-info">
-        <h3>{{ student.firstname }} {{ student.lastname }}</h3>
-      </div>
-    </div>
+          <div class="dashboard-wrapper">
+            <!-- Sidebar -->
+            <div class="sidebar">
+              <!-- Toggle Button -->
+              <div class="sidebar-toggle" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+              </div>
 
-    <!-- Sidebar Links -->
-    <div class="sidebar-links">
-      <a href="#" data-section="dashboard">Dashboard</a>
-      <a href="#" data-section="profile">Profile</a>
-      <a href="#" data-section="announcements">Announcements</a>
-      <a href="#" data-section="lab-rules">Lab Rules</a>
-      <a href="#" data-section="history">History</a>
-      <a href="#" data-section="reservations">Reservations</a>
-      <a href="#" data-section="laboratories">Laboratories</a>
-      <a href="" data-section="sessions">View Session</a>
-    </div>
-    <div class="button-container" style="margin-top: 4rem;">
-      <a href="{{ url_for('logout') }}" id="logout-link">
-        <button type="button" class="btn btn-danger">Log Out</button>
-      </a>
-    </div>
-  </div>
+              <!-- Profile Section -->
+              <div class="profile-section">
+                <div class="profile-image">
+                  <img src="{{ url_for('static', filename='images/' + student.profile_picture if student.profile_picture else 'default.png') }}" alt="Profile Picture" />
+                </div>
+                <div class="profile-info">
+                  <h3>{{ student.firstname }} {{ student.lastname }}</h3>
+                </div>
+              </div>
+
+              <!-- Sidebar Links -->
+              <div class="sidebar-links">
+                <a href="#" data-section="dashboard"><i class="fas fa-home"></i><span>Dashboard</span></a>
+                <a href="#" data-section="profile"><i class="fas fa-user"></i><span>Profile</span></a>
+                <a href="#" data-section="announcements"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+                <a href="#" data-section="lab-rules"><i class="fas fa-clipboard-list"></i><span>Lab Rules</span></a>
+                <a href="#" data-section="history"><i class="fas fa-history"></i><span>History</span></a>
+                <a href="#" data-section="reservations"><i class="fas fa-calendar-alt"></i><span>Reservations</span></a>
+                <a href="#" data-section="laboratories"><i class="fas fa-flask"></i><span>Laboratories</span></a>
+                <a href="#" data-section="sessions"><i class="fas fa-eye"></i><span>View Session</span></a>
+              </div>
+
+              <!-- Logout Button -->
+              <div class="button-container">
+                <a href="{{ url_for('logout') }}" id="logout-link">
+                  <button type="button" class="btn btn-danger">
+                    <i class="fas fa-sign-out-alt"></i> <span class="logout-text">Log Out</span>
+                  </button>
+                </a>
+              </div>              
+            </div>
 
   <!-- Main Content -->
   <div class="dashboard-container">
@@ -101,9 +109,7 @@
       </div>
     </div>
 
-    <!-- Profile Section -->
     <div id="profile" class="dashboard-section" style="display: none;">
-      <h1>Profile</h1>
       <div class="profile-container">
         <div class="profile-card">
           <!-- Profile Picture -->
@@ -111,53 +117,54 @@
             <div class="profile-picture" onclick="document.getElementById('profile-picture-upload').click()">
               <img id="profile-picture" src="{{ url_for('static', filename='images/' + student.profile_picture if student.profile_picture else 'default.png') }}" alt="Profile Picture" />
               <input type="file" id="profile-picture-upload" style="display: none;" />
+              <div class="edit-overlay"><i class="fas fa-camera"></i></div>
             </div>
           </div>
           <!-- Student Details -->
           <div class="profile-details">
             <div class="detail-item">
-              <label for="editable-firstname">Idno:</label>
-              <input type="text" id="editable-firstname" value="{{ student.idno }}" readonly />
-            </div>            
+              <label for="editable-idno"><i class="fas fa-id-card"></i> ID Number:</label>
+              <input type="text" id="editable-idno" value="{{ student.idno }}" readonly />
+            </div>
             <div class="detail-row">
               <div class="detail-item">
-                <label for="editable-firstname">First Name:</label>
+                <label for="editable-firstname"><i class="fas fa-user"></i> First Name:</label>
                 <input type="text" id="editable-firstname" value="{{ student.firstname }}" />
               </div>
               <div class="detail-item">
-                <label for="editable-lastname">Last Name:</label>
+                <label for="editable-lastname"><i class="fas fa-user"></i> Last Name:</label>
                 <input type="text" id="editable-lastname" value="{{ student.lastname }}" />
               </div>
             </div>
             <div class="detail-row">
               <div class="detail-item">
-                <label for="editable-midname">Middle Name:</label>
+                <label for="editable-midname"><i class="fas fa-user"></i> Middle Name:</label>
                 <input type="text" id="editable-midname" value="{{ student.midname }}" />
               </div>
               <div class="detail-item">
-                <label for="editable-course">Course:</label>
+                <label for="editable-course"><i class="fas fa-graduation-cap"></i> Course:</label>
                 <input type="text" id="editable-course" value="{{ student.course }}" />
               </div>
             </div>
             <div class="detail-row">
               <div class="detail-item">
-                <label for="editable-year-level">Year Level:</label>
+                <label for="editable-year-level"><i class="fas fa-calendar-alt"></i> Year Level:</label>
                 <input type="text" id="editable-year-level" value="{{ student.year_level }}" />
               </div>
               <div class="detail-item">
-                <label for="editable-email">Email:</label>
+                <label for="editable-email"><i class="fas fa-envelope"></i> Email:</label>
                 <input type="email" id="editable-email" value="{{ student.email }}" />
               </div>
             </div>
             <div class="detail-row">
               <div class="detail-item">
-                <label for="editable-username">Username:</label>
+                <label for="editable-username"><i class="fas fa-user-circle"></i> Username:</label>
                 <input type="text" id="editable-username" value="{{ student.username }}" />
               </div>
             </div>
           </div>
           <!-- Save Button -->
-          <button onclick="saveProfileChanges()">Save Changes</button>
+          <button class="save-button" onclick="saveProfileChanges()"><i class="fas fa-save"></i> Save Changes</button>
         </div>
       </div>
     </div>
@@ -489,5 +496,39 @@ function fetchSessionData(idno) {
 
 // Fetch session data for the logged-in student
 fetchSessionData(studentIdno);
+
+// Function to switch sections
+function switchSection(sectionId) {
+  // Hide all sections
+  document.querySelectorAll('.dashboard-section').forEach(section => {
+    section.style.display = 'none';
+  });
+
+  // Show the selected section
+  document.getElementById(sectionId).style.display = 'block';
+}
+
+// Add event listeners to sidebar links
+document.querySelectorAll('.sidebar-links a').forEach(link => {
+  link.addEventListener('click', function (e) {
+    e.preventDefault();
+    const sectionId = this.getAttribute('data-section');
+    switchSection(sectionId);
+  });
+});
+
+function toggleSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  sidebar.classList.toggle('expanded');
+}
+
+// Add event listeners to sidebar links
+document.querySelectorAll('.sidebar-links a').forEach(link => {
+  link.addEventListener('click', function (e) {
+    e.preventDefault();
+    const sectionId = this.getAttribute('data-section');
+    switchSection(sectionId);
+  });
+});
 </script>
 {% endblock %}
