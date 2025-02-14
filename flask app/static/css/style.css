@@ -10,6 +10,7 @@
 
 html {
     font-size: 62.5%;
+    scroll-behavior: smooth;
 }
 
 body {
@@ -20,6 +21,25 @@ body {
 
 img {
     image-rendering: pixelated;
+}
+/* Custom Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 6px; /* Thin scrollbar */
+}
+
+::-webkit-scrollbar-track {
+  background: #f0f0f0; /* Light gray background */
+  border-radius: 10px; /* Rounded corners for the track */
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--first-color); /* Use the first color (hsl(273, 77%, 65%)) */
+  border-radius: 10px; /* Rounded corners for the thumb */
+  transition: background 0.3s ease; /* Smooth transition for hover effect */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(273, 77%, 55%); /* Darker shade on hover */
 }
 
 .flash-message {
@@ -741,6 +761,28 @@ img {
 .sidebar-links a span {
   display: inline;
 }
+.log-out-small-size a {
+  display: none;
+  align-items: center;
+  color: var(--sidebar-text-color);
+  text-decoration: none;
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+}
+
+.log-out-small-size a:hover {
+  background-color: var(--first-color);
+}
+
+.log-out-small-size a i {
+  margin-right: 10px;
+}
+
+.log-out-small-size a span {
+  display: inline;
+}
 
 .button-container {
   margin-top: 2rem;
@@ -758,8 +800,9 @@ img {
 
 @media (max-width: 768px) {
   .sidebar {
-    width: 60px;
+    width: 55px;
     padding: 10px;
+  
   }
 
   .profile-image img {
@@ -768,11 +811,8 @@ img {
   .logout-text {
     display: none;
   }
-  .btn-danger i {
-    margin-right: 0;
-  }
+ 
 
-  
   .sidebar-toggle {
     display: block;
   }
@@ -783,7 +823,7 @@ img {
   }
 
   .sidebar.expanded {
-    width: 300px;
+    width: 250px;
   }
 
   .sidebar.expanded .profile-info,
@@ -796,7 +836,200 @@ img {
   }
 
   .sidebar.expanded + .dashboard-container {
-    margin-left: 300px;
+    margin-left: 0px;
+  }
+  .log-out-small-size a
+  {
+    display: flex;
+  }
+}
+
+/* Dashboard Container Styles */
+.dashboard-container {
+  flex: 1;
+  padding: 1.25rem; /* 20px */
+  background-color: var(--card-background);
+}
+
+/* Welcome Section */
+.welcome-section {
+  background-color: #fff;
+  padding: 1.25rem; /* 20px */
+  border-radius: 0.5rem; /* 8px */
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1); /* 0 2px 4px */
+  margin-bottom: 1.25rem; /* 20px */
+}
+
+.welcome-message h1 {
+  font-size: 2.4rem; /* 32px */
+  color: var(--text-color);
+  margin-bottom: 0.625rem; /* 10px */
+}
+
+.welcome-message p {
+  font-size: 1.2rem; /* 16px */
+  color: #666;
+}
+
+/* Rules Section */
+.rules-section {
+  background-color: #fff;
+  padding: 1.5rem; /* 24px */
+  border-radius: 0.5rem; /* 8px */
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem; /* 24px */
+}
+
+/* Styling for the Sit-in Rules Section */
+.sit-in-rules-section {
+  margin: 1.5rem 0; /* 24px */
+  padding: 1.25rem; /* 20px */
+  background-color: #f9f9f9;
+  border-radius: 0.5rem; /* 8px */
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  max-height: 450px; /* Slightly increased for better visibility */
+}
+
+/* Sit-in Rules Header */
+.sit-in-rules-section h3 {
+  margin-bottom: 0.75rem; /* 12px */
+  color: var(--text-color);
+  font-size: 1.7rem; /* 24px */
+  font-weight: bold;
+}
+
+/* List Styling */
+.sit-in-rules-section ul {
+  list-style-type: disc;
+  margin-left: 1.5rem; /* 24px */
+  padding-left: 1.5rem;
+}
+
+.sit-in-rules-section li {
+  margin-bottom: 0.75rem; /* 12px */
+  color: var(--text-color);
+  font-size: 1.4rem; /* 16px */
+  line-height: 1.6;
+}
+
+
+
+/* Responsive Design for Small Screens (500px and below) */
+@media (max-width: 31.25rem) {
+  .sit-in-rules-section {
+    margin: 1.25rem 0;
+    padding: 1rem;
+    border-radius: 0.375rem;
+  }
+
+  .sit-in-rules-section h3 {
+    font-size: 1.375rem; /* 22px */
+    margin-bottom: 0.625rem;
+  }
+
+  .sit-in-rules-section ul {
+    margin-left: 1.25rem;
+    padding-left: 1.25rem;
+  }
+
+  .sit-in-rules-section li {
+    font-size: 1.2rem; /* 16px */
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* Custom WebKit Scrollbar */
+.sit-in-rules-section::-webkit-scrollbar {
+  width: 6px; /* Slightly thicker scrollbar */
+}
+
+.sit-in-rules-section::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 10px;
+}
+
+.sit-in-rules-section::-webkit-scrollbar-thumb {
+  background: var(--first-color);
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+.sit-in-rules-section::-webkit-scrollbar-thumb:hover {
+  background: hsl(273, 77%, 55%);
+}
+
+
+
+
+/* Laboratories Section */
+.laboratories-section {
+  background-color: #fff;
+  padding: 1.25rem; /* 20px */
+  border-radius: 0.5rem; /* 8px */
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1); /* 0 2px 4px */
+}
+
+.laboratories-section h2 {
+  font-size: 1.5rem; /* 24px */
+  color: var(--text-color);
+  margin-bottom: 1.25rem; /* 20px */
+}
+
+.laboratory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(6.25rem, 1fr)); /* 100px */
+  gap: 0.9375rem; /* 15px */
+}
+
+.laboratory-card {
+  background-color: var(--first-color);
+  color: #fff;
+  padding: 1.25rem; /* 20px */
+  border-radius: 0.5rem; /* 8px */
+  text-align: center;
+  text-decoration: none;
+  transition: transform 0.3s ease, background-color 0.3s ease;
+}
+
+.laboratory-card:hover {
+  transform: translateY(-0.3125rem); /* -5px */
+  background-color: var(--first-color-dark);
+}
+
+.lab-icon {
+  font-size: 3rem; /* 48px */
+  margin-bottom: 0.625rem; /* 10px */
+}
+
+.laboratory-card h3 {
+  font-size: 1.25rem; /* 20px */
+  margin-bottom: 0.625rem; /* 10px */
+}
+
+/* Media Query for Screens ≤ 530px */
+@media (max-width: 530px) {
+  /* Make Sit-In Rules Section Scrollable */
+  .sit-in-rules-section {
+    max-height: 12.5rem; /* 200px */
+    overflow-y: auto;
+  }
+
+  /* Swiper Styles for Laboratories */
+  .swiper {
+    width: 100%;
+    padding: 0.625rem; /* 10px */
+  }
+
+  .swiper-slide {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .laboratory-card {
+    width: 80%;
+    margin: 0 auto;
   }
 }
 
@@ -807,10 +1040,13 @@ img {
   justify-content: center;
   margin-bottom: 2rem;
 }
+
 /* Profile Section Styles */
 .profile-container {
   max-width: 800px;
   margin: 0 auto;
+  padding: 0 20px; /* Add padding for better spacing on small screens */
+  box-sizing: border-box; /* Ensure padding is included in the width */
 }
 
 .profile-card {
@@ -818,6 +1054,8 @@ img {
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   padding: 20px;
+  width: 100%; /* Ensure the card takes full width */
+  box-sizing: border-box; /* Include padding in the width */
 }
 
 .profile-header {
@@ -893,28 +1131,65 @@ button:hover {
   background-color: var(--first-color-dark);
 }
 
-.sit-in-rules-section {
-  margin: 20px 0;
-  padding: 15px;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+/* Responsive Design */
+@media (max-width: 768px) {
+  .profile-container {
+    max-width: 100%; /* Take full width on small screens */
+    padding: 0 10px; /* Adjust padding for small screens */
+  }
+
+  .profile-card {
+    padding: 15px; /* Reduce padding for small screens */
+  }
+
+  .detail-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .profile-picture img {
+    width: 100px;
+    height: 100px;
+  }
 }
 
-.sit-in-rules-section h3 {
-  margin-bottom: 10px;
-  color: var(--text-color);
+@media (max-width: 500px) {
+  .profile-container {
+    padding: 0 5px; /* Further reduce padding for very small screens */
+  }
+
+  .profile-card {
+    padding: 10px; /* Reduce padding further */
+  }
+
+  .profile-picture img {
+    width: 80px;
+    height: 80px;
+  }
+
+  .profile-header {
+    margin-bottom: 15px;
+  }
+
+  .profile-details {
+    gap: 10px;
+  }
+
+  .detail-item label {
+    font-size: 12px; /* Reduce font size for labels */
+  }
+
+  .detail-item input {
+    padding: 6px;
+    font-size: 12px; /* Reduce font size for inputs */
+  }
+
+  button {
+    padding: 8px 16px;
+    font-size: 14px; /* Reduce font size for button */
+  }
 }
 
-.sit-in-rules-section ul {
-  list-style-type: disc;
-  margin-left: 20px;
-}
-
-.sit-in-rules-section li {
-  margin-bottom: 8px;
-  color: var(--text-color);
-}
 
 /* Responsive Design */
 @media (max-width: 768px) {
@@ -929,7 +1204,8 @@ button:hover {
   }
 
   .profile-container {
-    padding: 10px;
+    max-width: 100vw;
+    padding: 0;
   }
 }
 
@@ -963,30 +1239,6 @@ button:hover {
   color: #fff;
 }
 
-/* Dashboard Container Styles */
-.dashboard-container {
-  flex: 1;
-  padding: 20px;
-  background-color: var(--card-background);
-}
-
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-}
-
-.welcome-message h1 {
-  font-size: 32px;
-  color: var(--text-color);
-  margin-bottom: 10px;
-}
-
-.welcome-message p {
-  font-size: 16px;
-  color: #666;
-}
 
 .button-container .btn-danger {
   color: white;
@@ -1005,9 +1257,9 @@ button:hover {
 /* Lab Rules Section Styles */
 .rules-container {
   background-color: #fff;
-  padding: 25px;
-  width: 1000px; /* Fixed width */
-  height: 80vh; /* Fixed height */
+  padding: 1.5625rem; /* 25px */
+  max-width: 90%; /* Ensure it doesn't overflow on smaller screens */
+  height: 80vh; /* 80% of viewport height */
   margin-top: 2rem;
   margin-left: auto;
   margin-right: auto;
@@ -1016,125 +1268,94 @@ button:hover {
 
 .rules-header {
   text-align: center;
-  margin-bottom: 25px;
+  margin-bottom: 1.5625rem; /* 25px */
 }
-
 .rules-header h2 {
-  font-size: 28px;
+  font-size: 2.5rem; /* 28px */
   color: #2c3e50; /* Dark blue for emphasis */
-  margin-bottom: 10px;
+  margin-bottom: 0.625rem; /* 10px */
   font-weight: 600; /* Bold heading */
 }
 
 .rules-header h3 {
-  font-size: 20px;
+  font-size: 2rem; /* 20px */
   color: #666;
   font-weight: 500; /* Semi-bold subheading */
 }
 
 .rules-content {
-  font-size: 16px;
+  font-size: 1.7rem; /* 16px */
   color: #333;
   line-height: 1.8; /* Improved line height for readability */
-  padding: 10px; /* Add padding to the content */
+  padding: 0.625rem; /* 10px */
 }
 
 .rules-content p {
-  margin-bottom: 20px;
+  margin-bottom: 1.25rem; /* 20px */
   color: #444; /* Slightly darker text for better readability */
 }
 
 .rules-list {
-  margin-bottom: 20px;
-  padding-left: 20px; /* Add padding to the list */
+  margin-bottom: 1.25rem; /* 20px */
+  padding-left: 1.25rem; /* 20px */
 }
 
 .rules-list li {
-  margin-bottom: 15px; /* Increase spacing between list items */
+  margin-bottom: 0.9375rem; /* 15px */
   color: #444; /* Slightly darker text for better readability */
 }
 
 .rules-list ul {
   list-style-type: disc;
-  margin-left: 20px;
-  margin-top: 10px;
+  margin-left: 1.25rem; /* 20px */
+  margin-top: 0.625rem; /* 10px */
 }
 
 .disciplinary-action {
-  margin-top: 25px;
-  padding: 20px;
+  margin-top: 1.5625rem; /* 25px */
+  padding: 1.25rem; /* 20px */
   background-color: #f8f9fa;
-  border-radius: 10px;
+  border-radius: 0.625rem; /* 10px */
   border: 1px solid #e0e0e0; /* Add a subtle border */
 }
 
 .disciplinary-action h3 {
-  font-size: 20px;
+  font-size: 1.6rem; /* 20px */
   color: #2c3e50; /* Dark blue for emphasis */
-  margin-bottom: 15px;
+  margin-bottom: 0.9375rem; /* 15px */
   font-weight: 600; /* Bold heading */
 }
 
 .disciplinary-action p {
-  margin-bottom: 10px;
-  font-size: 14px;
+  margin-bottom: 0.625rem; /* 10px */
+  font-size: 1.4rem; /* 14px */
   color: #666;
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (max-width: 48rem) { /* 768px */
   .rules-container {
-    width: 90%; /* Adjust width for smaller screens */
-    padding: 15px;
+    width: 100%; /* Adjust width for smaller screens */
+    padding: 0.9375rem; /* 15px */
+    height: auto; /* Allow height to adjust based on content */
+    max-height: 80vh; /* Limit height to 80% of viewport */
   }
 
   .rules-header h2 {
-    font-size: 24px;
+    font-size: 2rem; /* 24px */
   }
 
   .rules-header h3 {
-    font-size: 18px;
+    font-size: 1.5rem; /* 18px */
   }
 
   .rules-content {
-    font-size: 14px;
+    font-size: 1.3rem; /* 14px */
   }
-}
-/* Laboratories Section */
-.laboratories-section h2 {
-  font-size: 24px;
-  color: var(--text-color);
-  margin-bottom: 20px;
-}
 
-.laboratory-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-}
-
-.laboratory-card {
-  background-color: var(--first-color);
-  color: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  text-align: center;
-  text-decoration: none;
-  transition: transform 0.3s ease, background-color 0.3s ease;
-}
-
-.laboratory-card:hover {
-  transform: translateY(-5px);
-  background-color: var(--first-color-dark);
-}
-
-.laboratory-card h3 {
-  font-size: 20px;
-  margin-bottom: 10px;
-}
-
-.laboratory-card p {
-  font-size: 14px;
+  .button-container .btn-danger {
+    display: none; /* Hide the logout button on smaller screens */
+  }
 }
 
 /* Profile Section Styles */
@@ -1256,34 +1477,36 @@ button:hover {
 }
 
 
-
 /* Styling for the announcement section */
 #announcements {
-  margin: 20px;
-  padding: 20px;
+  margin: 1.25rem;
+  padding: 1.25rem;
   background-color: #f9f9f9;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 0.5rem;
+  box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1);
 }
 
 #announcements h1 {
   font-size: 2rem;
-  margin-bottom: 20px;
+  margin-bottom: 1.25rem;
   color: #2d3a3f;
+  text-align: center; /* Center title for better mobile readability */
 }
 
 .announcement-box {
   background-color: #ffffff;
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  border-radius: 0.5rem;
+  padding: 0.9375rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 0.125rem 0.3125rem rgba(0, 0, 0, 0.1);
 }
 
 .announcement-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 10px;
+  align-items: center;
+  flex-wrap: wrap; /* Allows items to wrap on smaller screens */
+  margin-bottom: 0.625rem;
 }
 
 .announcement-date {
@@ -1303,6 +1526,41 @@ button:hover {
   color: #444;
   line-height: 1.6;
 }
+
+/* Responsive Design for Smaller Screens */
+@media (max-width: 768px) {
+  #announcements {
+    margin: 0.625rem;
+    padding: 0.9375rem;
+  }
+
+  #announcements h1 {
+    font-size: 1.5rem;
+  }
+
+  .announcement-box {
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .announcement-header {
+    flex-direction: column; /* Stack username and date on mobile */
+    align-items: flex-start;
+  }
+
+  .announcement-date {
+    font-size: 1.25rem;
+  }
+
+  .announcement-username {
+    font-size: 0.9rem;
+  }
+
+  .announcement-text {
+    font-size: 1rem;
+  }
+}
+
 
 
 #reservations {

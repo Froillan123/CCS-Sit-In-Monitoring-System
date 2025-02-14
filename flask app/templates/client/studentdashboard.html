@@ -11,10 +11,7 @@
           <div class="dashboard-wrapper">
             <!-- Sidebar -->
             <div class="sidebar">
-              <!-- Toggle Button -->
-              <div class="sidebar-toggle" onclick="toggleSidebar()">
-                <i class="fas fa-bars"></i>
-              </div>
+             
 
               <!-- Profile Section -->
               <div class="profile-section">
@@ -38,6 +35,10 @@
                 <a href="#" data-section="sessions"><i class="fas fa-eye"></i><span>View Session</span></a>
               </div>
 
+              <div class="log-out-small-size">
+                <a href="#" id="logout-link"><i class="fas fa-sign-out-alt"></i><span></span></a>
+              </div>
+
               <!-- Logout Button -->
               <div class="button-container">
                 <a href="{{ url_for('logout') }}" id="logout-link">
@@ -52,61 +53,47 @@
   <div class="dashboard-container">
     <!-- Dashboard Section -->
     <div id="dashboard" class="dashboard-section">
-      <div class="dashboard-header">
-        <div class="welcome-message">
-          <h1>Welcome, {{ student.firstname }}!</h1>
-          <p>We're glad to have you back on your student dashboard.</p>
-      
-          <div class="sit-in-rules-section">
-            <h3>Sit-In Laboratory Rules</h3>
-            <ul>
-                <li>No playing games (including computer-related and card games) inside the lab.</li>
-                <li>Mobile phones, walkmans, and other personal equipment must be switched off.</li>
-                <li>Internet surfing is allowed only with instructor permission. No downloading or installing software.</li>
-                <li>Accessing unrelated websites (especially inappropriate content) is strictly prohibited.</li>
-                <li>Do not delete files or alter computer settings.</li>
-                <li>Each use is limited to 15 minutes. After that, the unit is available for those waiting.</li>
-                <li>Observe proper decorum: only enter the lab when the instructor is present.</li>
-                <li>All bags must be deposited at the counter. Follow the instructor's seating arrangement.</li>
-                <li>Chewing gum, eating, drinking, and smoking are prohibited inside the lab.</li>
-                <li>Continual disturbances may lead to removal from the lab.</li>
-                <li>Serious offenses may involve intervention from campus security.</li>
-            </ul>
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+            <div class="welcome-message">
+                <h1>Welcome, {{ student.firstname }}!</h1>
+                <p>We're glad to have you back on your student dashboard.</p>
+            </div>
         </div>
-        
-      </div>
-    </div>
 
-      <!-- Laboratories Section -->
-      <div class="laboratories-section">
-        <h2>Laboratories</h2>
-        <div class="laboratory-grid">
-          <a href="#" class="laboratory-card">
-            <h3>Lab 1</h3>
-            <p>Chemistry Lab</p>
-          </a>
-          <a href="#" class="laboratory-card">
-            <h3>Lab 2</h3>
-            <p>Physics Lab</p>
-          </a>
-          <a href="#" class="laboratory-card">
-            <h3>Lab 3</h3>
-            <p>Biology Lab</p>
-          </a>
-          <a href="#" class="laboratory-card">
-            <h3>Lab 4</h3>
-            <p>Computer Lab</p>
-          </a>
-          <a href="#" class="laboratory-card">
-            <h3>Lab 5</h3>
-            <p>Engineering Lab</p>
-          </a>
-          <a href="#" class="laboratory-card">
-            <h3>Lab 6</h3>
-            <p>Research Lab</p>
-          </a>
+        <!-- Rules Section -->
+        <div class="rules-section">
+            <div class="sit-in-rules-section">
+                <h3>Sit-In Laboratory Rules</h3>
+                <ul>
+                    <li>No playing games (including computer-related and card games) inside the lab.</li>
+                    <li>Mobile phones, walkmans, and other personal equipment must be switched off.</li>
+                    <li>Internet surfing is allowed only with instructor permission. No downloading or installing software.</li>
+                    <li>Accessing unrelated websites (especially inappropriate content) is strictly prohibited.</li>
+                    <li>Do not delete files or alter computer settings.</li>
+                    <li>Each use is limited to 15 minutes. After that, the unit is available for those waiting.</li>
+                    <li>Observe proper decorum: only enter the lab when the instructor is present.</li>
+                    <li>All bags must be deposited at the counter. Follow the instructor's seating arrangement.</li>
+                    <li>Chewing gum, eating, drinking, and smoking are prohibited inside the lab.</li>
+                    <li>Continual disturbances may lead to removal from the lab.</li>
+                    <li>Serious offenses may involve intervention from campus security.</li>
+                </ul>
+            </div>
         </div>
-      </div>
+          <!-- Laboratories Section -->
+          <div class="laboratories-section">
+            <h2>Laboratories</h2>
+            <div class="laboratory-grid">
+                {% for lab in labs %}
+                <a href="#" class="laboratory-card">
+                    <div class="lab-icon">
+                        <i class="fas fa-laptop-code"></i> <!-- Computer Lab Icon -->
+                    </div>
+                    <h3>{{ lab }}</h3> <!-- Directly display lab name -->
+                </a>
+                {% endfor %}
+            </div>
+        </div>        
     </div>
 
     <div id="profile" class="dashboard-section" style="display: none;">
@@ -159,7 +146,7 @@
             <div class="detail-row">
               <div class="detail-item">
                 <label for="editable-username"><i class="fas fa-user-circle"></i> Username:</label>
-                <input type="text" id="editable-username" value="{{ student.username }}" />
+                <input type="text" id="editable-username" value="{{ student.username }}" readonly/>
               </div>
             </div>
           </div>
@@ -178,46 +165,46 @@
       </div>
     
 
-   <!-- Lab Rules Section -->
-<div id="lab-rules" class="dashboard-section" style="display: none;">
-  <h1>Lab Rules and Regulations</h1>
-  <div class="rules-container">
-    <div class="rules-header">
-      <h2>University of Cebu</h2>
-      <h3>COLLEGE OF INFORMATION & COMPUTER STUDIES</h3>
-    </div>
-    <div class="rules-content">
-      <p>To avoid embarrassment and maintain camaraderie with your friends and superiors at our laboratories, please observe the following:</p>
-      <ol class="rules-list">
-        <li>Maintain silence, proper decorum, and discipline inside the laboratory. Mobile phones, walkmans, and other personal pieces of equipment must be switched off.</li>
-        <li>Games are not allowed inside the lab. This includes computer-related games, card games, and other games that may disturb the operation of the lab.</li>
-        <li>Surfing the Internet is allowed only with the permission of the instructor. Downloading and installing of software are strictly prohibited.</li>
-        <li>Getting access to other websites not related to the course (especially pornographic and illicit sites) is strictly prohibited.</li>
-        <li>Deleting computer files and changing the set-up of the computer is a major offense.</li>
-        <li>Observe computer time usage carefully. A fifteen-minute allowance is given for each use. Otherwise, the unit will be given to those who wish to "sit-in".</li>
-        <li>Observe proper decorum while inside the laboratory:
-          <ul>
-            <li>Do not get inside the lab unless the instructor is present.</li>
-            <li>All bags, knapsacks, and the likes must be deposited at the counter.</li>
-            <li>Follow the seating arrangement of your instructor.</li>
-            <li>At the end of class, all software programs must be closed.</li>
-            <li>Return all chairs to their proper places after using.</li>
-          </ul>
-        </li>
-        <li>Chewing gum, eating, drinking, smoking, and other forms of vandalism are prohibited inside the lab.</li>
-        <li>Anyone causing a continual disturbance will be asked to leave the lab. Acts or gestures offensive to the members of the community, including public display of physical intimacy, are not tolerated.</li>
-        <li>Persons exhibiting hostile or threatening behavior such as yelling, swearing, or disregarding requests made by lab personnel will be asked to leave the lab.</li>
-        <li>For serious offenses, the lab personnel may call the Civil Security Office (CSU) for assistance.</li>
-        <li>Any technical problem or difficulty must be addressed to the laboratory supervisor, student assistant, or instructor immediately.</li>
-      </ol>
-      <div class="disciplinary-action">
-        <h3>DISCIPLINARY ACTION</h3>
-        <p><strong>First Offense:</strong> The Head or the Dean or OIC recommends to the Guidance Center for a suspension from classes for each offender.</p>
-        <p><strong>Second and Subsequent Offenses:</strong> A recommendation for a heavier sanction will be endorsed to the Guidance Center.</p>
+        <!-- Lab Rules Section -->
+      <div id="lab-rules" class="dashboard-section" style="display: none;">
+        <h1>Lab Rules and Regulations</h1>
+        <div class="rules-container">
+          <div class="rules-header">
+            <h2>University of Cebu</h2>
+            <h3>COLLEGE OF INFORMATION & COMPUTER STUDIES</h3>
+          </div>
+          <div class="rules-content">
+            <p>To avoid embarrassment and maintain camaraderie with your friends and superiors at our laboratories, please observe the following:</p>
+            <ol class="rules-list">
+              <li>Maintain silence, proper decorum, and discipline inside the laboratory. Mobile phones, walkmans, and other personal pieces of equipment must be switched off.</li>
+              <li>Games are not allowed inside the lab. This includes computer-related games, card games, and other games that may disturb the operation of the lab.</li>
+              <li>Surfing the Internet is allowed only with the permission of the instructor. Downloading and installing of software are strictly prohibited.</li>
+              <li>Getting access to other websites not related to the course (especially pornographic and illicit sites) is strictly prohibited.</li>
+              <li>Deleting computer files and changing the set-up of the computer is a major offense.</li>
+              <li>Observe computer time usage carefully. A fifteen-minute allowance is given for each use. Otherwise, the unit will be given to those who wish to "sit-in".</li>
+              <li>Observe proper decorum while inside the laboratory:
+                <ul>
+                  <li>Do not get inside the lab unless the instructor is present.</li>
+                  <li>All bags, knapsacks, and the likes must be deposited at the counter.</li>
+                  <li>Follow the seating arrangement of your instructor.</li>
+                  <li>At the end of class, all software programs must be closed.</li>
+                  <li>Return all chairs to their proper places after using.</li>
+                </ul>
+              </li>
+              <li>Chewing gum, eating, drinking, smoking, and other forms of vandalism are prohibited inside the lab.</li>
+              <li>Anyone causing a continual disturbance will be asked to leave the lab. Acts or gestures offensive to the members of the community, including public display of physical intimacy, are not tolerated.</li>
+              <li>Persons exhibiting hostile or threatening behavior such as yelling, swearing, or disregarding requests made by lab personnel will be asked to leave the lab.</li>
+              <li>For serious offenses, the lab personnel may call the Civil Security Office (CSU) for assistance.</li>
+              <li>Any technical problem or difficulty must be addressed to the laboratory supervisor, student assistant, or instructor immediately.</li>
+            </ol>
+            <div class="disciplinary-action">
+              <h3>DISCIPLINARY ACTION</h3>
+              <p><strong>First Offense:</strong> The Head or the Dean or OIC recommends to the Guidance Center for a suspension from classes for each offender.</p>
+              <p><strong>Second and Subsequent Offenses:</strong> A recommendation for a heavier sanction will be endorsed to the Guidance Center.</p>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-</div>
     <!-- History Section -->
     <div id="history" class="dashboard-section" style="display: none;">
       <h1>History</h1>
@@ -279,6 +266,9 @@
 
   </div>
 </div>
+
+<script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+
 <script>
   document.addEventListener('DOMContentLoaded', function () {
   // Section Toggling Logic
@@ -299,6 +289,8 @@
     localStorage.setItem('activeSection', sectionId);
   }
 
+
+  
   // Function to set the active link
   function setActiveLink(sectionId) {
     links.forEach(link => {
@@ -530,5 +522,23 @@ document.querySelectorAll('.sidebar-links a').forEach(link => {
     switchSection(sectionId);
   });
 });
+
+// Initialize Swiper
+const swiper = new Swiper('.swiper', {
+      slidesPerView: 1,
+      spaceBetween: 10,
+      navigation: {
+        nextEl: '.swiper-button-next',
+        prevEl: '.swiper-button-prev',
+      },
+      breakpoints: {
+        530: {
+          slidesPerView: 2,
+        },
+        768: {
+          slidesPerView: 3,
+        },
+      },
+    });
 </script>
 {% endblock %}

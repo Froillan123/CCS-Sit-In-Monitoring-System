@@ -125,6 +125,13 @@ def get_announcement_by_id(announcement_id: int) -> dict:
     result = getprocess(sql, (announcement_id,))
     return result[0] if result else None
 
+
+def get_lab_names():
+    sql = "SELECT lab_name FROM laboratories"
+    result = getprocess(sql)  # Assuming getprocess() executes queries correctly
+    return [row['lab_name'] for row in result] if result else []  # Return a list
+
+
 # Function to update an announcement (if needed)
 def update_announcement(announcement_id: int, announcement_text: str) -> bool:
     sql = "UPDATE announcements SET announcement_text = ? WHERE id = ?"

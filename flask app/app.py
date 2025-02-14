@@ -134,6 +134,7 @@ def reservations():
 @app.route('/student_dashboard')
 def student_dashboard():
     pagetitle = "Student Dashboard"
+    
     if 'user_username' not in session:
         flash("You need to login first", 'warning')
         return redirect(url_for('login'))
@@ -143,11 +144,10 @@ def student_dashboard():
         flash("Student not found", 'danger')
         return redirect(url_for('login'))
 
-    # Get available laboratories
-    labs = get_laboratories()
+    labs = get_lab_names()  # Fetch the list of lab names
 
-    # Pass the student's idno to the template
     return render_template('client/studentdashboard.html', student=student, pagetitle=pagetitle, labs=labs, idno=student['idno'])
+
 @app.route('/update_profile', methods=['POST'])
 def update_profile():
     if 'user_username' not in session:
@@ -249,14 +249,11 @@ def register():
     return render_template('client/register.html')
 
 
-
 @app.route('/get_labs', methods=['GET'])
 def get_labs():
     try:
-        cursor = db.execute('SELECT lab_name FROM laboratories')
-        labs = cursor.fetchall()
-        lab_list = [lab[0] for lab in labs]  # Extract lab names
-        return jsonify({"success": True, "labs": lab_list})
+        labs = get_lab_names()
+        return jsonify({"success": True, "labs": labs})
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
 
