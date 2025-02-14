@@ -102,6 +102,41 @@ def get_admin_by_username(admin_username: str) -> dict:
     return admin[0] if admin else None
 
 
+# Function to retrieve all announcements from the database
+def get_all_announcements() -> list:
+    sql = "SELECT * FROM announcements ORDER BY announcement_date DESC"
+    return getprocess(sql)
+
+def get_laboratories() -> list:
+    sql = "SELECT * FROM laboratories WHERE status = 'Available'"
+    labs = getprocess(sql)
+    return labs
+    
+# Retrieve a student by idno
+def get_student_by_idno(student_idno):
+    # Function to fetch student data by idno
+    query = "SELECT firstname, lastname FROM students WHERE idno = ?"
+    return getprocess(query, (student_idno,))
+
+
+# Function to get the announcement by its ID
+def get_announcement_by_id(announcement_id: int) -> dict:
+    sql = "SELECT * FROM announcements WHERE id = ?"
+    result = getprocess(sql, (announcement_id,))
+    return result[0] if result else None
+
+# Function to update an announcement (if needed)
+def update_announcement(announcement_id: int, announcement_text: str) -> bool:
+    sql = "UPDATE announcements SET announcement_text = ? WHERE id = ?"
+    params = (announcement_text, announcement_id)
+    return postprocess(sql, params)
+
+# Function to delete an announcement
+def delete_announcement(announcement_id: int) -> bool:
+    sql = "DELETE FROM announcements WHERE id = ?"
+    return postprocess(sql, (announcement_id,))
+
+
 # Add a new record to a table
 def add_record(table: str, **kwargs) -> bool:
     fields = ", ".join(kwargs.keys())

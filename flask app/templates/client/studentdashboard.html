@@ -1,7 +1,12 @@
 {% extends 'client/clientbase.html' %}
 
 {% block content %}
-
+<style>
+  :root
+  {
+    --text-color: #333;
+  }
+</style>
 <!-- Dashboard Container -->
 <div class="dashboard-wrapper">
   <!-- Sidebar -->
@@ -42,20 +47,26 @@
         <div class="welcome-message">
           <h1>Welcome, {{ student.firstname }}!</h1>
           <p>We're glad to have you back on your student dashboard.</p>
+      
+          <div class="sit-in-rules-section">
+            <h3>Sit-In Laboratory Rules</h3>
+            <ul>
+                <li>No playing games (including computer-related and card games) inside the lab.</li>
+                <li>Mobile phones, walkmans, and other personal equipment must be switched off.</li>
+                <li>Internet surfing is allowed only with instructor permission. No downloading or installing software.</li>
+                <li>Accessing unrelated websites (especially inappropriate content) is strictly prohibited.</li>
+                <li>Do not delete files or alter computer settings.</li>
+                <li>Each use is limited to 15 minutes. After that, the unit is available for those waiting.</li>
+                <li>Observe proper decorum: only enter the lab when the instructor is present.</li>
+                <li>All bags must be deposited at the counter. Follow the instructor's seating arrangement.</li>
+                <li>Chewing gum, eating, drinking, and smoking are prohibited inside the lab.</li>
+                <li>Continual disturbances may lead to removal from the lab.</li>
+                <li>Serious offenses may involve intervention from campus security.</li>
+            </ul>
         </div>
+        
       </div>
-
-      <!-- Rules Section -->
-      <div class="rules-section">
-        <h2>Rules</h2>
-        <p>Please adhere to the following rules while using the laboratories:</p>
-        <ul>
-          <li>Always wear proper lab attire.</li>
-          <li>Do not bring food or drinks into the lab.</li>
-          <li>Follow the instructions of the lab supervisor.</li>
-          <li>Report any equipment malfunctions immediately.</li>
-        </ul>
-      </div>
+    </div>
 
       <!-- Laboratories Section -->
       <div class="laboratories-section">
@@ -94,60 +105,157 @@
       <h1>Profile</h1>
       <div class="profile-container">
         <div class="profile-card">
+          <!-- Profile Picture -->
           <div class="profile-header">
-            <!-- Profile Picture with Edit Icon -->
             <div class="profile-picture" onclick="document.getElementById('profile-picture-upload').click()">
               <img id="profile-picture" src="{{ url_for('static', filename='images/' + student.profile_picture if student.profile_picture else 'default.png') }}" alt="Profile Picture" />
+              <input type="file" id="profile-picture-upload" style="display: none;" />
             </div>
-            <!-- Student Name and Course -->
-            <h2>{{ student.firstname }} {{ student.lastname }}</h2>
-            <p>{{ student.course }} - Year {{ student.year_level }}</p>
           </div>
           <!-- Student Details -->
           <div class="profile-details">
             <div class="detail-item">
-              <span class="detail-label">ID Number:</span>
-              <span class="detail-value">{{ student.idno }}</span>
+              <label for="editable-firstname">Idno:</label>
+              <input type="text" id="editable-firstname" value="{{ student.idno }}" readonly />
+            </div>            
+            <div class="detail-row">
+              <div class="detail-item">
+                <label for="editable-firstname">First Name:</label>
+                <input type="text" id="editable-firstname" value="{{ student.firstname }}" />
+              </div>
+              <div class="detail-item">
+                <label for="editable-lastname">Last Name:</label>
+                <input type="text" id="editable-lastname" value="{{ student.lastname }}" />
+              </div>
             </div>
-            <div class="detail-item">
-              <span class="detail-label">Email:</span>
-              <span class="detail-value">{{ student.email }}</span>
+            <div class="detail-row">
+              <div class="detail-item">
+                <label for="editable-midname">Middle Name:</label>
+                <input type="text" id="editable-midname" value="{{ student.midname }}" />
+              </div>
+              <div class="detail-item">
+                <label for="editable-course">Course:</label>
+                <input type="text" id="editable-course" value="{{ student.course }}" />
+              </div>
             </div>
-            <div class="detail-item">
-              <span class="detail-label">Username:</span>
-              <span class="detail-value">{{ student.username }}</span>
+            <div class="detail-row">
+              <div class="detail-item">
+                <label for="editable-year-level">Year Level:</label>
+                <input type="text" id="editable-year-level" value="{{ student.year_level }}" />
+              </div>
+              <div class="detail-item">
+                <label for="editable-email">Email:</label>
+                <input type="email" id="editable-email" value="{{ student.email }}" />
+              </div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-item">
+                <label for="editable-username">Username:</label>
+                <input type="text" id="editable-username" value="{{ student.username }}" />
+              </div>
             </div>
           </div>
+          <!-- Save Button -->
+          <button onclick="saveProfileChanges()">Save Changes</button>
         </div>
       </div>
     </div>
 
-    <!-- Hidden File Input for Profile Picture Upload -->
-    <input type="file" id="profile-picture-upload" accept="image/*" style="display: none;">
+      <!-- Announcements Section -->
+      <div id="announcements" class="dashboard-section" style="display: block;">
+        <h1>Announcements</h1>
+        <div id="announcements-list" class="announcements-container">
+          <!-- Announcements will be dynamically inserted here -->
+        </div>
+      </div>
+    
 
-    <!-- Announcements Section -->
-    <div id="announcements" class="dashboard-section" style="display: none;">
-      <h1>Announcements</h1>
-      <p>This is the announcements section. You can display announcements here.</p>
+   <!-- Lab Rules Section -->
+<div id="lab-rules" class="dashboard-section" style="display: none;">
+  <h1>Lab Rules and Regulations</h1>
+  <div class="rules-container">
+    <div class="rules-header">
+      <h2>University of Cebu</h2>
+      <h3>COLLEGE OF INFORMATION & COMPUTER STUDIES</h3>
     </div>
-
-    <!-- Lab Rules Section -->
-    <div id="lab-rules" class="dashboard-section" style="display: none;">
-      <h1>Lab Rules</h1>
-      <p>This is the lab rules section. You can display lab rules here.</p>
+    <div class="rules-content">
+      <p>To avoid embarrassment and maintain camaraderie with your friends and superiors at our laboratories, please observe the following:</p>
+      <ol class="rules-list">
+        <li>Maintain silence, proper decorum, and discipline inside the laboratory. Mobile phones, walkmans, and other personal pieces of equipment must be switched off.</li>
+        <li>Games are not allowed inside the lab. This includes computer-related games, card games, and other games that may disturb the operation of the lab.</li>
+        <li>Surfing the Internet is allowed only with the permission of the instructor. Downloading and installing of software are strictly prohibited.</li>
+        <li>Getting access to other websites not related to the course (especially pornographic and illicit sites) is strictly prohibited.</li>
+        <li>Deleting computer files and changing the set-up of the computer is a major offense.</li>
+        <li>Observe computer time usage carefully. A fifteen-minute allowance is given for each use. Otherwise, the unit will be given to those who wish to "sit-in".</li>
+        <li>Observe proper decorum while inside the laboratory:
+          <ul>
+            <li>Do not get inside the lab unless the instructor is present.</li>
+            <li>All bags, knapsacks, and the likes must be deposited at the counter.</li>
+            <li>Follow the seating arrangement of your instructor.</li>
+            <li>At the end of class, all software programs must be closed.</li>
+            <li>Return all chairs to their proper places after using.</li>
+          </ul>
+        </li>
+        <li>Chewing gum, eating, drinking, smoking, and other forms of vandalism are prohibited inside the lab.</li>
+        <li>Anyone causing a continual disturbance will be asked to leave the lab. Acts or gestures offensive to the members of the community, including public display of physical intimacy, are not tolerated.</li>
+        <li>Persons exhibiting hostile or threatening behavior such as yelling, swearing, or disregarding requests made by lab personnel will be asked to leave the lab.</li>
+        <li>For serious offenses, the lab personnel may call the Civil Security Office (CSU) for assistance.</li>
+        <li>Any technical problem or difficulty must be addressed to the laboratory supervisor, student assistant, or instructor immediately.</li>
+      </ol>
+      <div class="disciplinary-action">
+        <h3>DISCIPLINARY ACTION</h3>
+        <p><strong>First Offense:</strong> The Head or the Dean or OIC recommends to the Guidance Center for a suspension from classes for each offender.</p>
+        <p><strong>Second and Subsequent Offenses:</strong> A recommendation for a heavier sanction will be endorsed to the Guidance Center.</p>
+      </div>
     </div>
-
+  </div>
+</div>
     <!-- History Section -->
     <div id="history" class="dashboard-section" style="display: none;">
       <h1>History</h1>
       <p>This is the history section. You can display user history here.</p>
     </div>
 
-    <!-- Reservations Section -->
-    <div id="reservations" class="dashboard-section" style="display: none;">
-      <h1>Reservations</h1>
-      <p>This is the reservations section. You can display reservations here.</p>
+<!-- Reservation Section -->
+<div id="reservations" class="dashboard-section">
+  <h1>Reservation Form</h1>
+  <form id="reservationForm">
+    <div class="form-group">
+      <label for="lab_name">Lab:</label>
+      <select id="lab_name" name="lab_name" required>
+        <option value="">Select Lab</option>
+        {% for lab in labs %}
+          <option value="{{ lab.lab_name }}">{{ lab.lab_name }}</option>
+        {% endfor %}
+      </select>
     </div>
+
+    <div class="form-group">
+      <label for="purpose">Purpose:</label>
+      <textarea id="purpose" name="purpose" placeholder="Enter the purpose of the reservation" required></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="reservation_date">Reservation Date:</label>
+      <input type="date" id="reservation_date" name="reservation_date" required />
+    </div>
+
+    <div class="form-group">
+      <label for="time_in">Time In:</label>
+      <input type="time" id="time_in" name="time_in" required />
+    </div>
+
+    <div class="form-group">
+      <label for="time_out">Time Out:</label>
+      <input type="time" id="time_out" name="time_out" required />
+    </div>
+
+    <button type="submit">Submit Reservation</button>
+  </form>
+
+  <!-- Message Display -->
+  <div id="message"></div>
+</div>
 
     <!-- Laboratories Section -->
     <div id="laboratories" class="dashboard-section" style="display: none;">
@@ -156,383 +264,201 @@
     </div>
   </div>
 </div>
-
-<!-- Internal CSS -->
-<style>
-  /* General Styles */
-  :root {
-    --first-color: hsl(273, 77%, 65%);
-    --first-color-dark: hsl(273, 77%, 55%);
-    --text-color: #333;
-    --background-color: #f8f9fa;
-    --sidebar-color: hsl(240, 20%, 15%);
-    --sidebar-text-color: #bdc3c7;
-    --card-background: #fff;
-    --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  body {
-    font-family: 'Arial', sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: var(--background-color);
-  }
-
-  .dashboard-wrapper {
-    display: flex;
-  }
-
-  /* Sidebar Styles */
-  .sidebar {
-    width: 250px;
-    background-color: var(--sidebar-color);
-    color: var(--sidebar-text-color);
-    padding: 20px;
-    height: 100vh;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-  }
-
-  .profile-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .profile-image img {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    border: 3px solid var(--first-color);
-    display: block;
-  }
-
-  .profile-info h3 {
-    margin: 10px 0 5px;
-    font-size: 18px;
-    color: #fff;
-  }
-
-  .sidebar-links {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .sidebar-links a {
-    color: var(--sidebar-text-color);
-    text-decoration: none;
-    padding: 10px;
-    margin: 5px 0;
-    border-radius: 5px;
-    transition: background-color 0.3s ease, color 0.3s ease;
-  }
-
-  .sidebar-links a.active,
-  .sidebar-links a:hover {
-    background-color: var(--first-color);
-    color: #fff;
-  }
-
-  /* Dashboard Container Styles */
-  .dashboard-container {
-    flex: 1;
-    padding: 20px;
-    background-color: var(--card-background);
-  }
-
-  .dashboard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-  }
-
-  .welcome-message h1 {
-    font-size: 32px;
-    color: var(--text-color);
-    margin-bottom: 10px;
-  }
-
-  .welcome-message p {
-    font-size: 16px;
-    color: #666;
-  }
-
-  .button-container .btn-danger {
-    background-color: #e74c3c;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    font-size: 16px;
-    cursor: pointer;
-    border-radius: 5px;
-    transition: background-color 0.3s ease;
-  }
-
-  .button-container .btn-danger:hover {
-    background-color: #c0392b;
-  }
-
-  /* Rules Section */
-  .rules-section {
-    background-color: var(--background-color);
-    padding: 20px;
-    border-radius: 8px;
-    margin-bottom: 30px;
-    box-shadow: var(--card-shadow);
-  }
-
-  .rules-section h2 {
-    font-size: 24px;
-    color: var(--text-color);
-    margin-bottom: 15px;
-  }
-
-  .rules-section ul {
-    list-style-type: disc;
-    padding-left: 20px;
-  }
-
-  .rules-section li {
-    font-size: 14px;
-    color: #666;
-    margin-bottom: 10px;
-  }
-
-  /* Laboratories Section */
-  .laboratories-section h2 {
-    font-size: 24px;
-    color: var(--text-color);
-    margin-bottom: 20px;
-  }
-
-  .laboratory-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-  }
-
-  .laboratory-card {
-    background-color: var(--first-color);
-    color: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    text-align: center;
-    text-decoration: none;
-    transition: transform 0.3s ease, background-color 0.3s ease;
-  }
-
-  .laboratory-card:hover {
-    transform: translateY(-5px);
-    background-color: var(--first-color-dark);
-  }
-
-  .laboratory-card h3 {
-    font-size: 20px;
-    margin-bottom: 10px;
-  }
-
-  .laboratory-card p {
-    font-size: 14px;
-  }
-
-  /* Profile Section Styles */
-  .profile-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-  }
-
-  .profile-card {
-    background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-  }
-
-  .profile-header {
-    text-align: center;
-    padding: 20px;
-    background-color: #f8f9fa;
-  }
-  .profile-picture {
-    display: flex;
-    justify-content: center; /* Centers horizontally */
-    align-items: center; /* Centers vertically if needed */
-}
-
-.profile-picture img {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    border: 4px solid #fff;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-  .profile-header h2 {
-    margin: 10px 0 5px;
-    font-size: 24px;
-    color: #333;
-  }
-
-  .profile-header p {
-    font-size: 16px;
-    color: #666;
-  }
-
-  .profile-details {
-    padding: 20px;
-  }
-
-  .detail-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px 0;
-    border-bottom: 1px solid #eee;
-  }
-
-  .detail-item:last-child {
-    border-bottom: none;
-  }
-
-  .detail-label {
-    font-weight: bold;
-    color: #333;
-  }
-
-  .detail-value {
-    color: #666;
-  }
-
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .dashboard-wrapper {
-      flex-direction: column;
-    }
-
-    .sidebar {
-      width: 100%;
-      height: auto;
-      padding: 10px;
-    }
-
-    .dashboard-container {
-      padding: 10px;
-    }
-
-    .dashboard-header {
-      flex-direction: column;
-      text-align: center;
-    }
-
-    .button-container {
-      margin-top: 20px;
-    }
-
-    .laboratory-grid {
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    }
-  }
-</style>
-
-<!-- JavaScript for Section Toggling -->
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    // Section Toggling Logic
-    const links = document.querySelectorAll('.sidebar-links a');
-    const sections = document.querySelectorAll('.dashboard-section');
-  
-    // Function to show the selected section and hide others
-    function showSection(sectionId) {
-      sections.forEach(section => {
-        if (section.id === sectionId) {
-          section.style.display = 'block'; // Show the selected section
-        } else {
-          section.style.display = 'none'; // Hide all other sections
-        }
-      });
-  
-      // Save the active section to localStorage
-      localStorage.setItem('activeSection', sectionId);
-    }
-  
-    // Function to set the active link
-    function setActiveLink(sectionId) {
-      links.forEach(link => {
-        if (link.getAttribute('data-section') === sectionId) {
-          link.classList.add('active'); // Add active class to the clicked link
-        } else {
-          link.classList.remove('active'); // Remove active class from other links
-        }
-      });
-    }
-  
-    // Load the active section from localStorage
-    const activeSection = localStorage.getItem('activeSection') || 'dashboard';
-    showSection(activeSection);
-    setActiveLink(activeSection);
-  
-    // Add click event listeners to sidebar links
-    links.forEach(link => {
-      link.addEventListener('click', function (e) {
-        e.preventDefault();
-        const sectionId = this.getAttribute('data-section');
-        showSection(sectionId); // Show the selected section
-        setActiveLink(sectionId); // Set the active link
-      });
+  // Section Toggling Logic
+  const links = document.querySelectorAll('.sidebar-links a');
+  const sections = document.querySelectorAll('.dashboard-section');
+
+  // Function to show the selected section and hide others
+  function showSection(sectionId) {
+    sections.forEach(section => {
+      if (section.id === sectionId) {
+        section.style.display = 'block'; // Show the selected section
+      } else {
+        section.style.display = 'none'; // Hide all other sections
+      }
     });
-  
-    // Profile Picture Upload Logic
-    const fileInput = document.getElementById('profile-picture-upload');
-    const profilePicture = document.getElementById('profile-picture');
-  
-    // Ensure event listeners are only attached once
-    if (!fileInput.hasEventListener) {
-      // Trigger file input when clicking the profile picture
-      document.querySelector('.profile-picture').addEventListener('click', function () {
-        fileInput.click();
-      });
-  
-      // Handle file upload
-      fileInput.addEventListener('change', function () {
-        if (fileInput.files.length > 0) {
-          const formData = new FormData();
-          formData.append('profile_picture', fileInput.files[0]);
-  
-          // Send the file to the server using AJAX
-          fetch("{{ url_for('upload_profile_picture') }}", {
-            method: 'POST',
-            body: formData,
-          })
-            .then(response => response.json())
-            .then(data => {
-              if (data.success) {
-                // Update the profile picture dynamically
-                profilePicture.src = "{{ url_for('static', filename='images/') }}" + data.filename + "?t=" + new Date().getTime();
-                alert("Profile picture updated successfully!");
-  
-                // Refresh the page after the user clicks "OK" in the alert
-                window.location.reload();
-              } else {
-                alert("Failed to update profile picture.");
-              }
-            })
-            .catch(error => {
-              console.error('Error:', error);
-              alert("An error occurred while uploading the profile picture.");
-            });
-        }
-      });
-  
-      // Mark the file input as having event listeners
-      fileInput.hasEventListener = true;
-    }
-  
-    // Clear localStorage on logout
-    document.getElementById('logout-link').addEventListener('click', function () {
-      localStorage.removeItem('activeSection');
+
+    // Save the active section to localStorage
+    localStorage.setItem('activeSection', sectionId);
+  }
+
+  // Function to set the active link
+  function setActiveLink(sectionId) {
+    links.forEach(link => {
+      if (link.getAttribute('data-section') === sectionId) {
+        link.classList.add('active'); // Add active class to the clicked link
+      } else {
+        link.classList.remove('active'); // Remove active class from other links
+      }
+    });
+  }
+
+  // Load the active section from localStorage
+  const activeSection = localStorage.getItem('activeSection') || 'dashboard';
+  showSection(activeSection);
+  setActiveLink(activeSection);
+
+  // Add click event listeners to sidebar links
+  links.forEach(link => {
+    link.addEventListener('click', function (e) {
+      e.preventDefault();
+      const sectionId = this.getAttribute('data-section');
+      showSection(sectionId); // Show the selected section
+      setActiveLink(sectionId); // Set the active link
     });
   });
-  </script>
 
+  // Clear localStorage on logout
+  document.getElementById('logout-link').addEventListener('click', function () {
+    localStorage.removeItem('activeSection');
+  });
+
+  // Profile Picture Upload Handling
+  const profilePictureUpload = document.getElementById('profile-picture-upload');
+  if (profilePictureUpload) {
+    profilePictureUpload.addEventListener('change', function (event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          document.getElementById('profile-picture').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+});
+
+// Function to save profile changes
+function saveProfileChanges() {
+  const updatedData = {
+    firstname: document.getElementById('editable-firstname').value,
+    lastname: document.getElementById('editable-lastname').value,
+    midname: document.getElementById('editable-midname').value,
+    course: document.getElementById('editable-course').value,
+    year_level: document.getElementById('editable-year-level').value,
+    email: document.getElementById('editable-email').value,
+    username: document.getElementById('editable-username').value
+  };
+
+  const formData = new FormData();
+  formData.append('data', JSON.stringify(updatedData));
+  const profilePictureFile = document.getElementById('profile-picture-upload').files[0];
+  if (profilePictureFile) {
+    formData.append('profile_picture', profilePictureFile);
+  }
+
+  fetch('/update_profile', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      alert('Profile updated successfully!');
+      window.location.reload(); // Refresh the page to reflect changes
+    } else {
+      alert('Failed to update profile: ' + data.message);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('An error occurred while updating the profile.');
+  });
+}
+
+// Fetch announcements
+const announcementsList = document.getElementById('announcements-list');
+
+function fetchAnnouncements() {
+    fetch('/get_announcements')
+        .then(response => response.json())
+        .then(data => {
+            announcementsList.innerHTML = ''; // Clear existing announcements
+
+            data.forEach(announcement => {
+                const announcementDate = new Date(announcement.announcement_date).toLocaleString();
+
+                const announcementBox = document.createElement('div');
+                announcementBox.className = 'announcement-box';
+
+                announcementBox.innerHTML = `
+                    <div class="announcement-header">
+                        <span class="announcement-date">${announcementDate}</span>
+                        <span class="announcement-admin">Posted by: ${announcement.admin_username}</span>
+                    </div>
+                    <div class="announcement-content">
+                        <p>${announcement.announcement_text}</p>
+                    </div>
+                `;
+
+                announcementsList.appendChild(announcementBox);
+            });
+        })
+        .catch(error => console.error('Error fetching announcements:', error));
+}
+
+// Fetch announcements when the page loads
+document.addEventListener('DOMContentLoaded', fetchAnnouncements);
+
+
+// Handle reservation form submission
+document.getElementById('reservationForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    fetch('/reservations', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        const messageDiv = document.getElementById('message');
+        if (data.status === 'success') {
+            messageDiv.textContent = data.message;
+            messageDiv.style.color = 'green';
+        } else {
+            messageDiv.textContent = data.message;
+            messageDiv.style.color = 'red';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('message').textContent = 'An error occurred. Please try again.';
+    });
+});
+
+function fetchLabs() {
+    fetch('/get_labs')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Labs data:', data);  // Add this to check the data you're getting
+            const labSelect = document.getElementById('lab_name');
+            labSelect.innerHTML = '<option value="">Select Lab</option>'; // Reset options
+
+            if (data.success && data.labs.length > 0) {
+                data.labs.forEach(lab => {
+                    const option = document.createElement('option');
+                    option.value = lab.id;
+                    option.textContent = lab.lab_name;
+                    labSelect.appendChild(option);
+                });
+            } else {
+                console.error('No labs found or error in response');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching labs:', error);
+        });
+}
+
+</script>
 {% endblock %}

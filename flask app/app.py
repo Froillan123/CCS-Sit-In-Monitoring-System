@@ -7,15 +7,14 @@ import json
 app = Flask(__name__)
 
 
-# Session Configuration
 app.config["SESSION_COOKIE_NAME"] = "main_app_session"
 app.secret_key = os.urandom(24)
 app.config['UPLOAD_FOLDER'] = 'static/images'
-# Initialize SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 
 active_users_dict = {}
+announcements = []
 
 @app.after_request
 def after_request(response):
@@ -43,12 +42,8 @@ def login():
 
         if user:
             session['user_username'] = username
+            session['student_idno'] = user['idno']  # Use idno instead of id
             flash("Login successful!", 'success')
-            
-            # Add user to active users dictionary
-            active_users_dict[username] = time.time()  # Track login time
-            notify_active_users_update()
-            
             return redirect(url_for('student_dashboard'))
         else:
             flash("Invalid username or password", 'error')
@@ -83,17 +78,99 @@ def forgot_password():
 
     return render_template('client/forgotpassword.html')
 
+@app.route('/reservations', methods=['POST'])
+def reservations():
+    if request.method == 'POST':
+        # Ensure the student is logged in
+        if 'student_idno' not in session:
+            return jsonify({"status": "error", "message": "Student not logged in"}), 401
+
+        # Get form data
+        student_idno = session['student_idno']  # Use student_idno from session
+        lab_name = request.form.get('lab_name')
+        purpose = request.form.get('purpose')
+        reservation_date = request.form.get('reservation_date')
+        time_in = request.form.get('time_in')
+        time_out = request.form.get('time_out')
+
+        # Validate form data
+        if not all([lab_name, purpose, reservation_date, time_in, time_out]):
+            return jsonify({"status": "error", "message": "All fields are required"}), 400
+
+        # Query to get the student's name (firstname, lastname) based on idno
+        student = get_student_by_idno(student_idno)  # Fetch student by idno
+        if not student:
+            return jsonify({"status": "error", "message": "Student not found"}), 404
+
+        student_name = f"{student['firstname']} {student['lastname']}"
+
+        # Prepare data for insertion
+        data = {
+            "student_idno": student_idno,  # Use student_idno here
+            "student_name": student_name,
+            "lab_name": lab_name,
+            "purpose": purpose,
+            "reservation_date": reservation_date,
+            "time_in": time_in,
+            "time_out": time_out
+        }
+
+        # Add record to the database
+        try:
+            success = add_record("reservations", **data)
+            if success:
+                return jsonify({"status": "success", "message": f"Reservation added successfully by {student_name}!"}), 200
+            else:
+                return jsonify({"status": "error", "message": "Error adding reservation."}), 500
+        except Exception as e:
+            return jsonify({"status": "error", "message": str(e)}), 500
+
+
 @app.route('/student_dashboard')
 def student_dashboard():
     pagetitle = "Student Dashboard"
     if 'user_username' not in session:
         flash("You need to login first", 'warning')
         return redirect(url_for('login'))
+
     student = get_student_by_username(session['user_username'])
     if not student:
         flash("Student not found", 'danger')
         return redirect(url_for('login'))
-    return render_template('client/studentdashboard.html', student=student, pagetitle=pagetitle)
+
+    # Get available laboratories
+    labs = get_laboratories()
+
+    return render_template('client/studentdashboard.html', student=student, pagetitle=pagetitle, labs=labs)
+
+@app.route('/update_profile', methods=['POST'])
+def update_profile():
+    if 'user_username' not in session:
+        return jsonify({"success": False, "message": "You need to login first"}), 401
+
+    try:
+        data = request.form.get('data')
+        if not data:
+            return jsonify({"success": False, "message": "No data provided"}), 400
+
+        data = json.loads(data)
+        username = session['user_username']
+
+        # Update the student's details in the database
+        update_record('students', username=username, firstname=data['firstname'], lastname=data['lastname'], course=data['course'], year_level=data['year_level'], email=data['email'])
+
+        # Handle profile picture upload
+        if 'profile_picture' in request.files:
+            file = request.files['profile_picture']
+            if file.filename != '':
+                filename = f"student_{username}.png"
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                update_record('students', username=username, profile_picture=filename)
+
+        return jsonify({"success": True, "message": "Profile updated successfully"})
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route('/upload_profile_picture', methods=['POST'])
 def upload_profile_picture():
@@ -167,6 +244,17 @@ def register():
     return render_template('client/register.html')
 
 
+
+@app.route('/get_labs', methods=['GET'])
+def get_labs():
+    try:
+        cursor = db.execute('SELECT lab_name FROM laboratories')
+        labs = cursor.fetchall()
+        lab_list = [lab[0] for lab in labs]  # Extract lab names
+        return jsonify({"success": True, "labs": lab_list})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+
 @app.route('/load_section/<section_id>')
 def load_section(section_id):
     if section_id == 'dashboard':
@@ -237,12 +325,11 @@ def dashboard():
     if 'admin_username' not in session:
         flash("You need to login first", 'warning')
         return redirect(url_for('admin_login'))
+    admin_username = session.get('admin_username')
     active_students = list(active_users_dict.keys())
-    admin_username = session['admin_username']
     laboratories = get_count_laboratories()
-
     student_count = get_count_students()
-    return render_template('admin/dashboard.html', student_count=student_count, active_students=active_students, laboratories=laboratories,  admin_username=admin_username, pagetitle=pagetitle)
+    return render_template('admin/dashboard.html', student_count=student_count, active_students=active_students, laboratories=laboratories, admin_username=admin_username, pagetitle=pagetitle)
 
 @app.route('/admin', methods=['GET', 'POST'])  
 def admin_login():
@@ -318,6 +405,46 @@ def adminLogout():
         session.pop('admin_username', None)  
         flash("Admin has been logged out.", 'info')
     return redirect(url_for('admin_login'))
+
+@app.route('/create_announcement', methods=['POST'])
+def create_announcement():
+    data = request.get_json()
+    announcement_text = data.get('announcement_text')
+
+    # Get the admin's username from the session
+    admin_username = session.get('admin_username')
+
+    if not admin_username:
+        return jsonify({"success": False, "message": "Admin not logged in"})
+
+    if not announcement_text:
+        return jsonify({"success": False, "message": "Missing announcement text"})
+
+    try:
+        # Use the add_record function to insert the announcement
+        success = add_record(
+            table="announcements",
+            admin_username=admin_username,
+            announcement_text=announcement_text,
+            announcement_date=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        )
+
+        if success:
+            return jsonify({"success": True})
+        else:
+            return jsonify({"success": False, "message": "Failed to add announcement"})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+
+# Route to fetch all announcements
+@app.route('/get_announcements', methods=['GET'])
+def get_announcements():
+    try:
+        announcements = get_all_announcements()  # Ensure this function exists and works
+        return jsonify(announcements)  # Return the announcements as JSON
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+
 
 @app.route('/get_user_count')
 def get_user_count():
