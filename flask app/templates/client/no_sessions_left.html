@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ pagetitle }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-lg text-center max-w-md w-full">
+        <h1 class="text-2xl font-bold text-red-600 mb-4">No Sessions Left</h1>
+        <p class="text-gray-700 mb-6">
+            You have used all your available sessions. Please request an extension to continue.
+        </p>
+        <form action="{{ url_for('no_sessions_left') }}" method="POST">
+            <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition duration-300">
+                Request Extension
+            </button>
+        </form>
+        <p class="text-gray-500 text-sm mt-4">
+            <a href="{{ url_for('login') }}" class="text-blue-500 hover:underline">Return to Login</a>
+        </p>
+    </div>
+</body>
+</html>

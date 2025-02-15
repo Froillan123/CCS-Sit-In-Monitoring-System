@@ -3,6 +3,7 @@ from dbhelper import *
 from flask_socketio import SocketIO, emit, disconnect
 import os
 import time
+from datetime import timedelta
 import json
 app = Flask(__name__)
 
@@ -41,6 +42,11 @@ def login():
         user = get_user_by_credentials(username, password)
 
         if user:
+            # Check if the user has sessions left
+            if user['sessions_left'] <= 0:
+                flash("You have no sessions left. Please request an extension.", 'warning')
+                return redirect(url_for('no_sessions_left'))  # Redirect to the no sessions left page
+
             session['user_username'] = username
             session['student_idno'] = user['idno']  # Use idno instead of id
 
@@ -63,6 +69,20 @@ def login():
             return redirect(url_for('login'))
 
     return render_template('client/login.html', pagetitle=pagetitle)
+
+
+@app.route('/no_sessions_left', methods=['GET', 'POST'])
+def no_sessions_left():
+    pagetitle = "No Sessions Left"
+    if request.method == 'POST':
+        # Handle the request for session extension
+        student_idno = session.get('student_idno')
+        if student_idno:
+            # Logic to handle the extension request (e.g., send an email, save to database, etc.)
+            flash("Your request for a session extension has been submitted.", 'info')
+            return redirect(url_for('login'))  # Redirect back to login after submission
+
+    return render_template('client/no_sessions_left.html', pagetitle=pagetitle)
 
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
@@ -152,7 +172,7 @@ def student_dashboard():
         flash("Student not found", 'danger')
         return redirect(url_for('login'))
 
-    labs = get_lab_names()  # Fetch the list of lab names
+    labs = get_lab_names()  # Fetch the list of lab names with IDs
     current_session = get_total_session(student['idno'])
 
     return render_template('client/studentdashboard.html', student=student, pagetitle=pagetitle, labs=labs, idno=student['idno'], current_session=current_session)
@@ -285,6 +305,7 @@ def load_section(section_id):
         return render_template('client/sections/laboratories.html')
     else:
         return "Section not found", 404
+    
 @app.route('/logout')
 def logout():
     username = session.get('user_username')
@@ -309,13 +330,22 @@ def logout():
     flash("Logout successful", 'info')
     return redirect(url_for('login'))
 
+
+def format_duration(seconds):
+    if not seconds:
+        return "N/A"
+    duration = timedelta(seconds=seconds)
+    days = duration.days
+    hours, remainder = divmod(duration.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{days}d {hours}h {minutes}m {seconds}s"
     
 @app.route('/get_session_history/<student_idno>', methods=['GET'])
 def get_session_history(student_idno):
     sql = """
         SELECT * FROM session_history
         WHERE student_idno = ?
-        ORDER BY login_time
+        ORDER BY id  -- Order by the primary key (id) to ensure insertion order
         LIMIT 30
     """
     history = getprocess(sql, (student_idno,))

@@ -136,9 +136,9 @@ def get_announcement_by_id(announcement_id: int) -> dict:
 
 
 def get_lab_names():
-    sql = "SELECT lab_name FROM laboratories"
+    sql = "SELECT id, lab_name FROM laboratories"  # Include the lab ID in the query
     result = getprocess(sql)  # Assuming getprocess() executes queries correctly
-    return [row['lab_name'] for row in result] if result else []  # Return a list
+    return [{'id': row['id'], 'lab_name': row['lab_name']} for row in result] if result else []  # Return a list of dictionaries
 
 
 # Function to update an announcement (if needed)
@@ -209,5 +209,10 @@ def update_session_history(student_idno, logout_time):
         WHERE student_idno = ? AND logout_time IS NULL
     """
     return postprocess(sql, (logout_time, logout_time, student_idno))
+
+
+def insert_extension_request(student_idno, request_time):
+    sql = "INSERT INTO extension_requests (student_idno, request_time) VALUES (?, ?)"
+    return postprocess(sql, (student_idno, request_time))
 
 

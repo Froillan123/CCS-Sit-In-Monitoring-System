@@ -705,15 +705,38 @@ img {
   color: var(--sidebar-text-color);
   border-right: 1px solid var(--first-color);
   padding: 20px;
-  min-height: 100vh;
+  min-height: 100vh; /* Default height */
   position: fixed;
   top: 0;
   left: 0;
   overflow-y: auto;
-  transition: width 0.3s ease;
+  transition: width 0.3s ease, max-height 0.3s ease;
   z-index: 1000;
 }
 
+.sidebar.max-height {
+  max-height: 100vh; /* Applied when content height exceeds 662px */
+  overflow-y: auto; /* Ensure the scrollbar appears when content overflows */
+}
+
+/* Custom WebKit scrollbar */
+.sidebar.max-height::-webkit-scrollbar {
+  width: 8px; /* Width of the scrollbar */
+}
+
+.sidebar.max-height::-webkit-scrollbar-track {
+  background: #414141; /* Light gray track */
+  border-radius: 4px; /* Rounded corners for the track */
+}
+
+.sidebar.max-height::-webkit-scrollbar-thumb {
+  background: #dcdcdc; /* Gray scrollbar thumb */
+  border-radius: 4px; /* Rounded corners for the thumb */
+}
+
+.sidebar.max-height::-webkit-scrollbar-thumb:hover {
+  background: #555; /* Darker gray on hover */
+}
 .sidebar-toggle {
   display: none;
   cursor: pointer;
@@ -841,6 +864,9 @@ img {
   .log-out-small-size a
   {
     display: flex;
+  }
+  .button-container button {
+    font-size: 14px; /* Reduce button font size */
   }
 }
 
@@ -1698,7 +1724,61 @@ button:hover {
   height: auto;
 }
 
-/* Session History */
+/* General Styles for Sessions Section */
+#sessions {
+  padding: 2rem;
+  background-color: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin: 1.5rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+#sessions:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+#sessions h1 {
+  font-size: 2.25rem;
+  color: #2c3e50;
+  margin-bottom: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+#sessions h2 {
+  font-size: 1.75rem;
+  color: #34495e;
+  margin-top: 2rem;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+/* Current Session Status */
+#current-session {
+  background-color: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  margin-bottom: 2rem;
+  border: 1px solid #e9ecef;
+}
+
+#current-session h3 {
+  font-size: 1.5rem;
+  color: #27ae60;
+  margin-top: 0.5rem;
+  font-weight: 600;
+}
+
+/* Session History Table */
+#session-history {
+  background-color: #fff;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e9ecef;
+}
+
 #session-history table {
   width: 100%;
   border-collapse: collapse;
@@ -1707,14 +1787,21 @@ button:hover {
 
 #session-history th,
 #session-history td {
-  padding: 0.75rem;
-  border: 1px solid #ddd;
+  padding: 1rem;
+  border: 1px solid #e9ecef;
   text-align: left;
+  font-size: 1.3rem;
 }
 
 #session-history th {
   background-color: #f8f9fa;
   font-weight: 600;
+  color: #2c3e50;
+}
+
+#session-history tbody tr:hover {
+  background-color: #f1f3f5;
+  transition: background-color 0.2s ease;
 }
 
 /* Session Rules */
@@ -1758,27 +1845,78 @@ button:hover {
   background-color: #45a049;
 }
 
-
-/* Chart Container */
-.chart-container {
-  width: 100%;
-  height: 300px; /* Fixed height for better responsiveness */
-  max-height: 400px; /* Maximum height for desktop */
-  margin-bottom: 20px;
-}
 /* Responsive Design */
 @media (max-width: 768px) {
   #sessions {
-    padding: 1rem;
+    padding: 1.5rem;
+    margin: 1rem;
   }
 
-  #session-history table {
-    font-size: 0.875rem;
+  #sessions h1 {
+    font-size: 2rem;
+  }
+
+  #sessions h2 {
+    font-size: 1.5rem;
+  }
+
+  #current-session h3 {
+    font-size: 1.25rem;
+  }
+
+  #session-history th,
+  #session-history td {
+    padding: 0.75rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  #sessions {
+    padding: 1rem;
+    margin: 0.5rem;
+  }
+
+  #sessions h1 {
+    font-size: 1.75rem;
+  }
+
+  #sessions h2 {
+    font-size: 1.25rem;
+  }
+
+  #current-session h3 {
+    font-size: 1rem;
   }
 
   #session-history th,
   #session-history td {
     padding: 0.5rem;
+    font-size: 0.75rem;
+  }
+}
+/* General styles for the chart container */
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 450px; /* Fixed height for larger screens */
+}
+
+
+/* Responsive styles for smaller screens */
+@media (max-width: 768px) {
+  .chart-container {
+    height: 250px; /* Adjust height for tablets */
+  }
+
+  #sessionChart {
+    /* Hide labels on mobile */
+    display: none;
+  }
+}
+@media (max-width: 332px) {
+  .chart-container {
+    height: 200px; /* Adjust height for tablets */
   }
 }
 

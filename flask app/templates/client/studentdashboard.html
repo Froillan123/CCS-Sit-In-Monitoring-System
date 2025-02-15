@@ -6,8 +6,14 @@
   {
     --text-color: #333;
   }
+
+  .sidebar.zoomed {
+  max-height: 100vh; /* Applied when zoom level is high */
+  min-height: auto; /* Override min-height */
+}
+
 </style>
-<!-- Dashboard Container -->
+      <!-- Dashboard Container -->
           <div class="dashboard-wrapper">
             <!-- Sidebar -->
             <div class="sidebar">
@@ -36,7 +42,7 @@
               </div>
 
               <div class="log-out-small-size">
-                <a href="#" id="logout-link"><i class="fas fa-sign-out-alt"></i><span></span></a>
+                <a href="{{ url_for('logout') }}" id="logout-link"><i class="fas fa-sign-out-alt"></i><span></span></a>
               </div>
 
               <!-- Logout Button -->
@@ -84,15 +90,15 @@
           <div class="laboratories-section">
             <h2>Laboratories</h2>
             <div class="laboratory-grid">
-                {% for lab in labs %}
-                <a href="#" class="laboratory-card">
-                    <div class="lab-icon">
-                        <i class="fas fa-laptop-code"></i> <!-- Computer Lab Icon -->
-                    </div>
-                    <h3>{{ lab }}</h3> <!-- Directly display lab name -->
-                </a>
-                {% endfor %}
-            </div>
+              {% for lab in labs %}
+              <a href="#" class="laboratory-card">
+                  <div class="lab-icon">
+                      <i class="fas fa-laptop-code"></i> <!-- Computer Lab Icon -->
+                  </div>
+                  <h3>{{ lab.lab_name }}</h3> <!-- Directly display lab name -->
+              </a>
+              {% endfor %}
+          </div>
         </div>        
     </div>
 
@@ -211,81 +217,87 @@
       <p>This is the history section. You can display user history here.</p>
     </div>
 
-<!-- Reservation Section -->
-<div id="reservations" class="dashboard-section">
-  <h1>Reservation Form</h1>
-  <form id="reservationForm">
-    <div class="form-group">
-        <label for="lab_name">Lab:</label>
-        <select id="lab_name" name="lab_name" required>
-          <option value="" disabled selected>Select Lab</option> <!-- Default option -->
-          {% for lab in labs %}
-              <option value="{{ lab }}">{{ lab }}</option>
-          {% endfor %}
-      </select>      
-    </div>
+        <!-- Reservation Section -->
+        <div id="reservations" class="dashboard-section">
+          <h1>Reservation Form</h1>
+          <form id="reservationForm" action="/reservations" method="POST">
+            <div class="form-group">
+              <label for="lab_name">Lab:</label>
+              <select id="lab_name" name="lab_name" required>
+                <option value="" disabled selected>Select Lab</option>
+                {% for lab in labs %}
+                  <option value="{{ lab.id }}">{{ lab.lab_name }}</option>
+                {% endfor %}
+            </select>
+            </div>
+        
+            <div class="form-group">
+              <label for="purpose">Purpose:</label>
+              <textarea id="purpose" name="purpose" placeholder="Enter the purpose of the reservation" required></textarea>
+            </div>
+        
+            <div class="form-group">
+              <label for="reservation_date">Reservation Date:</label>
+              <input type="date" id="reservation_date" name="reservation_date" required />
+            </div>
+        
+            <div class="form-group">
+              <label for="time_in">Time In:</label>
+              <input type="time" id="time_in" name="time_in" required />
+            </div>
+        
+            <div class="form-group">
+              <label for="time_out">Time Out:</label>
+              <input type="time" id="time_out" name="time_out" required />
+            </div>
+        
+            <button type="submit">Submit Reservation</button>
+          </form>
+        
+          <!-- Message Display -->
+          <div id="message"></div>
+        </div>
 
-    <div class="form-group">
-        <label for="purpose">Purpose:</label>
-        <textarea id="purpose" name="purpose" placeholder="Enter the purpose of the reservation" required></textarea>
-    </div>
 
-    <div class="form-group">
-        <label for="reservation_date">Reservation Date:</label>
-        <input type="date" id="reservation_date" name="reservation_date" required />
-    </div>
+        <div id="laboratories" class="dashboard-section">
+          <h1>Laboratories</h1>
+        </div>
 
-    <div class="form-group">
-        <label for="time_in">Time In:</label>
-        <input type="time" id="time_in" name="time_in" required />
-    </div>
-
-    <div class="form-group">
-        <label for="time_out">Time Out:</label>
-        <input type="time" id="time_out" name="time_out" required />
-    </div>
-
-    <button type="submit">Submit Reservation</button>
-</form>
-
-
-  <!-- Message Display -->
-  <div id="message"></div>
-</div>
-
-          <div id="sessions" class="dashboard-section" style="display: none;">
-            <h1>Sessions</h1>
-
-            <!-- Current Session Status -->
+        <div id="sessions" class="dashboard-section" style="display: none;">
+          <h1>Sessions</h1>
+        
+          <!-- Current Session Status -->
           <div id="current-session">
             <h2>Current Session</h2>
             <h3>{{ current_session['sessions_left'] if current_session else 'No session found' }}</h3>
           </div>
-
-
-            <!-- Session Duration Graph -->
-            <div id="session-graph">
-                <h2>Session Duration</h2>
-                <canvas id="sessionChart"></canvas>
-            </div>
-
-            <!-- Session History -->
-            <div id="session-history">
-                <h2>Session History</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Login Time</th>
-                            <th>Logout Time</th>
-                            <th>Duration (seconds)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="session-history-body">
-                        <!-- Session history rows will be dynamically inserted here -->
-                    </tbody>
-                </table>
+        
+          <!-- Session Duration Graph -->
+          <div id="session-graph">
+            <h2>Session Duration</h2>
+            <div class="chart-container">
+              <canvas id="sessionChart"></canvas>
             </div>
           </div>
+        
+          <!-- Session History -->
+          <div id="session-history">
+            <h2>Session History</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Session ID</th>
+                  <th>Login Time</th>
+                  <th>Logout Time</th>
+                  <th>Duration (seconds)</th>
+                </tr>
+              </thead>
+              <tbody id="session-history-body">
+                <!-- Session history rows will be dynamically inserted here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
 
 <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -468,7 +480,6 @@ function fetchAnnouncements() {
     .catch(error => console.error('Error fetching announcements:', error));
 }
 
-// Function to fetch labs
 function fetchLabs() {
   fetch('/get_labs')
     .then(response => response.json())
@@ -480,8 +491,8 @@ function fetchLabs() {
         if (data.success && data.labs.length > 0) {
           data.labs.forEach(lab => {
             const option = document.createElement('option');
-            option.value = lab.id;
-            option.textContent = lab.lab_name;
+            option.value = lab.id;  // Use the lab ID as the value
+            option.textContent = lab.lab_name;  // Use the lab name as the display text
             labSelect.appendChild(option);
           });
         } else {
@@ -490,6 +501,21 @@ function fetchLabs() {
       }
     })
     .catch(error => console.error('Error fetching labs:', error));
+}
+
+function formatDuration(seconds) {
+  if (!seconds) return 'N/A';
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  let durationString = '';
+  if (hours > 0) durationString += `${hours}h `;
+  if (minutes > 0) durationString += `${minutes}m `;
+  if (secs > 0 || durationString === '') durationString += `${secs}s`;
+
+  return durationString.trim();
 }
 
 function fetchSessionHistory(studentIdno) {
@@ -503,19 +529,20 @@ function fetchSessionHistory(studentIdno) {
       if (sessionHistoryBody) {
         sessionHistoryBody.innerHTML = ''; // Clear existing rows
 
-        data.forEach(session => {
+        data.forEach((session, index) => {
           const row = document.createElement('tr');
           row.innerHTML = `
+            <td>Session ${index + 1}</td>
             <td>${session.login_time}</td>
             <td>${session.logout_time || 'Active'}</td>
-            <td>${session.duration ? (session.duration / 60).toFixed(2) : 'N/A'} minutes</td>
+            <td>${formatDuration(session.duration)}</td>
           `;
           sessionHistoryBody.appendChild(row);
 
           // Collect data for the chart
           if (session.logout_time) {
             loginTimes.push(session.login_time);
-            durationsInMinutes.push((session.duration / 60).toFixed(2)); // Convert seconds to minutes
+            durationsInMinutes.push(session.duration / 60); // Convert seconds to minutes for the chart
           }
         });
 
@@ -537,25 +564,39 @@ function fetchSessionHistory(studentIdno) {
               }]
             },
             options: {
+              responsive: true, // Make the chart responsive
+              maintainAspectRatio: false, // Allow the chart to resize freely
+              interaction: {
+                mode: 'nearest', // Show tooltip on nearest data point
+                intersect: false, // Show tooltip even if not directly hovering over a point
+              },
               scales: {
                 y: {
                   beginAtZero: true,
                   title: {
-                    display: true,
+                    display: window.innerWidth > 768, // Hide y-axis title on mobile
                     text: 'Duration (minutes)'
                   }
                 },
                 x: {
                   title: {
-                    display: true,
+                    display: window.innerWidth > 768, // Hide x-axis title on mobile
                     text: 'Login Time'
+                  },
+                  ticks: {
+                    display: window.innerWidth > 768, // Hide x-axis labels on mobile
                   }
                 }
               },
               plugins: {
                 legend: {
-                  display: true,
+                  display: window.innerWidth > 768, // Hide legend on mobile
                   position: 'top'
+                },
+                tooltip: {
+                  enabled: true, // Enable tooltips
+                  mode: 'nearest', // Show tooltip for the nearest data point
+                  intersect: false, // Show tooltip even if not directly hovering over a point
                 }
               }
             }
@@ -565,5 +606,49 @@ function fetchSessionHistory(studentIdno) {
     })
     .catch(error => console.error('Error fetching session history:', error));
 }
+
+let inactivityTime = function () {
+  let time;
+  window.onload = resetTimer;
+  document.onmousemove = resetTimer;
+  document.onkeypress = resetTimer;
+
+  function logout() {
+    fetch('/logout', { method: 'POST' })
+      .then(response => {
+        if (response.redirected) {
+          window.location.href = response.url;
+        }
+      });
+  }
+
+  function resetTimer() {
+    clearTimeout(time);
+    time = setTimeout(logout, 15 * 60 * 1000); // 15 minutes
+  }
+};
+
+inactivityTime();
+
+window.addEventListener('beforeunload', function (e) {
+  fetch('/logout', { method: 'POST', keepalive: true });
+});
+
+function checkSidebarHeight() {
+  const sidebar = document.querySelector('.sidebar');
+  const sidebarContentHeight = sidebar.scrollHeight; // Get the total height of the sidebar content
+
+  // If sidebar content height exceeds 662px, apply max-height
+  if (sidebarContentHeight > 662) {
+    sidebar.classList.add('max-height');
+  } else {
+    sidebar.classList.remove('max-height');
+  }
+}
+
+// Run the function on page load and window resize
+window.addEventListener('load', checkSidebarHeight);
+window.addEventListener('resize', checkSidebarHeight);
+
 </script>
 {% endblock %}
