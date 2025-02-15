@@ -220,11 +220,9 @@ def upload_profile_picture():
         return jsonify({"success": False, "message": "No file selected"})
 
     if file:
-        # Save the file to the upload folder
         filename = f"student_{session['user_username']}.png"
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
-        # Update the student's profile picture in the database
         update_record('students', username=session['user_username'], profile_picture=filename)
         return jsonify({"success": True, "filename": filename})
 
@@ -446,6 +444,7 @@ def admin_register():
                       admin_username=admin_username, 
                       password=password, 
                       email=email, 
+                      name=name,  # Add this line
                       admin_firstname=admin_firstname, 
                       admin_lastname=admin_lastname):
             flash("Admin registered successfully!", 'success')
@@ -493,12 +492,55 @@ def create_announcement():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
 
-# Route to fetch all announcements
+@app.route('/get_announcement/<int:announcement_id>', methods=['GET'])
+def get_announcement(announcement_id):
+    try:
+        announcement = get_announcement_by_id(announcement_id)  # Ensure this function exists
+        return jsonify(announcement)
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+    
+
 @app.route('/get_announcements', methods=['GET'])
 def get_announcements():
     try:
         announcements = get_all_announcements()  # Ensure this function exists and works
         return jsonify(announcements)  # Return the announcements as JSON
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+
+@app.route('/update_announcement/<int:announcement_id>', methods=['POST'])
+def update_announcement(announcement_id):
+    data = request.get_json()
+    announcement_text = data.get('announcement_text')
+
+    if not announcement_text:
+        return jsonify({"success": False, "message": "Missing announcement text"})
+
+    try:
+        success = update_record(
+            table="announcements",
+            id=announcement_id,
+            announcement_text=announcement_text,
+            announcement_date=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        )
+
+        if success:
+            return jsonify({"success": True})
+        else:
+            return jsonify({"success": False, "message": "Failed to update announcement"})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+
+
+@app.route('/delete_announcement/<int:announcement_id>', methods=['DELETE'])
+def delete_announcement(announcement_id):
+    try:
+        success = delete_record(table="announcements", id=announcement_id)  # Ensure this function exists
+        if success:
+            return jsonify({"success": True})
+        else:
+            return jsonify({"success": False, "message": "Failed to delete announcement"})
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
 
