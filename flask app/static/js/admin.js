@@ -328,7 +328,8 @@ const programData = {
     BSCpE: [5, 14, 10, 8, 12, 9],
     BSBA: [7, 11, 13, 6, 9, 15],
     BSCS: [10, 8, 12, 14, 7, 11],
-    BSEd: [6, 9, 15, 10, 8, 12],
+    BSEd: [6, 9, 15, 10, 8, 12], // Bachelor of Science in Education
+    BSEdSec: [7, 10, 14, 12, 8, 9], // Added missing Bachelor of Secondary Education
     BSHRM: [8, 12, 7, 11, 14, 10],
     BSN: [9, 15, 6, 12, 10, 8],
     BCE: [11, 7, 14, 9, 12, 6],
@@ -360,6 +361,7 @@ const colorPalette = [
     'rgba(192, 192, 192, 0.6)', 'rgba(0, 150, 136, 0.6)', 'rgba(255, 235, 59, 0.6)',
     'rgba(255, 193, 7, 0.6)', 'rgba(158, 158, 158, 0.6)', 'rgba(96, 125, 139, 0.6)',
     'rgba(244, 67, 54, 0.6)', 'rgba(63, 81, 181, 0.6)', 'rgba(33, 150, 243, 0.6)',
+    'rgba(255, 87, 34, 0.6)', // Added extra color for new program
 ];
 
 // Assign colors to programs
@@ -409,6 +411,7 @@ const sitInChart = new Chart(ctx, {
         },
     },
 });
+
 
 
   

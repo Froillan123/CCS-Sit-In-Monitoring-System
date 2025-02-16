@@ -346,19 +346,26 @@
           <!-- Session History -->
           <div id="session-history">
             <h2>Session History</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>Session ID</th>
-                  <th>Login Time</th>
-                  <th>Logout Time</th>
-                  <th>Duration (seconds)</th>
-                </tr>
-              </thead>
-              <tbody id="session-history-body">
-                <!-- Session history rows will be dynamically inserted here -->
-              </tbody>
-            </table>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Session ID</th>
+                    <th>Login Time</th>
+                    <th>Logout Time</th>
+                    <th>Duration</th>
+                  </tr>
+                </thead>
+                <tbody id="session-history-body">
+                  <!-- Session history rows will be dynamically inserted here -->
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination-controls">
+              <button id="prev-page" disabled>Previous</button>
+              <span id="page-info">Page 1 of 1</span>
+              <button id="next-page" disabled>Next</button>
+            </div>
           </div>
 
 
@@ -586,112 +593,177 @@ function formatDuration(seconds) {
   return durationString.trim();
 }
 
+let currentPage = 1;
+let rowsPerPage = 5;
+let sessionData = [];
+
 function fetchSessionHistory(studentIdno) {
   fetch(`/get_session_history/${studentIdno}`)
     .then(response => response.json())
     .then(data => {
-      const sessionHistoryBody = document.getElementById('session-history-body');
-      const loginTimes = [];
-      const durationsInSeconds = []; // Store durations in seconds
-
-      if (sessionHistoryBody) {
-        sessionHistoryBody.innerHTML = ''; // Clear existing rows
-
-        data.forEach((session, index) => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td>Session ${index + 1}</td>
-            <td>${session.login_time}</td>
-            <td>${session.logout_time || 'Active'}</td>
-            <td>${formatDuration(session.duration)}</td>
-          `;
-          sessionHistoryBody.appendChild(row);
-
-          // Collect data for the chart
-          if (session.logout_time) {
-            loginTimes.push(session.login_time);
-            durationsInSeconds.push(session.duration); // Store duration in seconds
-          }
-        });
-
-        // Render Chart.js line graph
-        const ctx = document.getElementById('sessionChart')?.getContext('2d');
-        if (ctx) {
-          new Chart(ctx, {
-            type: 'line', // Use line chart
-            data: {
-              labels: loginTimes,
-              datasets: [{
-                label: 'Session Duration',
-                data: durationsInSeconds, // Use seconds for data
-                backgroundColor: 'hsla(273, 77%, 65%, 0.2)', // Use hsla for transparency
-                borderColor: 'hsl(273, 77%, 65%)', // Solid color for the line
-                borderWidth: 2,
-                fill: true, // Fill area under the line
-                tension: 0.4 // Smooth the line
-              }]
-            },
-            options: {
-              responsive: true, // Make the chart responsive
-              maintainAspectRatio: false, // Allow the chart to resize freely
-              interaction: {
-                mode: 'nearest', // Show tooltip on nearest data point
-                intersect: false, // Show tooltip even if not directly hovering over a point
-              },
-              scales: {
-                y: {
-                  beginAtZero: true,
-                  title: {
-                    display: window.innerWidth > 768, // Hide y-axis title on mobile
-                    text: 'Duration (seconds)'
-                  }
-                },
-                x: {
-                  title: {
-                    display: window.innerWidth > 768, // Hide x-axis title on mobile
-                    text: 'Login Time'
-                  },
-                  ticks: {
-                    display: window.innerWidth > 768, // Hide x-axis labels on mobile
-                  }
-                }
-              },
-              plugins: {
-                legend: {
-                  display: window.innerWidth > 768, // Hide legend on mobile
-                  position: 'top'
-                },
-                tooltip: {
-                  enabled: true, // Enable tooltips
-                  mode: 'nearest', // Show tooltip for the nearest data point
-                  intersect: false, // Show tooltip even if not directly hovering over a point
-                  callbacks: {
-                    label: function (context) {
-                      const durationInSeconds = context.raw; // Get the duration in seconds
-                      const hours = Math.floor(durationInSeconds / 3600); // Convert to hours
-                      const minutes = Math.floor((durationInSeconds % 3600) / 60); // Convert to minutes
-                      const seconds = durationInSeconds % 60; // Remaining seconds
-
-                      // Format the tooltip label
-                      return `Duration: ${hours}h ${minutes}m ${seconds}s`;
-                    }
-                  }
-                }
-              }
-            }
-          });
-        }
-      }
+      sessionData = data;
+      renderTable();
+      renderChart();
     })
     .catch(error => console.error('Error fetching session history:', error));
 }
 
-let inactivityTime = function () {
-  let time;
-  window.onload = resetTimer;
-  document.onmousemove = resetTimer;
-  document.onkeypress = resetTimer;
+function renderTable() {
+  const sessionHistoryBody = document.getElementById('session-history-body');
+  const prevButton = document.getElementById('prev-page');
+  const nextButton = document.getElementById('next-page');
+  const pageInfo = document.getElementById('page-info');
 
+  if (sessionHistoryBody) {
+    sessionHistoryBody.innerHTML = ''; // Clear existing rows
+
+    const start = (currentPage - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    const paginatedData = sessionData.slice(start, end);
+
+    paginatedData.forEach((session, index) => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>Session ${start + index + 1}</td>
+        <td>${session.login_time}</td>
+        <td>${session.logout_time || 'Active'}</td>
+        <td>${formatDuration(session.duration)}</td>
+      `;
+      sessionHistoryBody.appendChild(row);
+    });
+
+    // Update pagination controls
+    prevButton.disabled = currentPage === 1;
+    nextButton.disabled = end >= sessionData.length;
+    pageInfo.textContent = `Page ${currentPage} of ${Math.ceil(sessionData.length / rowsPerPage)}`;
+  }
+}
+
+function renderChart() {
+  const loginTimes = [];
+  const durationsInSeconds = [];
+
+  sessionData.forEach(session => {
+    if (session.logout_time) {
+      loginTimes.push(session.login_time);
+      durationsInSeconds.push(session.duration);
+    }
+  });
+
+  const ctx = document.getElementById('sessionChart')?.getContext('2d');
+  if (ctx) {
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: loginTimes,
+        datasets: [{
+          label: 'Session Duration',
+          data: durationsInSeconds,
+          backgroundColor: 'hsla(273, 77%, 65%, 0.2)',
+          borderColor: 'hsl(273, 77%, 65%)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 3,
+          pointBackgroundColor: 'hsl(273, 77%, 65%)',
+          pointBorderColor: 'hsl(273, 77%, 65%)',
+          pointHoverRadius: 5,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'nearest',
+          intersect: false,
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              display: false,
+            },
+            title: {
+              display: window.innerWidth > 768,
+              text: 'Duration (seconds)'
+            },
+            ticks: {
+              color: 'hsl(273, 77%, 65%)',
+            }
+          },
+          x: {
+            grid: {
+              display: false,
+            },
+            title: {
+              display: window.innerWidth > 768,
+              text: 'Login Time'
+            },
+            ticks: {
+              display: window.innerWidth > 768,
+              color: 'hsl(273, 77%, 65%)',
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: window.innerWidth > 768,
+            position: 'top',
+            labels: {
+              color: 'hsl(273, 77%, 65%)',
+            }
+          },
+          tooltip: {
+            enabled: true,
+            mode: 'nearest',
+            intersect: false,
+            backgroundColor: 'hsl(273, 77%, 65%)',
+            titleColor: '#fff',
+            bodyColor: '#fff',
+            callbacks: {
+              label: function (context) {
+                const durationInSeconds = context.raw;
+                const hours = Math.floor(durationInSeconds / 3600);
+                const minutes = Math.floor((durationInSeconds % 3600) / 60);
+                const seconds = durationInSeconds % 60;
+                return `Duration: ${hours}h ${minutes}m ${seconds}s`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+}
+
+// Pagination event listeners
+document.getElementById('prev-page').addEventListener('click', () => {
+  if (currentPage > 1) {
+    currentPage--;
+    renderTable();
+  }
+});
+
+document.getElementById('next-page').addEventListener('click', () => {
+  if (currentPage < Math.ceil(sessionData.length / rowsPerPage)) {
+    currentPage++;
+    renderTable();
+  }
+});
+
+// Utility function to format duration
+function formatDuration(durationInSeconds) {
+  const hours = Math.floor(durationInSeconds / 3600);
+  const minutes = Math.floor((durationInSeconds % 3600) / 60);
+  const seconds = durationInSeconds % 60;
+  return `${hours}h ${minutes}m ${seconds}s`;
+}
+
+let inactivityTime = function () {
+  const INACTIVITY_LIMIT = 15 * 60 * 1000; // 15 minutes in milliseconds
+  let timeout;
+
+  // Function to log out the user
   function logout() {
     fetch('/logout', { method: 'POST' })
       .then(response => {
@@ -701,17 +773,23 @@ let inactivityTime = function () {
       });
   }
 
+  // Function to reset the inactivity timer
   function resetTimer() {
-    clearTimeout(time);
-    time = setTimeout(logout, 15 * 60 * 1000); // 15 minutes
+    clearTimeout(timeout);
+    timeout = setTimeout(logout, INACTIVITY_LIMIT); // Set new timeout
   }
+
+  // Start the timer when the page loads
+  resetTimer();
+
+  // Event listeners to reset the timer on user activity
+  document.onmousemove = resetTimer;
+  document.onkeypress = resetTimer;
+  document.onscroll = resetTimer;
 };
 
+// Start tracking inactivity
 inactivityTime();
-
-window.addEventListener('beforeunload', function (e) {
-  fetch('/logout', { method: 'POST', keepalive: true });
-});
 
 function checkSidebarHeight() {
   const sidebar = document.querySelector('.sidebar');
@@ -733,6 +811,11 @@ window.addEventListener('resize', checkSidebarHeight);
 // Weekly Lab Usage Chart (Line Chart)
 const weeklyUsageCtx = document.getElementById('weeklyUsageChart').getContext('2d');
 
+// Create a gradient for the chart background below the line
+const gradient = weeklyUsageCtx.createLinearGradient(0, 0, 0, 400);
+gradient.addColorStop(0, 'rgba(207, 159, 255, 0.3)'); // Light purple (matches line color)
+gradient.addColorStop(1, 'rgba(207, 159, 255, 0)'); // Transparent
+
 // Initialize the chart with empty data
 const weeklyUsageChart = new Chart(weeklyUsageCtx, {
   type: 'line',
@@ -741,31 +824,62 @@ const weeklyUsageChart = new Chart(weeklyUsageCtx, {
     datasets: [{
       label: 'Sessions Count',
       data: [0, 0, 0, 0, 0, 0, 0], // Start with 0s (7 days)
-      borderColor: 'hsl(273, 77%, 65%)',
-      borderWidth: 2,
-      fill: false,
+      borderColor: 'hsl(273, 77%, 65%)', // Purple line color
+      borderWidth: 3, // Slightly thicker line
+      fill: true, // Fill the area under the line
+      backgroundColor: gradient, // Use the gradient as the fill background
+      tension: 0.4, // Smooth the line
+      pointRadius: 5, // Make data points larger
+      pointBackgroundColor: 'hsl(273, 77%, 65%)', // Purple point color
+      pointBorderColor: '#fff', // White border for points
+      pointHoverRadius: 7, // Increase size on hover
     }]
   },
   options: {
     responsive: true,
+    maintainAspectRatio: false, // Allow the chart to resize freely
     scales: {
       y: {
         beginAtZero: true,
-      }
+        grid: {
+          color: 'rgba(200, 200, 200, 0.1)', // Light grid lines
+          lineWidth: 1,
+        },
+        ticks: {
+          color: 'hsl(273, 77%, 65%)', // Purple tick labels
+        },
+      },
+      x: {
+        display: window.innerWidth > 600, // Hide x-axis labels on small screens
+        grid: {
+          display: false, // Hide vertical grid lines
+        },
+        ticks: {
+          color: 'hsl(273, 77%, 65%)', // Purple tick labels
+        },
+      },
     },
     plugins: {
       legend: {
+        display: window.innerWidth > 600, // Hide legend on small screens
         position: 'top',
+        labels: {
+          color: 'hsl(273, 77%, 65%)', // Purple legend text
+        },
       },
       tooltip: {
         enabled: true,
-      }
-    }
-  }
+        backgroundColor: 'hsl(273, 77%, 65%)', // Purple tooltip background
+        titleColor: '#fff', // White tooltip title
+        bodyColor: '#fff', // White tooltip body
+      },
+    },
+  },
 });
-  // Pass the student ID from Flask to JavaScript
-  const studentId = "{{ student.idno }}"; // Replace with your actual variable
-  updateChart(studentId); // Call the function with the student ID
+
+// Pass the student ID from Flask to JavaScript
+const studentId = "{{ student.idno }}"; // Replace with your actual variable
+updateChart(studentId); // Call the function with the student ID
 
 function updateChart(studentId) {
   fetch(`/get_weekly_usage/${studentId}`)
@@ -785,5 +899,13 @@ function updateChart(studentId) {
     })
     .catch(error => console.error('Error fetching session data:', error));
 }
+
+// Handle window resize to dynamically show/hide labels and legend
+window.addEventListener('resize', () => {
+  weeklyUsageChart.options.scales.x.display = window.innerWidth > 600;
+  weeklyUsageChart.options.plugins.legend.display = window.innerWidth > 600;
+  weeklyUsageChart.update();
+});
+
 </script>
 {% endblock %}

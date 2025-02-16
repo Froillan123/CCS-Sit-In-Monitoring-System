@@ -1025,6 +1025,10 @@ img {
   {
     height: 100% !important;
   }
+  #weeklyUsageChart
+  {
+    height: 300px !important;
+  }
 }
 
 .chart-container {
@@ -1934,6 +1938,11 @@ button:hover {
   border: 1px solid #e9ecef;
 }
 
+/* Table Styles */
+.table-container {
+  overflow-x: auto;
+}
+
 #session-history table {
   width: 100%;
   border-collapse: collapse;
@@ -1942,10 +1951,10 @@ button:hover {
 
 #session-history th,
 #session-history td {
-  padding: 1rem;
+  padding: 0.75rem;
   border: 1px solid #e9ecef;
   text-align: left;
-  font-size: 1.3rem;
+  font-size: 1.6rem;
 }
 
 #session-history th {
@@ -1959,45 +1968,71 @@ button:hover {
   transition: background-color 0.2s ease;
 }
 
-/* Session Rules */
-#session-rules ul {
-  list-style-type: disc;
-  margin-left: 1.5rem;
-  color: #666;
+/* Pagination Controls */
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 1rem;
 }
 
-#session-rules li {
-  margin-bottom: 0.5rem;
-}
-
-/* Notifications */
-#session-notifications ul {
-  list-style-type: none;
-  padding: 0;
-}
-
-#session-notifications li {
-  background-color: #f8f9fa;
-  padding: 0.75rem;
-  margin-bottom: 0.5rem;
-  border-radius: 0.5rem;
-  color: #333;
-}
-
-/* Session Extensions */
-#session-extension button {
-  background-color: #4caf50;
-  color: #fff;
+.pagination-controls button {
+  padding: 0.5rem 1rem;
+  background-color: hsl(273, 77%, 65%);
+  color: white;
   border: none;
-  padding: 0.75rem 1.5rem;
   border-radius: 0.5rem;
   cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s;
+  font-size: 1.5rem;
+  width: 90px;
 }
 
-#session-extension button:hover {
-  background-color: #45a049;
+.pagination-controls button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.pagination-controls button:hover:not(:disabled) {
+  background-color: hsl(273, 77%, 55%);
+}
+
+#page-info {
+  font-size: 0.875rem;
+  color: #555;
+}
+
+/* Responsive Design for 350px and below */
+@media (max-width: 393px) {
+  #session-history {
+    padding: 0.5rem;
+  }
+
+  #session-history h2 {
+    font-size: 1.5rem;
+  }
+
+  #session-history th,
+  #session-history td {
+    padding: 0.5rem;
+    font-size: 1.5rem;
+  }
+
+  .pagination-controls {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .pagination-controls button {
+    width: 100%;
+    padding: 0.5rem;
+    font-size: 1rem;
+  }
+
+  #page-info {
+    font-size: 0.75rem;
+  }
 }
 
 /* Responsive Design */
@@ -2050,6 +2085,8 @@ button:hover {
     font-size: 0.75rem;
   }
 }
+
+
 /* General styles for the chart container */
 .chart-container {
   position: relative;

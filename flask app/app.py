@@ -304,7 +304,7 @@ def load_section(section_id):
     else:
         return "Section not found", 404
     
-@app.route('/logout')
+@app.route('/logout', methods=['GET', 'POST'])  # Allow both GET and POST requests
 def logout():
     username = session.get('user_username')
 
@@ -327,7 +327,6 @@ def logout():
 
     flash("Logout successful", 'info')
     return redirect(url_for('login'))
-
 
 def format_duration(seconds):
     if not seconds:
