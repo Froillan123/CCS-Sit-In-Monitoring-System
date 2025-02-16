@@ -121,18 +121,34 @@
           <div class="stats-section">
             <!-- Total Sessions Left Box -->
             <div class="stats-box">
-              <i class="fas fa-clock stats-icon"></i> <!-- Clock icon for sessions -->
-              <h3>Total Sessions Left</h3>
-              <div class="stats-value">{{ current_session['sessions_left'] if current_session else 'No session found' }}/30</div>
+                <div class="circular-progress" data-progress="{{ current_session['sessions_left'] if current_session else 0 }}" data-max="30">
+                    <svg viewBox="0 0 100 100">
+                        <circle class="progress-background" cx="50" cy="50" r="45"></circle>
+                        <circle class="progress-bar" cx="50" cy="50" r="45"></circle>
+                    </svg>
+                    <div class="progress-text">
+                        <span class="progress-value">{{ current_session['sessions_left'] if current_session else 0 }}</span>
+                        <span class="progress-max">/30</span>
+                    </div>
+                </div>
+                <h3>Total Sessions Left</h3>
             </div>
-          
+        
             <!-- Available Laboratories Box -->
             <div class="stats-box">
-              <i class="fas fa-desktop stats-icon"></i> <!-- PC icon for laboratories -->
-              <h3>Available Laboratories</h3>
-              <div class="stats-value">6/6</div>
+                <div class="circular-progress" data-progress="6" data-max="6">
+                    <svg viewBox="0 0 100 100">
+                        <circle class="progress-background" cx="50" cy="50" r="45"></circle>
+                        <circle class="progress-bar" cx="50" cy="50" r="45"></circle>
+                    </svg>
+                    <div class="progress-text">
+                        <span class="progress-value">6</span>
+                        <span class="progress-max">/6</span>
+                    </div>
+                </div>
+                <h3>Available Laboratories</h3>
             </div>
-          </div>
+        </div>
 
           <div class="bottom-section">
             <div class="chart-container">
@@ -905,6 +921,30 @@ window.addEventListener('resize', () => {
   weeklyUsageChart.options.scales.x.display = window.innerWidth > 600;
   weeklyUsageChart.options.plugins.legend.display = window.innerWidth > 600;
   weeklyUsageChart.update();
+});
+
+
+const progressBars = document.querySelectorAll('.circular-progress');
+
+progressBars.forEach(progressBar => {
+    const progress = parseFloat(progressBar.getAttribute('data-progress'));
+    const max = parseFloat(progressBar.getAttribute('data-max'));
+    const percentage = (progress / max) * 100; // Calculate the percentage
+    const progressValue = (progress / max) * 283; // Calculate the stroke-dashoffset
+
+    const progressCircle = progressBar.querySelector('.progress-bar');
+    progressCircle.style.strokeDashoffset = 283 - progressValue; // Update the progress bar
+
+    // Set the progress bar color based on the percentage
+    if (percentage >= 75) {
+        progressCircle.style.stroke = '#4CAF50'; // Green
+    } else if (percentage >= 50) {
+        progressCircle.style.stroke = '#FFC107'; // Yellow
+    } else if (percentage >= 25) {
+        progressCircle.style.stroke = '#FF5722'; // Dark Orange (closer to red)
+    } else {
+        progressCircle.style.stroke = '#F44336'; // Red
+    }
 });
 
 </script>

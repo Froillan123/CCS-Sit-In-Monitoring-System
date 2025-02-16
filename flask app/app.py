@@ -241,20 +241,24 @@ def register():
         username = request.form.get('username')
         password = request.form.get('password')
 
+        # Validate required fields
         if not all([idno, lastname, firstname, course, username, password]):
             flash("All fields are required.", 'error')
             return redirect(url_for('login'))
 
+        # Check if student ID already exists
         existing_student = get_student_by_id(idno)
         if existing_student:
             flash("Student ID already exists.", 'error')
             return redirect(url_for('register'))
 
+        # Check if email already exists
         existing_email = get_student_by_email(email)
         if existing_email:
             flash("Email already exists.", 'error')
             return redirect(url_for('register'))
 
+        # Prepare student data with default profile picture
         student_data = {
             'idno': idno,
             'lastname': lastname,
@@ -264,9 +268,11 @@ def register():
             'year_level': year_level,
             'email': email,
             'username': username,
-            'password': password
+            'password': password,
+            'profile_picture': 'default.png'  # Assign default profile picture
         }
 
+        # Add student record to the database
         if add_record('students', **student_data):
             flash("Registration successful!", 'success')
             return redirect(url_for('login'))
@@ -325,9 +331,8 @@ def logout():
         logout_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         update_session_history(student_idno, logout_time)
 
-    flash("Logout successful", 'info')
+    flash("You have Logged Out", 'info')
     return redirect(url_for('login'))
-
 
 def format_duration(seconds):
     if not seconds:
@@ -385,19 +390,16 @@ def get_weekly_usage(student_idno):
 @app.route('/sse/active_users')
 def sse_active_users():
     def event_stream():
-        try:
-            while True:
-                active_users_count = len(active_users_dict)
-                yield f"data: {json.dumps(active_users_count)}\n\n"
-                time.sleep(1)  # Add a 1-second delay between updates
-        except GeneratorExit:
-            print("Client disconnected from SSE stream")
+        while True:
+            yield f"data: {json.dumps(len(active_users_dict))}\n\n"
+            time.sleep(0.1)
 
     response = Response(event_stream(), mimetype="text/event-stream")
     response.headers["X-Accel-Buffering"] = "no"  # Disable buffering
     response.headers["Cache-Control"] = "no-cache"
     response.headers["Connection"] = "keep-alive"
     return response
+
 
 def notify_active_users_update():
     """Notify all connected clients about active users update."""
@@ -415,12 +417,36 @@ def dashboard():
     if 'admin_username' not in session:
         flash("You need to login first", 'warning')
         return redirect(url_for('admin_login'))
+    
     admin_username = session.get('admin_username')
     active_students = list(active_users_dict.keys())
     laboratories = get_count_laboratories()
     student_count = get_count_students()
     active_students_count = len(active_students)
-    return render_template('admin/dashboard.html', student_count=student_count, active_students=active_students, laboratories=laboratories, admin_username=admin_username, pagetitle=pagetitle, active_students_count=active_students_count)
+    
+    # Pagination logic
+    page = request.args.get('page', 1, type=int)  # Get the current page number
+    per_page = 10  # Number of students per page
+    offset = (page - 1) * per_page
+
+    # Fetch students with pagination
+    students = get_paginated_students(offset, per_page)
+    total_students = get_count_students()  # Total number of students
+
+    # Calculate total pages
+    total_pages = (total_students + per_page - 1) // per_page
+
+    return render_template('admin/dashboard.html', 
+                           student_count=student_count, 
+                           active_students=active_students, 
+                           laboratories=laboratories, 
+                           admin_username=admin_username, 
+                           pagetitle=pagetitle, 
+                           active_students_count=active_students_count,
+                           students=students,
+                           page=page,
+                           total_pages=total_pages)
+
 
 @app.route('/admin', methods=['GET', 'POST'])  
 def admin_login():

@@ -8,7 +8,7 @@
     --color-white: #fff;
     --color-info-dark: #7d8da1;
     --color-dark: #363949;
-    --color-light: rgba(132, 139, 200, 0.18);
+    --color-light: rgba(132, 139, 200, 0.3);
     --color-dark-variant: #677483;
     --color-background: #f6f6f9;
     --first-color: hsl(273, 77%, 65%);
@@ -460,6 +460,8 @@ main .recent-orders a{
     border-radius: 50%;
 }
 
+
+
 .right-section .user-profile h2{
     margin-bottom: 0.2rem;
 }
@@ -539,13 +541,21 @@ main .recent-orders a{
     align-items: center;
     gap: 0.6rem;
 }
+@media screen and (max-width: 383px) {
+    .right-section .dark-mode {
+        margin-right: 10rem;
+    }
+
+    .right-section .nav .profile {
+        margin-left: 4rem;
+    }
+}
 
 
 /* Announcement Section Styles */
 .announcement-container {
     background: var(--color-white);
     border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     padding: 20px;
     max-width: 800px;
     margin: 0 auto;
@@ -600,7 +610,6 @@ main .recent-orders a{
     background: var(--color-white);
     padding: var(--card-padding);
     border-radius: var(--card-border-radius);
-    box-shadow: var(--box-shadow);
     transition: all 0.3s ease;
 }
 
@@ -935,15 +944,128 @@ main .recent-orders a{
     height: 400px; /* Fixed height for the chart container */
   }
   
-  #sitInChart1 {
+/* Chart Canvas */
+#sitInChart1 {
     width: 100% !important;
-    height: 100% !important;
-  }
-
+    height: auto !important;
+}
   @media (max-width: 560px)
 {
     #sitInChart1 {
        
         height: 300px !important;
       }
+}
+
+
+/* General Styles */
+.dashboard-section {
+    padding: 20px;
+    background-color: var(--color-white);
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin: 20px auto;
+    max-width: 1200px;
+}
+
+h1 {
+    font-size: 24px;
+    color: var(--color-dark);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Table Styles */
+.student-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    overflow-x: auto;
+}
+
+.student-table th, .student-table td {
+    padding: 12px;
+    text-align: left;
+    color: var(--color-dark);
+    border-bottom: 1px solid #e0e0e0; /* Only bottom border for rows */
+    font-size: 1.1rem;
+}
+
+.student-table th {
+    font-weight: bold;
+    color: var(--first-color);
+    background-color: transparent; /* No background color */
+}
+
+
+/* Responsive Table */
+@media (max-width: 768px) {
+    .student-table {
+        display: block;
+        overflow-x: auto;
+    }
+
+    .student-table thead, .student-table tbody, .student-table th, .student-table td, .student-table tr {
+        display: block;
+    }
+
+    .student-table thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+
+    .student-table tr {
+        border: 1px solid #e0e0e0;
+        margin-bottom: 10px;
+    }
+
+    .student-table td {
+        border: none;
+        border-bottom: 1px solid #e0e0e0;
+        position: relative;
+        padding-left: 50%;
+        text-align: right;
+    }
+
+    .student-table td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 10px;
+        width: 45%;
+        padding-right: 10px;
+        white-space: nowrap;
+        text-align: left;
+        font-weight: bold;
+        color: #333; /* Dark text for labels */
+    }
+}
+
+/* Pagination Styles */
+.pagination {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.pagination-button {
+    display: inline-block;
+    padding: 8px 16px;
+    margin: 0 4px;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+}
+
+.pagination-button:hover {
+    background-color: #0056b3;
+}
+
+.current-page {
+    display: inline-block;
+    padding: 8px 16px;
+    margin: 0 4px;
+    font-weight: bold;
+    color: #007bff;
 }

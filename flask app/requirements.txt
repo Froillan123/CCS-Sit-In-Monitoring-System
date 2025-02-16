@@ -11,3 +11,4 @@ flask-socketio
 flask-login
 flask-session
 flask-sse
+eventlet

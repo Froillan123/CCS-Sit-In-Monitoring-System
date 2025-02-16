@@ -1171,23 +1171,80 @@ img {
   font-weight: 600;
 }
 
-.stats-value {
-  font-size: 3rem; 
-  font-weight: 500;
-  color: var(--first-color); 
-  margin-bottom: 0.5rem;
+/* Circular Progress Bar */
+.circular-progress {
+  position: relative;
+  width: 120px; /* Size of the circle */
+  height: 120px;
+  margin-bottom: 1.5rem;
 }
 
-.stats-icon {
-  font-size: 2.5rem; 
-  color: var(--first-color); 
-  margin-bottom: 1rem;
+.circular-progress svg {
+  width: 100%;
+  height: 100%;
+}
+
+.circular-progress circle {
+  fill: none;
+  stroke-width: 10; /* Thickness of the progress bar */
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+.circular-progress .progress-background {
+  stroke: #e0e0e0; /* Light gray for the background */
+}
+
+.circular-progress .progress-bar {
+  stroke: var(--first-color); /* Dynamic color for the progress */
+  stroke-dasharray: 283; /* Circumference of the circle (2 * π * r) */
+  stroke-dashoffset: 283; /* Initial offset (full circle) */
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+.progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--first-color);
+}
+
+.progress-text .progress-value {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.progress-text .progress-max {
+  font-size: 1.2rem;
+  color: #666;
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .stats-box {
-    flex: 1 1 100%; /* Full width on smaller screens */
+      flex: 1 1 100%; /* Full width on smaller screens */
+  }
+
+  .circular-progress {
+      width: 100px;
+      height: 100px;
+  }
+
+  .progress-text {
+      font-size: 1.2rem;
+  }
+
+  .progress-text .progress-value {
+      font-size: 1.5rem;
+  }
+
+  .progress-text .progress-max {
+      font-size: 1rem;
   }
 }
 

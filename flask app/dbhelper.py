@@ -35,6 +35,23 @@ def getall_records(table: str) -> list:
     sql = f"SELECT * FROM {table}"
     return getprocess(sql)
 
+def get_paginated_students(offset, per_page):
+    sql = """
+        SELECT 
+            idno, 
+            firstname, 
+            lastname, 
+            midname, 
+            course, 
+            year_level, 
+            email 
+        FROM students
+        LIMIT ? OFFSET ?
+    """
+    students = getprocess(sql, (per_page, offset))
+    print("Fetched students:", students)  # Debugging: Print fetched data
+    return students
+
 # Retrieve a student by ID number
 def get_student_by_id(idno: str) -> dict:
     sql = "SELECT * FROM students WHERE idno = ?"

@@ -150,4 +150,3 @@ CREATE TABLE announcements (
 
 
 
-      <div id="dashboard" class="dashboard-section">
