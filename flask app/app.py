@@ -3,27 +3,15 @@ from dbhelper import *
 from flask_socketio import SocketIO, emit, disconnect
 import os
 import time
-import redis
 from datetime import timedelta
-from flask_sse import sse
 import json
-
 app = Flask(__name__)
 
-# Configuration
+
 app.config["SESSION_COOKIE_NAME"] = "main_app_session"
 app.secret_key = os.urandom(24)
 app.config['UPLOAD_FOLDER'] = 'static/images'
-app.config["REDIS_URL"] = "redis://red-cuis0p23esus739lbi20:6379"  # Set REDIS_URL
-
-# Initialize Redis
-redis_client = redis.from_url(app.config["REDIS_URL"])
-
-# Initialize SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*")
-
-# Register Flask-SSE blueprint
-app.register_blueprint(sse, url_prefix='/sse')
 
 
 active_users_dict = {}
@@ -340,6 +328,7 @@ def logout():
     flash("Logout successful", 'info')
     return redirect(url_for('login'))
 
+
 def format_duration(seconds):
     if not seconds:
         return "N/A"
@@ -396,23 +385,23 @@ def get_weekly_usage(student_idno):
 @app.route('/sse/active_users')
 def sse_active_users():
     def event_stream():
-        while True:
-            active_users_count = redis_client.get("active_users_count") or 0
-            yield f"data: {json.dumps(active_users_count)}\n\n"
-            time.sleep(0.1)
+        try:
+            while True:
+                active_users_count = len(active_users_dict)
+                yield f"data: {json.dumps(active_users_count)}\n\n"
+                time.sleep(1)  # Add a 1-second delay between updates
+        except GeneratorExit:
+            print("Client disconnected from SSE stream")
 
     response = Response(event_stream(), mimetype="text/event-stream")
-    response.headers["X-Accel-Buffering"] = "no"
+    response.headers["X-Accel-Buffering"] = "no"  # Disable buffering
     response.headers["Cache-Control"] = "no-cache"
     response.headers["Connection"] = "keep-alive"
     return response
 
-
-
 def notify_active_users_update():
-    """Update Redis with active users count."""
-    active_users_count = len(active_users_dict)  # Or however you track active users
-    redis_client.set("active_users_count", active_users_count)
+    """Notify all connected clients about active users update."""
+    active_users_count = len(active_users_dict)  
 
 def emit_active_users():
     """Helper function to emit the active users count."""
