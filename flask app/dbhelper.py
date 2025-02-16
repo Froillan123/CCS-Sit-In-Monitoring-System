@@ -200,7 +200,6 @@ def insert_session_history(student_idno, login_time):
     sql = "INSERT INTO session_history (student_idno, login_time) VALUES (?, ?)"
     return postprocess(sql, (student_idno, login_time))
 
-
 def update_session_history(student_idno, logout_time):
     sql = """
         UPDATE session_history

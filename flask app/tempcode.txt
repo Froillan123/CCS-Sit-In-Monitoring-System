@@ -147,3 +147,7 @@ CREATE TABLE announcements (
         <p>Research Lab</p>
       </a>
     </div>
+
+
+
+      <div id="dashboard" class="dashboard-section">

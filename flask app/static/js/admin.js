@@ -322,3 +322,93 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+const programData = {
+    BSIT: [12, 19, 8, 15, 10, 7],
+    BSCpE: [5, 14, 10, 8, 12, 9],
+    BSBA: [7, 11, 13, 6, 9, 15],
+    BSCS: [10, 8, 12, 14, 7, 11],
+    BSEd: [6, 9, 15, 10, 8, 12],
+    BSHRM: [8, 12, 7, 11, 14, 10],
+    BSN: [9, 15, 6, 12, 10, 8],
+    BCE: [11, 7, 14, 9, 12, 6],
+    BME: [13, 10, 8, 12, 7, 11],
+    BEE: [10, 12, 9, 11, 8, 14],
+    BIE: [7, 14, 10, 8, 12, 9],
+    BNAME: [5, 9, 12, 10, 14, 7],
+    BCrim: [8, 11, 13, 6, 9, 15],
+    BCom: [10, 8, 12, 14, 7, 11],
+    BAcc: [6, 9, 15, 10, 8, 12],
+    BCSA: [8, 12, 7, 11, 14, 10],
+    BCSec: [9, 15, 6, 12, 10, 8],
+    BIP: [11, 7, 14, 9, 12, 6],
+    ABPS: [13, 10, 8, 12, 7, 11],
+    ABEng: [10, 12, 9, 11, 8, 14],
+    CISCO: [7, 14, 10, 8, 12, 9],
+    ESL: [5, 9, 12, 10, 14, 7],
+    CKor: [8, 11, 13, 6, 9, 15],
+    ESLF: [10, 8, 12, 14, 7, 11],
+};
+
+// Define a consistent color palette
+const colorPalette = [
+    'rgba(255, 99, 132, 0.6)', 'rgba(54, 162, 235, 0.6)', 'rgba(255, 206, 86, 0.6)',
+    'rgba(75, 192, 192, 0.6)', 'rgba(153, 102, 255, 0.6)', 'rgba(255, 159, 64, 0.6)',
+    'rgba(233, 30, 99, 0.6)', 'rgba(66, 133, 244, 0.6)', 'rgba(76, 175, 80, 0.6)',
+    'rgba(103, 58, 183, 0.6)', 'rgba(255, 87, 34, 0.6)', 'rgba(0, 188, 212, 0.6)',
+    'rgba(121, 85, 72, 0.6)', 'rgba(205, 220, 57, 0.6)', 'rgba(158, 158, 158, 0.6)',
+    'rgba(192, 192, 192, 0.6)', 'rgba(0, 150, 136, 0.6)', 'rgba(255, 235, 59, 0.6)',
+    'rgba(255, 193, 7, 0.6)', 'rgba(158, 158, 158, 0.6)', 'rgba(96, 125, 139, 0.6)',
+    'rgba(244, 67, 54, 0.6)', 'rgba(63, 81, 181, 0.6)', 'rgba(33, 150, 243, 0.6)',
+];
+
+// Assign colors to programs
+const backgroundColors = Object.keys(programData).map((_, i) => colorPalette[i % colorPalette.length]);
+const borderColors = backgroundColors.map(color => color.replace('0.6', '1'));
+
+const programLabels = Object.keys(programData).map(program => {
+    const totalSitIn = programData[program].reduce((sum, num) => sum + num, 0);
+    return `${program} (${totalSitIn})`;
+});
+
+const ctx = document.getElementById('sitInChart1').getContext('2d');
+const sitInChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: programLabels,
+        datasets: [{
+            label: 'Total Sit-In Count',
+            data: Object.values(programData).map(values => values.reduce((sum, num) => sum + num, 0)),
+            backgroundColor: backgroundColors,
+            borderColor: borderColors,
+            borderWidth: 1,
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Sit-In Count',
+                },
+            },
+            x: {
+                title: {
+                    display: true,
+                    text: 'Programs',
+                },
+            },
+        },
+        plugins: {
+            legend: {
+                display: true,
+            },
+        },
+    },
+});
+
+
+  

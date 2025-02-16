@@ -56,51 +56,99 @@
             </div>
 
   <!-- Main Content -->
-  <div class="dashboard-container">
-    <!-- Dashboard Section -->
-    <div id="dashboard" class="dashboard-section">
-        <!-- Welcome Section -->
-        <div class="welcome-section">
+      <div class="dashboard-container">
+        
+        <div id="dashboard" class="dashboard-section">
+          <!-- Top Section: Welcome, Notifications, Calendar -->
+          <div class="top-section">
+            <!-- Welcome Message on the Left -->
             <div class="welcome-message">
-                <h1>Welcome, {{ student.firstname }}!</h1>
-                <p>We're glad to have you back on your student dashboard.</p>
+              <h1>Welcome, {{ student.firstname }}!</h1>
+              <p>We're glad to have you back on your student dashboard.</p>
             </div>
+        
+            <!-- Buttons on the Right -->
+            <div class="notification-calendar">
+              <button class="notification-button">
+                <i class="fas fa-bell"></i> Notifications
+              </button>
+              <button class="calendar-button">
+                <i class="fas fa-calendar-alt"></i> Calendar
+              </button>
+            </div>
+          </div>
+        
+          <!-- Middle Section: Sit-In Rules and Chart -->
+          <div class="middle-section">
+            <!-- Sit-In Rules Box -->
+            <div class="rules-box">
+              <h3>Sit-In Laboratory Rules</h3>
+              <ul class="rules-list">
+                <li>
+                  <i class="fas fa-ban"></i> No games, personal devices, or inappropriate content.
+                </li>
+                <li>
+                  <i class="fas fa-cog"></i> Do not alter computer settings or delete files.
+                </li>
+                <li>
+                  <i class="fas fa-chair"></i> Follow seating arrangements and deposit bags at the counter.
+                </li>
+                <li>
+                  <i class="fas fa-utensils"></i> No food, drinks, or smoking in the lab.
+                </li>
+                <li>
+                  <i class="fas fa-exclamation-triangle"></i> Disturbances may lead to removal or security intervention.
+                </li>
+                <li>
+                  <i class="fas fa-tools"></i> Handle equipment with care – Report any damages or issues immediately to the instructor.
+                </li>
+                <li>
+                  <i class="fas fa-headphones"></i> Use headphones for audio – Keep noise levels low to avoid disturbing others.
+                </li>
+                <li>
+                  <i class="fas fa-sign-out-alt"></i> Log out after use – Ensure you log out from all accounts and close applications before leaving.
+                </li>
+              </ul>
+            </div>
+        
+            <!-- Chart Box -->
+            <div class="chart-box">
+              <h3>Lab Usage Chart</h3>
+              <canvas id="labUsageChart"></canvas> <!-- Chart will be rendered here -->
+            </div>
+          </div>
+          
+          <div class="stats-section">
+            <!-- Total Sessions Left Box -->
+            <div class="stats-box">
+              <i class="fas fa-clock stats-icon"></i> <!-- Clock icon for sessions -->
+              <h3>Total Sessions Left</h3>
+              <div class="stats-value">{{ current_session['sessions_left'] if current_session else 'No session found' }}/30</div>
+            </div>
+          
+            <!-- Available Laboratories Box -->
+            <div class="stats-box">
+              <i class="fas fa-desktop stats-icon"></i> <!-- PC icon for laboratories -->
+              <h3>Available Laboratories</h3>
+              <div class="stats-value">6/6</div>
+            </div>
+          </div>
+
+          <div class="bottom-section">
+            <div class="chart-container">
+              <h3>Activity Breakdown Chart</h3>
+              <canvas id="activityBreakdownChart"></canvas>
+            </div>
+
+            <div class="chart-container">
+              <h3>Weekly Usage Chart</h3>
+              <canvas id="weeklyUsageChart"></canvas>
+            </div>
+          </div>
+          
         </div>
 
-        <!-- Rules Section -->
-        <div class="rules-section">
-            <div class="sit-in-rules-section">
-                <h3>Sit-In Laboratory Rules</h3>
-                <ul>
-                    <li>No playing games (including computer-related and card games) inside the lab.</li>
-                    <li>Mobile phones, walkmans, and other personal equipment must be switched off.</li>
-                    <li>Internet surfing is allowed only with instructor permission. No downloading or installing software.</li>
-                    <li>Accessing unrelated websites (especially inappropriate content) is strictly prohibited.</li>
-                    <li>Do not delete files or alter computer settings.</li>
-                    <li>Each use is limited to 15 minutes. After that, the unit is available for those waiting.</li>
-                    <li>Observe proper decorum: only enter the lab when the instructor is present.</li>
-                    <li>All bags must be deposited at the counter. Follow the instructor's seating arrangement.</li>
-                    <li>Chewing gum, eating, drinking, and smoking are prohibited inside the lab.</li>
-                    <li>Continual disturbances may lead to removal from the lab.</li>
-                    <li>Serious offenses may involve intervention from campus security.</li>
-                </ul>
-            </div>
-        </div>
-          <!-- Laboratories Section -->
-          <div class="laboratories-section">
-            <h2>Laboratories</h2>
-            <div class="laboratory-grid">
-              {% for lab in labs %}
-              <a href="#" class="laboratory-card">
-                  <div class="lab-icon">
-                      <i class="fas fa-laptop-code"></i> <!-- Computer Lab Icon -->
-                  </div>
-                  <h3>{{ lab.lab_name }}</h3> <!-- Directly display lab name -->
-              </a>
-              {% endfor %}
-          </div>
-        </div>        
-    </div>
+
 
     <div id="profile" class="dashboard-section" style="display: none;">
       <div class="profile-container">
@@ -181,7 +229,7 @@
           </div>
           <div class="rules-content">
             <p>To avoid embarrassment and maintain camaraderie with your friends and superiors at our laboratories, please observe the following:</p>
-            <ol class="rules-list">
+            <ol class="rules-list1">
               <li>Maintain silence, proper decorum, and discipline inside the laboratory. Mobile phones, walkmans, and other personal pieces of equipment must be switched off.</li>
               <li>Games are not allowed inside the lab. This includes computer-related games, card games, and other games that may disturb the operation of the lab.</li>
               <li>Surfing the Internet is allowed only with the permission of the instructor. Downloading and installing of software are strictly prohibited.</li>
@@ -261,6 +309,21 @@
 
         <div id="laboratories" class="dashboard-section">
           <h1>Laboratories</h1>
+
+              <!-- Bottom Section: Laboratories -->
+        <div class="laboratories-section">
+          <h2>Laboratories</h2>
+          <div class="laboratory-grid">
+              {% for lab in labs %}
+              <a href="#" class="laboratory-card">
+                  <div class="lab-icon">
+                      <i class="fas fa-laptop-code"></i> <!-- Computer Lab Icon -->
+                  </div>
+                  <h3>{{ lab.lab_name }}</h3> <!-- Directly display lab name -->
+              </a>
+              {% endfor %}
+          </div>
+      </div>
         </div>
 
         <div id="sessions" class="dashboard-section" style="display: none;">
@@ -297,7 +360,12 @@
               </tbody>
             </table>
           </div>
+
+
+
         </div>
+
+  
 
 <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -524,7 +592,7 @@ function fetchSessionHistory(studentIdno) {
     .then(data => {
       const sessionHistoryBody = document.getElementById('session-history-body');
       const loginTimes = [];
-      const durationsInMinutes = [];
+      const durationsInSeconds = []; // Store durations in seconds
 
       if (sessionHistoryBody) {
         sessionHistoryBody.innerHTML = ''; // Clear existing rows
@@ -542,7 +610,7 @@ function fetchSessionHistory(studentIdno) {
           // Collect data for the chart
           if (session.logout_time) {
             loginTimes.push(session.login_time);
-            durationsInMinutes.push(session.duration / 60); // Convert seconds to minutes for the chart
+            durationsInSeconds.push(session.duration); // Store duration in seconds
           }
         });
 
@@ -554,8 +622,8 @@ function fetchSessionHistory(studentIdno) {
             data: {
               labels: loginTimes,
               datasets: [{
-                label: 'Session Duration (minutes)',
-                data: durationsInMinutes,
+                label: 'Session Duration',
+                data: durationsInSeconds, // Use seconds for data
                 backgroundColor: 'hsla(273, 77%, 65%, 0.2)', // Use hsla for transparency
                 borderColor: 'hsl(273, 77%, 65%)', // Solid color for the line
                 borderWidth: 2,
@@ -575,7 +643,7 @@ function fetchSessionHistory(studentIdno) {
                   beginAtZero: true,
                   title: {
                     display: window.innerWidth > 768, // Hide y-axis title on mobile
-                    text: 'Duration (minutes)'
+                    text: 'Duration (seconds)'
                   }
                 },
                 x: {
@@ -597,6 +665,17 @@ function fetchSessionHistory(studentIdno) {
                   enabled: true, // Enable tooltips
                   mode: 'nearest', // Show tooltip for the nearest data point
                   intersect: false, // Show tooltip even if not directly hovering over a point
+                  callbacks: {
+                    label: function (context) {
+                      const durationInSeconds = context.raw; // Get the duration in seconds
+                      const hours = Math.floor(durationInSeconds / 3600); // Convert to hours
+                      const minutes = Math.floor((durationInSeconds % 3600) / 60); // Convert to minutes
+                      const seconds = durationInSeconds % 60; // Remaining seconds
+
+                      // Format the tooltip label
+                      return `Duration: ${hours}h ${minutes}m ${seconds}s`;
+                    }
+                  }
                 }
               }
             }
@@ -650,5 +729,61 @@ function checkSidebarHeight() {
 window.addEventListener('load', checkSidebarHeight);
 window.addEventListener('resize', checkSidebarHeight);
 
+
+// Weekly Lab Usage Chart (Line Chart)
+const weeklyUsageCtx = document.getElementById('weeklyUsageChart').getContext('2d');
+
+// Initialize the chart with empty data
+const weeklyUsageChart = new Chart(weeklyUsageCtx, {
+  type: 'line',
+  data: {
+    labels: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], // Include Sunday
+    datasets: [{
+      label: 'Sessions Count',
+      data: [0, 0, 0, 0, 0, 0, 0], // Start with 0s (7 days)
+      borderColor: 'hsl(273, 77%, 65%)',
+      borderWidth: 2,
+      fill: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      y: {
+        beginAtZero: true,
+      }
+    },
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      tooltip: {
+        enabled: true,
+      }
+    }
+  }
+});
+  // Pass the student ID from Flask to JavaScript
+  const studentId = "{{ student.idno }}"; // Replace with your actual variable
+  updateChart(studentId); // Call the function with the student ID
+
+function updateChart(studentId) {
+  fetch(`/get_weekly_usage/${studentId}`)
+    .then(response => response.json())
+    .then(data => {
+      console.log("Fetched Data:", data);  // Debugging: Print the fetched data
+
+      const labels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']; // Include Sunday
+      const usageData = labels.map(day => data[day] || 0); // If no record, set to 0
+
+      console.log("Mapped Data:", usageData);  // Debugging: Print the mapped data
+
+      // Update the chart data
+      weeklyUsageChart.data.labels = labels;
+      weeklyUsageChart.data.datasets[0].data = usageData;
+      weeklyUsageChart.update();
+    })
+    .catch(error => console.error('Error fetching session data:', error));
+}
 </script>
 {% endblock %}

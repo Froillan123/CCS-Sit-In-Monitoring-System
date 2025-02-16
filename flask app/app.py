@@ -349,6 +349,39 @@ def get_session_history(student_idno):
     history = getprocess(sql, (student_idno,))
     return jsonify(history)
 
+
+
+@app.route('/get_weekly_usage/<student_idno>', methods=['GET'])
+def get_weekly_usage(student_idno):
+    sql = """
+        SELECT strftime('%w', login_time) AS day, COUNT(*) AS session_count
+        FROM session_history
+        WHERE student_idno = ? AND strftime('%w', login_time) BETWEEN '0' AND '6' -- Sunday to Saturday
+        GROUP BY day
+        ORDER BY day;
+    """
+    usage_data = getprocess(sql, (student_idno,))
+
+    # Map SQLite weekday numbers to readable names
+    day_mapping = {
+        '0': 'Sunday',  # Sunday
+        '1': 'Monday',
+        '2': 'Tuesday',
+        '3': 'Wednesday',
+        '4': 'Thursday',
+        '5': 'Friday',
+        '6': 'Saturday'
+    }
+
+    # Format data as JSON
+    formatted_data = {day_mapping.get(row['day'], 0): row['session_count'] for row in usage_data}
+
+    print("Formatted Data:", formatted_data)  # Debugging: Print the data
+
+    return jsonify(formatted_data)
+
+
+
 @app.route('/sse/active_users')
 def sse_active_users():
     def event_stream():

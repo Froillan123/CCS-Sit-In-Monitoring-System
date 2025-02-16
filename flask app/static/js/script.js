@@ -47,272 +47,159 @@ document.addEventListener('DOMContentLoaded', () => {
         sideMenu.style.display = 'none';
     });
 
-    // Dark mode functionality
-    const darkMode = document.querySelector('.dark-mode');
-
-    function applyDarkModePreference() {
-        const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
-        if (isDarkMode) {
-            document.body.classList.add('dark-mode-variables');
-            darkMode.querySelector('span:nth-child(1)').classList.remove('active');
-            darkMode.querySelector('span:nth-child(2)').classList.add('active');
-        } else {
-            document.body.classList.remove('dark-mode-variables');
-            darkMode.querySelector('span:nth-child(1)').classList.add('active');
-            darkMode.querySelector('span:nth-child(2)').classList.remove('active');
-        }
-    }
-
-    applyDarkModePreference();
-
-    darkMode.addEventListener('click', () => {
-        const isDarkMode = document.body.classList.toggle('dark-mode-variables');
-        if (isDarkMode) {
-            localStorage.setItem('darkMode', 'enabled');
-            darkMode.querySelector('span:nth-child(1)').classList.remove('active');
-            darkMode.querySelector('span:nth-child(2)').classList.add('active');
-        } else {
-            localStorage.setItem('darkMode', 'disabled');
-            darkMode.querySelector('span:nth-child(1)').classList.add('active');
-            darkMode.querySelector('span:nth-child(2)').classList.remove('active');
-        }
-    });
-
-    // Update user count every second
-    function updateUserCount() {
-        fetch('/get_user_count')
-            .then(response => response.json())
-            .then(data => {
-                document.querySelector('.info h1').textContent = data.student_count;
-            })
-            .catch(error => console.error('Error fetching user count:', error));
-    }
-
-    setInterval(updateUserCount, 1000); // Update every 1 second
-    updateUserCount();
-
-    const eventSource = new EventSource("/sse/active_users");
-
-    eventSource.onmessage = function (event) {
-        const activeUsersCount = JSON.parse(event.data);
-        const activeUsersCountElement = document.getElementById('active-users-count');
-        if (activeUsersCountElement) {
-            activeUsersCountElement.textContent = activeUsersCount;
-        }
-    };
-    
-    eventSource.onerror = function (error) {
-        console.error('EventSource failed:', error);
-        eventSource.close(); // Close the connection after error
-    };
-
-    // Fetch announcements
-    const announcementForm = document.getElementById('announcement-form');
-    const announcementsBody = document.getElementById('announcements-body');
-
-    function fetchAnnouncements() {
-        fetch('/get_announcements')
-            .then(response => response.json())
-            .then(data => {
-                announcementsBody.innerHTML = ''; // Clear existing rows
-    
-                data.forEach(announcement => {
-                    const row = document.createElement('tr');
-                    const announcementDate = new Date(announcement.announcement_date).toLocaleString();
-    
-                    row.innerHTML = `
-                        <td>${announcementDate}</td>
-                        <td>${announcement.admin_username}</td>
-                        <td>${announcement.announcement_text}</td>
-                        <td>
-                            <button class="edit-btn" data-id="${announcement.id}">Edit</button>
-                            <button class="delete-btn" data-id="${announcement.id}">Delete</button>
-                        </td>
-                    `;
-    
-                    announcementsBody.appendChild(row);
-                });
-    
-                // Add event listeners for edit and delete buttons
-                addEditDeleteListeners();
-            })
-            .catch(error => console.error('Error fetching announcements:', error));
-    }
-
-    // Fetch announcements when the page loads
-    fetchAnnouncements();
-
-    // Handle announcement form submission
-    announcementForm.addEventListener('submit', function (e) {
-        e.preventDefault();
-
-        // Validate adminUsername
-        if (!adminUsername) {
-            alert('Admin username not found. Please log in again.');
-            return;
-        }
-
-        const announcementText = document.getElementById('announcement-text').value;
-
-        // Submit the new announcement
-        fetch('/create_announcement', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                admin_username: adminUsername,
-                announcement_text: announcementText,
-            }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Announcement posted successfully!');
-                document.getElementById('announcement-text').value = ''; // Clear the textarea
-                fetchAnnouncements(); // Refresh the announcements table
-            } else {
-                alert('Failed to post announcement: ' + data.message);
-            }
-        })
-        .catch(error => console.error('Error posting announcement:', error));
-    });
-
-    // Add event listeners for edit and delete buttons
-    function addEditDeleteListeners() {
-        // Edit Button
-        document.querySelectorAll('.edit-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const announcementId = e.target.getAttribute('data-id');
-                openEditModal(announcementId);
-            });
-        });
-
-        // Delete Button
-        document.querySelectorAll('.delete-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const announcementId = e.target.getAttribute('data-id');
-                showDeleteConfirmation(announcementId);
-            });
+// Password visibility toggle for Login and Registration
+const passwordAccess = (passwordFieldId, eyeIconId) => {
+    const input = document.getElementById(passwordFieldId);
+    const iconEye = document.getElementById(eyeIconId);
+    if (input && iconEye) {
+        iconEye.addEventListener('click', () => {
+            input.type = input.type === 'password' ? 'text' : 'password';
+            iconEye.classList.toggle('ri-eye-fill');
+            iconEye.classList.toggle('ri-eye-off-fill');
         });
     }
+};
 
-    // Open Edit Modal
-    function openEditModal(announcementId) {
-        fetch(`/get_announcement/${announcementId}`)
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('edit-announcement-id').value = announcementId;
-                document.getElementById('edit-announcement-text').value = data.announcement_text;
-                document.getElementById('editModal').style.display = 'flex'; // Use flex to center the modal
-            })
-            .catch(error => console.error('Error fetching announcement:', error));
-    }
+// Initialize password visibility toggles
+passwordAccess('login_password', 'loginPasswordEye'); // Login Password
+passwordAccess('reg_password', 'regPasswordEye'); // Registration Password
+passwordAccess('repeat_password', 'repeatPasswordEye'); // Repeat Password
 
-    // Close Modal
-    document.querySelector('.close-modal').addEventListener('click', () => {
-        document.getElementById('editModal').style.display = 'none';
-    });
 
-    // Handle edit announcement form submission
-    document.getElementById('edit-announcement-form').addEventListener('submit', (e) => {
-        e.preventDefault();
 
-        const announcementId = document.getElementById('edit-announcement-id').value;
-        const announcementText = document.getElementById('edit-announcement-text').value;
-
-        fetch(`/update_announcement/${announcementId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                announcement_text: announcementText,
-            }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Announcement updated successfully!');
-                document.getElementById('editModal').style.display = 'none';
-                fetchAnnouncements(); // Refresh the table
-            } else {
-                alert('Failed to update announcement: ' + data.message);
-            }
-        })
-        .catch(error => console.error('Error updating announcement:', error));
-    });
-
-    let currentAnnouncementIdToDelete = null;
-
-    // Show Delete Confirmation Modal
-    function showDeleteConfirmation(announcementId) {
-        currentAnnouncementIdToDelete = announcementId;
-        document.getElementById('deleteConfirmation').style.display = 'block';
-    }
-
-    // Confirm Delete
-    document.getElementById('confirmDelete').addEventListener('click', () => {
-        if (currentAnnouncementIdToDelete) {
-            fetch(`/delete_announcement/${currentAnnouncementIdToDelete}`, {
-                method: 'DELETE',
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Announcement deleted successfully!');
-                    fetchAnnouncements(); // Refresh the table
-                } else {
-                    alert('Failed to delete announcement: ' + data.message);
-                }
-            })
-            .catch(error => console.error('Error deleting announcement:', error));
-        }
-        document.getElementById('deleteConfirmation').style.display = 'none';
-    });
-
-    // Cancel Delete
-    document.getElementById('cancelDelete').addEventListener('click', () => {
-        document.getElementById('deleteConfirmation').style.display = 'none';
-    });
-
-    // Section toggling functionality
-    const links = document.querySelectorAll('.sidebar a[data-section]'); // Only select links with data-section
-    const sections = document.querySelectorAll('.dashboard-section');
-
-    // Function to show the selected section and hide others
-    function showSection(sectionId) {
-        sections.forEach(section => {
-            if (section.id === sectionId) {
-                section.classList.add('active');
-            } else {
-                section.classList.remove('active');
-            }
-        });
-    }
-
-    // Function to set the active link
-    function setActiveLink(sectionId) {
-        links.forEach(link => {
-            if (link.getAttribute('data-section') === sectionId) {
-                link.classList.add('active');
-            } else {
-                link.classList.remove('active');
-            }
-        });
-    }
-
-    // Default to showing the dashboard section
-    showSection('dashboard');
-    setActiveLink('dashboard');
-
-    // Add click event listeners to sidebar links
-    links.forEach(link => {
-        link.addEventListener('click', function (e) {
-            e.preventDefault();
-            const sectionId = this.getAttribute('data-section');
-            showSection(sectionId);
-            setActiveLink(sectionId);
-        });
-    });
 });
+
+const labData = {
+    labels: ["Lab 544", "Lab 542", "Lab 530", "Lab 524", "Lab 526", "Lab 525"], // Lab names
+    datasets: [{
+      label: 'Sit-In Usage', // Updated label for the dataset
+      data: [12, 19, 8, 15, 10, 7], // Example sit-in usage for each lab
+      backgroundColor: [
+        '#FF6384', // Lab 544
+        '#36A2EB', // Lab 542
+        '#FFCE56', // Lab 530
+        '#4BC0C0', // Lab 524
+        '#9966FF', // Lab 526
+        '#FF9F40', // Lab 525
+      ],
+      borderColor: [
+        '#FF6384',
+        '#36A2EB',
+        '#FFCE56',
+        '#4BC0C0',
+        '#9966FF',
+        '#FF9F40',
+      ],
+      borderWidth: 1, // Border width for bars
+    }]
+  };
+  
+  // Chart configuration
+  const config = {
+    type: 'bar', // Bar chart type
+    data: labData,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false, // Allow chart to fit the container height
+      scales: {
+        y: {
+          beginAtZero: true, // Start y-axis from 0
+          title: {
+            display: true,
+            text: 'Sit-In Usage', // Updated y-axis label
+          }
+        },
+        x: {
+          title: {
+            display: true,
+            text: 'Labs', // X-axis label
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          display: false, // Hide the legend
+        },
+        tooltip: {
+          enabled: true, // Enable tooltips on hover
+          callbacks: {
+            title: (tooltipItems) => {
+              return tooltipItems[0].label; // Show lab name in tooltip title
+            },
+            label: (tooltipItem) => {
+              return `Sit-In Usage: ${tooltipItem.raw}`; // Updated tooltip label
+            }
+          }
+        }
+      }
+    }
+  };
+  
+  // Render the chart
+  const labUsageChart = new Chart(
+    document.getElementById('labUsageChart'),
+    config
+  );
+  
+  // Adjust chart for smaller screens
+  const updateChartForSmallScreens = () => {
+    const isSmallScreen = window.innerWidth <= 980;
+  
+    if (isSmallScreen) {
+      labUsageChart.options.scales.x.display = false; // Hide x-axis labels
+    } else {
+      labUsageChart.options.scales.x.display = true; // Show x-axis labels
+    }
+  
+    labUsageChart.update(); // Update the chart
+  };
+  
+  // Add event listener for window resize
+  window.addEventListener('resize', updateChartForSmallScreens);
+  
+  // Initial check for screen size
+  updateChartForSmallScreens();
+
+  const activityCtx = document.getElementById('activityBreakdownChart').getContext('2d');
+  const activityBreakdownChart = new Chart(activityCtx, {
+    type: 'doughnut', // You can also use 'pie' if you prefer
+    data: {
+      labels: ['Coding', 'Research', 'Meetings', 'Break'],
+      datasets: [{
+        data: [40, 30, 20, 10],
+        backgroundColor: [
+          '#1abc9c', // Green for Coding
+          '#3498db', // Blue for Research
+          '#9b59b6', // Purple for Meetings
+          '#e74c3c'  // Red for Break
+        ],
+        borderColor: '#fff', // White border for better separation
+        borderWidth: 2, // Border width
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false, // Allow the chart to fit its container
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: '#2c3e50', // Dark text color for legend
+            font: {
+              size: 14, // Adjust font size
+            },
+            padding: 20, // Add padding to legend items
+          }
+        },
+        tooltip: {
+          enabled: true,
+          backgroundColor: '#2c3e50', // Dark tooltip background
+          titleColor: '#fff', // White tooltip title
+          bodyColor: '#fff', // White tooltip body
+          padding: 10, // Add padding to tooltip
+          cornerRadius: 5, // Rounded corners for tooltip
+        }
+      }
+    }
+  });
+  
