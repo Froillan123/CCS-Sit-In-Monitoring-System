@@ -1,2 +1,3 @@
-[phases.start]
-cmds = "gunicorn -b 0.0.0.0:8080 -k gevent app:app"
+[phases]
+  [phases.start]
+  cmds = "gunicorn -b 0.0.0.0:8080 -k gevent app:app"
