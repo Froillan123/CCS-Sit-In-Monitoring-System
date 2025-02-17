@@ -284,55 +284,108 @@
     </div>
 
       <!-- Reservation Section -->
-          <div id="reservations" class="dashboard-section">
-            <h1>Reservation Form</h1>
-            <form id="reservationForm" action="/reservations" method="POST">
-              <div class="form-group">
-                <label for="lab_id">Lab:</label>
-                <select id="lab_id" name="lab_id" required>
-                  <option value="" disabled selected>Select Lab</option>
-                  {% for lab in labs %}
-                  <option value="{{ lab.id }}">{{ lab.lab_name }}</option>
-                  {% endfor %}
-                </select>
-              </div>
+      <div id="reservations" class="dashboard-section">
+        <div style="position: fixed; left: 20%; top: 0%;">
+          <!-- Add a "View Reservations" Button -->
+          <button id="viewReservationsBtn">
+            <i class="fas fa-eye"></i> View Reservations
+          </button>
+        </div>
+        <h1>Reservation Form</h1>
+        <form id="reservationForm" action="/reservations" method="POST">
+          <div class="form-group">
+            <label for="lab_id">Lab:</label>
+            <select id="lab_id" name="lab_id" required>
+              <option value="" disabled selected>Select Lab</option>
+              {% for lab in labs %}
+              <option value="{{ lab.id }}">{{ lab.lab_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+      
+          <div class="form-group">
+            <label for="purpose">Purpose:</label>
+            <select id="purpose_select" name="purpose_select" required>
+              <option value="" disabled selected>Select Purpose</option>
+              <option value="Class">Class</option>
+              <option value="Research">Research</option>
+              <option value="Meeting">Meeting</option>
+              <option value="Coding">Coding</option>
+              <option value="Assignment Work">Assignment Work</option>
+              <option value="Project Development">Project Development</option>
+            </select>
+          </div>
+      
+          <div class="form-group">
+            <label for="reservation_date">Reservation Date:</label>
+            <input type="date" id="reservation_date" name="reservation_date" required pattern="\d{4}-\d{2}-\d{2}" min="{{ current_date }}" />
+            <small id="dateError" class="error-message" style="color: red; display: none;">You cannot select a past date.</small>
+          </div>
+      
+          <div class="form-group">
+            <label for="time_in">Time In:</label>
+            <input type="time" id="time_in" name="time_in" required />
+          </div>
+      
+          <div class="form-group">
+            <label for="time_out">Time Out:</label>
+            <input type="time" id="time_out" name="time_out" required />
+            <small id="timeError" class="error-message" style="color: red; display: none;">Time Out must be after Time In.</small>
+          </div>
+      
+          <button type="submit">
+            <i class="fas fa-calendar-check"></i> Submit Reservation
+          </button>
+        </form>
+      </div>
 
-              <div class="form-group">
-                <label for="purpose">Purpose:</label>
-                <select id="purpose_select" name="purpose_select" required>
-                  <option value="" disabled selected>Select Purpose</option>
-                  <option value="Class">Class</option>
-                  <option value="Research">Research</option>
-                  <option value="Meeting">Meeting</option>
-                  <option value="Coding">Coding</option>
-                  <option value="Assignment Work">Assignment Work</option>
-                  <option value="Project Development">Project Development</option>
-              </select>
-              
-              </div>
-
-              <div class="form-group">
-                <label for="reservation_date">Reservation Date:</label>
-                <input type="date" id="reservation_date" name="reservation_date" required pattern="\d{4}-\d{2}-\d{2}" />
-              </div>
-
-              <div class="form-group">
-                <label for="time_in">Time In:</label>
-                <input type="time" id="time_in" name="time_in" required />
-              </div>
-
-              <div class="form-group">
-                <label for="time_out">Time Out:</label>
-                <input type="time" id="time_out" name="time_out" required />
-              </div>
-
-              <button type="submit">
-                <i class="fas fa-calendar-check"></i> Submit Reservation
+          <!-- Reservations Table Section -->
+          <div id="reservationsTable" class="dashboard-section" style="display: none;">
+               <!-- Add a "Back" Button -->
+               <button id="backToReservationsBtn" style="cursor: pointer; width:auto; margin-top: 0.7rem; margin-left: -0.5rem;">
+                <i class="fas fa-arrow-left"></i> Back to Reservations
               </button>
-            </form>
-
+              <table class="reservations-table">
+                <thead>
+                  <tr>
+                    <th>Student Name</th>
+                    <th>Purpose</th>
+                    <th>Reservation Date</th>
+                    <th>Time In</th>
+                    <th>Time Out</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Reservations will be dynamically inserted here -->
+                  <tr>
+                    <td>John Doe</td>
+                    <td>Research</td>
+                    <td>2023-10-15</td>
+                    <td>09:00</td>
+                    <td>11:00</td>
+                    <td>Pending</td>
+                    <td><button class="approve-btn">Approve</button></td>
+                  </tr>
+                  <tr>
+                    <td>Jane Smith</td>
+                    <td>Class</td>
+                    <td>2023-10-16</td>
+                    <td>10:00</td>
+                    <td>12:00</td>
+                    <td>Approved</td>
+                    <td><button class="approve-btn" disabled>Approved</button></td>
+                  </tr>
+                </tbody>
+              </table>
+              
 
           </div>
+
+
+
+
 
         <div id="laboratories" class="dashboard-section">
           <h1>Laboratories</h1>
@@ -960,5 +1013,118 @@ document.getElementById('reservationForm').addEventListener('submit', async func
 });
 
 
+  // JavaScript to handle the SPA behavior
+  document.getElementById('viewReservationsBtn').addEventListener('click', function() {
+    // Hide the reservation form
+    document.getElementById('reservations').style.display = 'none';
+    // Show the reservations table
+    document.getElementById('reservationsTable').style.display = 'block';
+    // Optionally, load reservations data here via AJAX
+  });
+
+  document.getElementById('backToReservationsBtn').addEventListener('click', function() {
+    // Hide the reservations table
+    document.getElementById('reservationsTable').style.display = 'none';
+    // Show the reservation form
+    document.getElementById('reservations').style.display = 'block';
+  });
+  document.addEventListener('DOMContentLoaded', function () {
+  const approveButtons = document.querySelectorAll('.approve-btn');
+
+  approveButtons.forEach((button) => {
+    button.addEventListener('click', function () {
+      const row = this.closest('tr');
+      const statusCell = row.querySelector('td:nth-child(6)');
+      const actionCell = row.querySelector('td:nth-child(7)');
+
+      // Update status to "Approved"
+      statusCell.textContent = 'Approved';
+
+      // Disable the button
+      this.disabled = true;
+      this.textContent = 'Approved';
+
+      // Optional: Send an AJAX request to update the status in the database
+      const reservationId = row.dataset.reservationId; // Assuming you have a data-reservation-id attribute
+      fetch(`/approve-reservation/${reservationId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            console.log('Reservation approved successfully');
+          } else {
+            console.error('Failed to approve reservation');
+          }
+        })
+        .catch((error) => {
+          console.error('Error:', error);
+        });
+    });
+  });
+});
+
+
+const reservationDateInput = document.getElementById('reservation_date');
+  const timeInInput = document.getElementById('time_in');
+  const timeOutInput = document.getElementById('time_out');
+  const dateError = document.getElementById('dateError');
+  const timeError = document.getElementById('timeError');
+
+  // Set the minimum date to today
+  const today = new Date().toISOString().split('T')[0];
+  reservationDateInput.setAttribute('min', today);
+
+  // Validate date on input change
+  reservationDateInput.addEventListener('change', function () {
+    const selectedDate = new Date(this.value);
+    const currentDate = new Date();
+
+    if (selectedDate < currentDate) {
+      dateError.style.display = 'block';
+      this.setCustomValidity('You cannot select a past date.');
+    } else {
+      dateError.style.display = 'none';
+      this.setCustomValidity('');
+    }
+  });
+
+  // Validate time-out on input change
+  timeOutInput.addEventListener('change', function () {
+    const timeIn = timeInInput.value;
+    const timeOut = this.value;
+
+    if (timeOut <= timeIn) {
+      timeError.style.display = 'block';
+      this.setCustomValidity('Time Out must be after Time In.');
+    } else {
+      timeError.style.display = 'none';
+      this.setCustomValidity('');
+    }
+  });
+
+  // Validate time-in on input change
+  timeInInput.addEventListener('change', function () {
+    const timeIn = this.value;
+    const timeOut = timeOutInput.value;
+
+    if (timeOut && timeOut <= timeIn) {
+      timeError.style.display = 'block';
+      timeOutInput.setCustomValidity('Time Out must be after Time In.');
+    } else {
+      timeError.style.display = 'none';
+      timeOutInput.setCustomValidity('');
+    }
+  });
+
+  // Prevent form submission if there are validation errors
+  document.getElementById('reservationForm').addEventListener('submit', function (event) {
+    if (!this.checkValidity()) {
+      event.preventDefault();
+    }
+  });
 </script>
 {% endblock %}

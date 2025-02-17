@@ -1838,7 +1838,9 @@ button:hover {
 
 #reservations {
   max-width: 600px;
-  margin: 5rem auto;
+  margin-top: 8rem;
+  margin-right: auto;
+  margin-left: auto;
   padding: 20px;
   background-color: var(--background-color);
   border-radius: 8px;
@@ -1925,6 +1927,54 @@ button:hover {
   color: red;
 }
 
+.error-message {
+  display: none;
+  font-size: 14px;
+  margin-top: 5px;
+}
+.reservations-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+.reservations-table th,
+.reservations-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.reservations-table th {
+  background-color: var(--first-color);
+  color: white;
+  font-weight: 500;
+}
+
+.reservations-table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.approve-btn {
+  padding: 6px 12px;
+  background-color: var(--first-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.approve-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.approve-btn:hover:not(:disabled) {
+  background-color: #9d2db0;
+}
 
 
 /* Responsive adjustments */
