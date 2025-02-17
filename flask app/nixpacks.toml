@@ -1,2 +1,3 @@
-start
-cmd = "gunicorn app:app"
+[phases]
+  [phases.start]
+  cmd = "gunicorn app:app"
