@@ -49,7 +49,6 @@ def get_paginated_students(offset, per_page):
         LIMIT ? OFFSET ?
     """
     students = getprocess(sql, (per_page, offset))
-    print("Fetched students:", students)  # Debugging: Print fetched data
     return students
 
 # Retrieve a student by ID number

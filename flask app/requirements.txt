@@ -12,3 +12,5 @@ flask-login
 flask-session
 flask-sse
 eventlet
+gevent
+gevent-websocket

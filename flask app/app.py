@@ -621,7 +621,6 @@ def activity_breakdown():
     db = sqlite3.connect('student.db')
     cursor = db.cursor()
 
-    # Query to count the number of reservations for each purpose
     cursor.execute("""
         SELECT purpose, COUNT(*) as count 
         FROM reservations 
@@ -629,16 +628,11 @@ def activity_breakdown():
     """)
     results = cursor.fetchall()
 
-    # Close the database connection
     db.close()
 
     # Convert the results into a dictionary
     activity_data = {purpose: count for purpose, count in results}
 
-    # Print to check data on the server
-    print("Activity Breakdown Data:", activity_data)  
-
-    # Return the data as JSON
     return jsonify(activity_data)
 
 
