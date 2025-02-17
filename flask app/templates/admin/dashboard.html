@@ -53,6 +53,11 @@
                     <span class="material-icons-sharp">campaign</span>
                     <h3>Announcement</h3>
                 </a>
+                <!-- New Student Reservation Link with Cool Icon -->
+                <a href="#" data-section="reservation">
+                    <span class="material-icons-sharp">event_seat</span>
+                    <h3>Student Reservation</h3>
+                </a>
                 <!-- Logout Link (No data-section attribute) -->
                 <a href="{{ url_for('adminLogout') }}">
                     <span class="material-icons-sharp">logout</span>
@@ -131,7 +136,6 @@
                             <th>Middle Name</th>
                             <th>Course</th>
                             <th>Year Level</th>
-                            <th>Email</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -143,7 +147,6 @@
                             <td data-label="Middle Name">{{ student['midname'] }}</td>
                             <td data-label="Course">{{ student['course'] }}</td>
                             <td data-label="Year Level">{{ student['year_level'] }}</td>
-                            <td data-label="Email">{{ student['email'] }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -198,6 +201,7 @@
                           <th>Date</th>
                           <th>Admin</th>
                           <th>Announcement</th>
+                          <th>Action</th>
                         </tr>
                       </thead>
                       <tbody id="announcements-body">
@@ -207,6 +211,11 @@
                   </div>
                 </div>
               </div>
+
+
+              <div id="reservation" class="dashboard-section">
+                <h1>Student Reservation</h1>
+            </div>
 
         </main>
         <!-- End of Main Content -->

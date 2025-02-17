@@ -47,159 +47,252 @@ document.addEventListener('DOMContentLoaded', () => {
         sideMenu.style.display = 'none';
     });
 
-// Password visibility toggle for Login and Registration
-const passwordAccess = (passwordFieldId, eyeIconId) => {
-    const input = document.getElementById(passwordFieldId);
-    const iconEye = document.getElementById(eyeIconId);
-    if (input && iconEye) {
-        iconEye.addEventListener('click', () => {
-            input.type = input.type === 'password' ? 'text' : 'password';
-            iconEye.classList.toggle('ri-eye-fill');
-            iconEye.classList.toggle('ri-eye-off-fill');
-        });
-    }
-};
+    const passwordAccess = (passwordFieldId, eyeIconId) => {
+      const input = document.getElementById(passwordFieldId);
+      const iconEye = document.getElementById(eyeIconId);
 
-// Initialize password visibility toggles
-passwordAccess('login_password', 'loginPasswordEye'); // Login Password
-passwordAccess('reg_password', 'regPasswordEye'); // Registration Password
-passwordAccess('repeat_password', 'repeatPasswordEye'); // Repeat Password
+      console.log(`Input: ${passwordFieldId}`, input); // Debugging
+      console.log(`Icon: ${eyeIconId}`, iconEye); // Debugging
+
+      if (input && iconEye) {
+          iconEye.addEventListener('click', () => {
+              input.type = input.type === 'password' ? 'text' : 'password';
+              iconEye.classList.toggle('ri-eye-fill');
+              iconEye.classList.toggle('ri-eye-off-fill');
+          });
+      } else {
+          console.error(`Element not found: ${passwordFieldId} or ${eyeIconId}`); // Debugging
+      }
+  };
+
+  // Initialize password visibility toggles
+  passwordAccess('login_password', 'loginPasswordEye'); // Login Password
+  passwordAccess('reg_password', 'regPasswordEye'); // Registration Password
+  passwordAccess('repeat_password', 'repeatPasswordEye'); // Repeat Password
 
 
 
 });
 
 const labData = {
-    labels: ["Lab 544", "Lab 542", "Lab 530", "Lab 524", "Lab 526", "Lab 525"], // Lab names
-    datasets: [{
+  labels: ["Lab 544", "Lab 542", "Lab 530", "Lab 524", "Lab 526", "Lab 525"], // Lab names
+  datasets: [{
       label: 'Sit-In Usage', // Updated label for the dataset
       data: [12, 19, 8, 15, 10, 7], // Example sit-in usage for each lab
       backgroundColor: [
-        '#FF6384', // Lab 544
-        '#36A2EB', // Lab 542
-        '#FFCE56', // Lab 530
-        '#4BC0C0', // Lab 524
-        '#9966FF', // Lab 526
-        '#FF9F40', // Lab 525
+          '#FF6384', // Lab 544
+          '#36A2EB', // Lab 542
+          '#FFCE56', // Lab 530
+          '#4BC0C0', // Lab 524
+          '#9966FF', // Lab 526
+          '#FF9F40', // Lab 525
       ],
       borderColor: [
-        '#FF6384',
-        '#36A2EB',
-        '#FFCE56',
-        '#4BC0C0',
-        '#9966FF',
-        '#FF9F40',
+          '#FF6384',
+          '#36A2EB',
+          '#FFCE56',
+          '#4BC0C0',
+          '#9966FF',
+          '#FF9F40',
       ],
-      borderWidth: 1, // Border width for bars
-    }]
-  };
-  
-  // Chart configuration
-  const config = {
-    type: 'bar', // Bar chart type
-    data: labData,
-    options: {
+      borderWidth: 0, // Remove border around bars
+      borderRadius: 0, // Add border radius to bars
+      hoverBackgroundColor: [
+          '#FF6384', // Lab 544
+          '#36A2EB', // Lab 542
+          '#FFCE56', // Lab 530
+          '#4BC0C0', // Lab 524
+          '#9966FF', // Lab 526
+          '#FF9F40', // Lab 525
+      ],
+      hoverBorderWidth: 0, // Add border on hover
+      hoverBorderColor: '#fff', // White border on hover
+  }]
+};
+
+// Chart configuration
+const config = {
+  type: 'bar', // Bar chart type
+  data: labData,
+  options: {
       responsive: true,
       maintainAspectRatio: false, // Allow chart to fit the container height
       scales: {
-        y: {
-          beginAtZero: true, // Start y-axis from 0
-          title: {
-            display: true,
-            text: 'Sit-In Usage', // Updated y-axis label
-          }
-        },
-        x: {
-          title: {
-            display: true,
-            text: 'Labs', // X-axis label
-          }
-        }
+          y: {
+              beginAtZero: true, // Start y-axis from 0
+              grid: {
+                  display: false, // Hide y-axis grid lines
+              },
+              title: {
+                  display: true,
+                  text: 'Sit-In Usage', // Updated y-axis label
+                  font: {
+                      size: 14,
+                      weight: 'bold',
+                  },
+              },
+              ticks: {
+                  font: {
+                      size: 12,
+                  },
+              },
+          },
+          x: {
+              grid: {
+                  display: false, // Hide x-axis grid lines
+              },
+              title: {
+                  display: true,
+                  text: 'Labs', // X-axis label
+                  font: {
+                      size: 14,
+                      weight: 'bold',
+                  },
+              },
+              ticks: {
+                  font: {
+                      size: 12,
+                  },
+              },
+          },
       },
       plugins: {
-        legend: {
-          display: false, // Hide the legend
-        },
-        tooltip: {
-          enabled: true, // Enable tooltips on hover
-          callbacks: {
-            title: (tooltipItems) => {
-              return tooltipItems[0].label; // Show lab name in tooltip title
-            },
-            label: (tooltipItem) => {
-              return `Sit-In Usage: ${tooltipItem.raw}`; // Updated tooltip label
-            }
-          }
-        }
-      }
-    }
-  };
-  
-  // Render the chart
-  const labUsageChart = new Chart(
-    document.getElementById('labUsageChart'),
-    config
-  );
-  
-  // Adjust chart for smaller screens
-  const updateChartForSmallScreens = () => {
-    const isSmallScreen = window.innerWidth <= 980;
-  
-    if (isSmallScreen) {
-      labUsageChart.options.scales.x.display = false; // Hide x-axis labels
-    } else {
-      labUsageChart.options.scales.x.display = true; // Show x-axis labels
-    }
-  
-    labUsageChart.update(); // Update the chart
-  };
-  
-  // Add event listener for window resize
-  window.addEventListener('resize', updateChartForSmallScreens);
-  
-  // Initial check for screen size
-  updateChartForSmallScreens();
+          legend: {
+              display: false, // Hide the legend
+          },
+          tooltip: {
+              enabled: true, // Enable tooltips on hover
+              backgroundColor: 'rgba(0, 0, 0, 0.8)', // Dark background for tooltips
+              titleFont: {
+                  size: 14,
+                  weight: 'bold',
+              },
+              bodyFont: {
+                  size: 12,
+              },
+              callbacks: {
+                  title: (tooltipItems) => {
+                      return tooltipItems[0].label; // Show lab name in tooltip title
+                  },
+                  label: (tooltipItem) => {
+                      return `Sit-In Usage: ${tooltipItem.raw}`; // Updated tooltip label
+                  },
+              },
+          },
+      },
+      animation: {
+          duration: 1000, // Smooth animation duration
+          easing: 'easeInOutQuart', // Smooth easing function
+      },
+  },
+};
 
-  const activityCtx = document.getElementById('activityBreakdownChart').getContext('2d');
-  const activityBreakdownChart = new Chart(activityCtx, {
-    type: 'doughnut', // You can also use 'pie' if you prefer
-    data: {
-      labels: ['Coding', 'Research', 'Meetings', 'Break'],
-      datasets: [{
-        data: [40, 30, 20, 10],
-        backgroundColor: [
-          '#1abc9c', // Green for Coding
-          '#3498db', // Blue for Research
-          '#9b59b6', // Purple for Meetings
-          '#e74c3c'  // Red for Break
-        ],
-        borderColor: '#fff', // White border for better separation
-        borderWidth: 2, // Border width
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false, // Allow the chart to fit its container
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: {
-            color: '#2c3e50', // Dark text color for legend
-            font: {
-              size: 14, // Adjust font size
-            },
-            padding: 20, // Add padding to legend items
-          }
-        },
-        tooltip: {
-          enabled: true,
-          backgroundColor: '#2c3e50', // Dark tooltip background
-          titleColor: '#fff', // White tooltip title
-          bodyColor: '#fff', // White tooltip body
-          padding: 10, // Add padding to tooltip
-          cornerRadius: 5, // Rounded corners for tooltip
-        }
+// Render the chart
+const labUsageChart = new Chart(
+  document.getElementById('labUsageChart'),
+  config
+);
+
+// Adjust chart for smaller screens
+const updateChartForSmallScreens = () => {
+  const isSmallScreen = window.innerWidth <= 980;
+
+  if (isSmallScreen) {
+      labUsageChart.options.scales.x.display = false; // Hide x-axis labels
+      labUsageChart.options.scales.y.title.display = false; // Hide y-axis title
+  } else {
+      labUsageChart.options.scales.x.display = true; // Show x-axis labels
+      labUsageChart.options.scales.y.title.display = true; // Show y-axis title
+  }
+
+  labUsageChart.update(); // Update the chart
+};
+
+// Add event listener for window resize
+window.addEventListener('resize', updateChartForSmallScreens);
+
+// Initial check for screen size
+updateChartForSmallScreens();
+
+
+async function fetchActivityBreakdown() {
+  try {
+      console.log("Fetching activity breakdown data...");
+      const response = await fetch('/activity_breakdown');
+      if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
       }
-    }
-  });
-  
+      const data = await response.json();
+      console.log("Received data:", data);
+
+      // Define default activities and count from database
+      const activityLabels = ["Class", "Research", "Meeting", "Coding", "Assignment Work", "Project Development"];
+      const activityCounts = activityLabels.map(label => data[label] || 0); // Default to 0 if missing
+
+      // Ensure canvas exists
+      const canvas = document.getElementById('activityBreakdownChart');
+      if (!canvas) {
+          console.error("Canvas element not found!");
+          return;
+      }
+
+      // Destroy previous chart if it exists and is a valid chart object
+      if (window.activityBreakdownChart instanceof Chart) {
+          console.log("Destroying existing chart...");
+          window.activityBreakdownChart.destroy();
+      }
+
+      // Create new chart
+      const ctx = canvas.getContext('2d');
+      window.activityBreakdownChart = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+              labels: activityLabels,
+              datasets: [{
+                  data: activityCounts,
+                  backgroundColor: [
+                      '#1abc9c', // Green for Class
+                      '#3498db', // Blue for Research
+                      '#9b59b6', // Purple for Meetings
+                      '#e74c3c', // Red for Coding
+                      '#f1c40f', // Yellow for Assignment Work
+                      '#e67e22'  // Orange for Project Development
+                  ],
+                  borderColor: '#fff',
+                  borderWidth: 2,
+              }]
+          },
+          options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                  legend: {
+                      position: 'bottom',
+                      labels: {
+                          color: '#2c3e50',
+                          font: { size: 14 },
+                          padding: 20,
+                      }
+                  },
+                  tooltip: {
+                      enabled: true,
+                      backgroundColor: '#2c3e50',
+                      titleColor: '#fff',
+                      bodyColor: '#fff',
+                      padding: 10,
+                      cornerRadius: 5,
+                  }
+              }
+          }
+      });
+
+      // Force chart update
+      window.activityBreakdownChart.update();
+
+  } catch (error) {
+      console.error("Error fetching activity breakdown data:", error);
+  }
+}
+
+// Fetch chart data on page load
+fetchActivityBreakdown();

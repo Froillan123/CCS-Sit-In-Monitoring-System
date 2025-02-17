@@ -58,6 +58,12 @@ def get_student_by_id(idno: str) -> dict:
     student = getprocess(sql, (idno,))
     return student[0] if student else None
 
+def get_lab_by_name(lab_name: str) -> dict:
+    sql = "SELECT * FROM laboratories  WHERE lab_name = ?"
+    lab_name = getprocess(sql, (lab_name,))
+    return lab_name[0] if lab_name else None
+
+
 # Retrieve a student by email
 def get_student_by_email(email: str) -> dict:
     sql = "SELECT * FROM students WHERE email = ?"

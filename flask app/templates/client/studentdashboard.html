@@ -151,10 +151,12 @@
         </div>
 
           <div class="bottom-section">
+            
             <div class="chart-container">
               <h3>Activity Breakdown Chart</h3>
               <canvas id="activityBreakdownChart"></canvas>
-            </div>
+          </div>
+          
 
             <div class="chart-container">
               <h3>Weekly Usage Chart</h3>
@@ -281,47 +283,56 @@
       <p>This is the history section. You can display user history here.</p>
     </div>
 
-        <!-- Reservation Section -->
-        <div id="reservations" class="dashboard-section">
-          <h1>Reservation Form</h1>
-          <form id="reservationForm" action="/reservations" method="POST">
-            <div class="form-group">
-              <label for="lab_name">Lab:</label>
-              <select id="lab_name" name="lab_name" required>
-                <option value="" disabled selected>Select Lab</option>
-                {% for lab in labs %}
+      <!-- Reservation Section -->
+          <div id="reservations" class="dashboard-section">
+            <h1>Reservation Form</h1>
+            <form id="reservationForm" action="/reservations" method="POST">
+              <div class="form-group">
+                <label for="lab_id">Lab:</label>
+                <select id="lab_id" name="lab_id" required>
+                  <option value="" disabled selected>Select Lab</option>
+                  {% for lab in labs %}
                   <option value="{{ lab.id }}">{{ lab.lab_name }}</option>
-                {% endfor %}
-            </select>
-            </div>
-        
-            <div class="form-group">
-              <label for="purpose">Purpose:</label>
-              <textarea id="purpose" name="purpose" placeholder="Enter the purpose of the reservation" required></textarea>
-            </div>
-        
-            <div class="form-group">
-              <label for="reservation_date">Reservation Date:</label>
-              <input type="date" id="reservation_date" name="reservation_date" required />
-            </div>
-        
-            <div class="form-group">
-              <label for="time_in">Time In:</label>
-              <input type="time" id="time_in" name="time_in" required />
-            </div>
-        
-            <div class="form-group">
-              <label for="time_out">Time Out:</label>
-              <input type="time" id="time_out" name="time_out" required />
-            </div>
-        
-            <button type="submit">Submit Reservation</button>
-          </form>
-        
-          <!-- Message Display -->
-          <div id="message"></div>
-        </div>
+                  {% endfor %}
+                </select>
+              </div>
 
+              <div class="form-group">
+                <label for="purpose">Purpose:</label>
+                <select id="purpose_select" name="purpose_select" required>
+                  <option value="" disabled selected>Select Purpose</option>
+                  <option value="Class">Class</option>
+                  <option value="Research">Research</option>
+                  <option value="Meeting">Meeting</option>
+                  <option value="Coding">Coding</option>
+                  <option value="Assignment Work">Assignment Work</option>
+                  <option value="Project Development">Project Development</option>
+              </select>
+              
+              </div>
+
+              <div class="form-group">
+                <label for="reservation_date">Reservation Date:</label>
+                <input type="date" id="reservation_date" name="reservation_date" required pattern="\d{4}-\d{2}-\d{2}" />
+              </div>
+
+              <div class="form-group">
+                <label for="time_in">Time In:</label>
+                <input type="time" id="time_in" name="time_in" required />
+              </div>
+
+              <div class="form-group">
+                <label for="time_out">Time Out:</label>
+                <input type="time" id="time_out" name="time_out" required />
+              </div>
+
+              <button type="submit">
+                <i class="fas fa-calendar-check"></i> Submit Reservation
+              </button>
+            </form>
+
+
+          </div>
 
         <div id="laboratories" class="dashboard-section">
           <h1>Laboratories</h1>
@@ -455,35 +466,6 @@
   const announcementsList = document.getElementById('announcements-list');
   if (announcementsList) {
     fetchAnnouncements();
-  }
-
-  // Handle reservation form submission
-  const reservationForm = document.getElementById('reservationForm');
-  if (reservationForm) {
-    reservationForm.addEventListener('submit', function (e) {
-      e.preventDefault();
-      const formData = new FormData(this);
-
-      fetch('/reservations', {
-        method: 'POST',
-        body: formData
-      })
-        .then(response => response.json())
-        .then(data => {
-          const messageDiv = document.getElementById('message');
-          if (data.status === 'success') {
-            messageDiv.textContent = data.message;
-            messageDiv.style.color = 'green';
-          } else {
-            messageDiv.textContent = data.message;
-            messageDiv.style.color = 'red';
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          document.getElementById('message').textContent = 'An error occurred. Please try again.';
-        });
-    });
   }
 
   // Fetch labs for dropdown
@@ -946,6 +928,37 @@ progressBars.forEach(progressBar => {
         progressCircle.style.stroke = '#F44336'; // Red
     }
 });
+
+
+document.getElementById('reservationForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    // Convert reservation_date to YYYY-MM-DD
+    const dateInput = document.getElementById('reservation_date');
+    const formattedDate = new Date(dateInput.value).toISOString().split('T')[0];
+    formData.set('reservation_date', formattedDate);
+
+    try {
+        const response = await fetch('/reservations', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            alert(result.message); // Show alert on success
+            location.reload(); // Refresh the page
+        } else {
+            alert(result.message); // Show alert for errors
+        }
+    } catch (error) {
+        alert('An error occurred while submitting the form.');
+    }
+});
+
 
 </script>
 {% endblock %}

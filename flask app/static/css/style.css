@@ -129,7 +129,13 @@ img {
     margin-left: auto;
     margin-right: auto;
 }
+.ri-eye-fill::before {
+  content: "\ee4b"; /* Unicode for eye icon */
+}
 
+.ri-eye-off-fill::before {
+  content: "\ee4c"; /* Unicode for eye-off icon */
+}
 
 /* Centering register container */
 
@@ -445,6 +451,7 @@ select:disabled {
   /*Color mode HSL(hue, saturation, lightness)*/
   --first-color: hsl(273, 77%, 65%);
   --first-color-alt: hsl(295, 56%, 52%);
+  --second-color: hsl(273, 100%, 51%);
   --title-color: hsl(220, 68%, 4%);
   --white-color: hsl(0, 0%, 100%);
   --text-color: hsl(220, 15%, 66%);
@@ -1013,6 +1020,7 @@ img {
   grid-template-columns: 1fr 1fr; /* Two columns by default */
   gap: 2rem;
   margin-top: 2rem;
+  margin-bottom: 5rem;
 }
 
 /* Make the grid responsive */
@@ -1481,21 +1489,38 @@ button:hover {
   overflow-y: auto; /* Make the container scrollable vertically */
 }
 
+#lab-rules h1
+{
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--first-color);
+}
+
+@media (max-width: 447px)
+{
+  #lab-rules h1
+  {
+    font-size: 2.5rem;
+    font-weight: 600;
+  }
+}
+
 .rules-header {
   text-align: center;
   margin-bottom: 1.5625rem; /* 25px */
+
 }
 .rules-header h2 {
   font-size: 2.5rem; /* 28px */
   color: #2c3e50; /* Dark blue for emphasis */
   margin-bottom: 0.625rem; /* 10px */
-  font-weight: 600; /* Bold heading */
+  font-weight: 500; /* Bold heading */
 }
 
 .rules-header h3 {
   font-size: 2rem; /* 20px */
   color: #666;
-  font-weight: 500; /* Semi-bold subheading */
+  font-weight: 400; /* Semi-bold subheading */
 }
 
 .rules-content {
@@ -1813,49 +1838,61 @@ button:hover {
 
 #reservations {
   max-width: 600px;
-  margin: 0 auto;
+  margin: 5rem auto;
   padding: 20px;
-  background-color: #f9f9f9;
+  background-color: var(--background-color);
   border-radius: 8px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 #reservations h1 {
   text-align: center;
-  color: #333;
+  color: var(--first-color);
+  font-weight: 500;
+  font-size: 2.6rem;
 }
 
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 20px;
 }
 
 .form-group label {
   display: block;
-  font-weight: bold;
-  color: #444;
+  font-weight: 400;
+  color: var(--second-color);
+  margin-bottom: 5px;
+  margin-top: 2rem;
 }
 
-.form-group input, 
+.form-group input,
 .form-group textarea,
 .form-group select {
   width: 100%;
   padding: 10px;
-  margin-top: 5px;
   font-size: 16px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   box-sizing: border-box;
   background-color: #fff;
-  color: #444;
+  color: var(--text-color);
+  transition: border-color 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  border-color: var(--first-color);
+  outline: none;
 }
 
 .form-group textarea {
   height: 100px;
+  resize: vertical;
 }
 
 .form-group select {
   appearance: none;
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 6"><path d="M0 0l5 5 5-5z" fill="#444" /></svg>');
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 6"><path d="M0 0l5 5 5-5z" fill="%23444" /></svg>');
   background-repeat: no-repeat;
   background-position: right 10px center;
   background-size: 10px;
@@ -1864,7 +1901,7 @@ button:hover {
 #reservations button[type="submit"] {
   width: 100%;
   padding: 12px;
-  background-color: #4CAF50;
+  background-color: var(--first-color);
   color: white;
   font-size: 18px;
   border: none;
@@ -1874,7 +1911,7 @@ button:hover {
 }
 
 #reservations button[type="submit"]:hover {
-  background-color: #45a049;
+  background-color: #9d2db0;
 }
 
 #message {
@@ -1888,6 +1925,26 @@ button:hover {
   color: red;
 }
 
+
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  #reservations h1 {
+    font-size: 1.75rem;
+  }
+
+  .form-group label,
+  .form-group input,
+  .form-group textarea,
+  .form-group select,
+  #reservations button[type="submit"] {
+    font-size: 1.1rem;
+  }
+
+  #reservations button[type="submit"] i {
+    font-size: 1.2rem;
+  }
+}
 /* For smaller screens */
 @media (max-width: 768px) {
   .announcement-box {

@@ -587,7 +587,8 @@ main .recent-orders a{
     border: 1px solid #ccc;
     border-radius: 5px;
     font-size: 14px;
-    resize: vertical;
+    height: 150px;
+    resize: none;
   }
   
   button[type="submit"] {
@@ -602,7 +603,7 @@ main .recent-orders a{
   }
   
   button[type="submit"]:hover {
-    background-color: var(--first-color-dark);
+    background-color: var(--color-info-dark);
   }
   
   /* Announcements Table Styling */

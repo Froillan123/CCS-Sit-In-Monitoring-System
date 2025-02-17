@@ -3,7 +3,7 @@ from dbhelper import *
 from flask_socketio import SocketIO, emit, disconnect
 import os
 import time
-from datetime import timedelta
+from datetime import timedelta, datetime
 import json
 app = Flask(__name__)
 
@@ -113,50 +113,56 @@ def forgot_password():
 
 @app.route('/reservations', methods=['POST'])
 def reservations():
-    if request.method == 'POST':
-        # Ensure the student is logged in
-        if 'student_idno' not in session:
-            return jsonify({"status": "error", "message": "Student not logged in"}), 401
+    student_idno = session.get('student_idno')
+    student_name = session.get('user_username')
 
-        # Get form data
-        student_idno = session['student_idno']  # Use student_idno from session
-        lab_name = request.form.get('lab_name')
-        purpose = request.form.get('purpose')
-        reservation_date = request.form.get('reservation_date')
-        time_in = request.form.get('time_in')
-        time_out = request.form.get('time_out')
+    print(f"Session Data - Student ID: {student_idno}, Student Name: {student_name}")
 
-        # Validate form data
-        if not all([lab_name, purpose, reservation_date, time_in, time_out]):
-            return jsonify({"status": "error", "message": "All fields are required"}), 400
+    # Retrieve form data safely
+    lab_id = request.form.get('lab_id', '').strip()  # Use lab_id instead of lab_name
+    purpose = request.form.get('purpose_select', '').strip()  # Use only dropdown
+    reservation_date = request.form.get('reservation_date', '').strip()
+    time_in = request.form.get('time_in', '').strip()
+    time_out = request.form.get('time_out', '').strip()
 
-        # Query to get the student's name (firstname, lastname) based on idno
-        student = get_student_by_idno(student_idno)  # Fetch student by idno
-        if not student:
-            return jsonify({"status": "error", "message": "Student not found"}), 404
+    print(f"Received Form Data - Lab ID: {lab_id}, Purpose: {purpose}, Reservation Date: {reservation_date}, Time In: {time_in}, Time Out: {time_out}")
 
-        student_name = f"{student['firstname']} {student['lastname']}"
+    # Ensure required fields are present
+    if not all([student_idno, student_name, lab_id, purpose, reservation_date, time_in, time_out]):
+        print("Error: Missing required fields")
+        return jsonify({'status': 'error', 'message': 'All fields are required'}), 400
 
-        # Prepare data for insertion
-        data = {
-            "student_idno": student_idno,  # Use student_idno here
-            "student_name": student_name,
-            "lab_name": lab_name,
-            "purpose": purpose,
-            "reservation_date": reservation_date,
-            "time_in": time_in,
-            "time_out": time_out
-        }
+    # Validate date format
+    try:
+        datetime.strptime(reservation_date, '%Y-%m-%d')  # FIXED BUG
+        print("Date format is valid")
+    except ValueError:
+        print("Error: Invalid date format")
+        return jsonify({'status': 'error', 'message': 'Invalid date format (YYYY-MM-DD expected)'}), 400
 
-        # Add record to the database
-        try:
-            success = add_record("reservations", **data)
-            if success:
-                return jsonify({"status": "success", "message": f"Reservation added successfully by {student_name}!"}), 200
-            else:
-                return jsonify({"status": "error", "message": "Error adding reservation."}), 500
-        except Exception as e:
-            return jsonify({"status": "error", "message": str(e)}), 500
+    # Insert into database
+    try:
+        db = sqlite3.connect('student.db')
+        cursor = db.cursor()
+        print("Database connected successfully")
+
+        cursor.execute("""
+            INSERT INTO  reservations(student_idno, student_name, lab_id, purpose, reservation_date, time_in, time_out) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (student_idno, student_name, lab_id, purpose, reservation_date, time_in, time_out))
+        
+        db.commit()
+        print("Reservation inserted successfully")
+
+    except sqlite3.Error as e:
+        print(f"Database Error: {e}")
+        return jsonify({'status': 'error', 'message': 'Database error occurred'}), 500
+
+    finally:
+        db.close()
+        print("Database connection closed")
+
+    return jsonify({'status': 'success', 'message': 'Reservation successful!'})
 
 
 @app.route('/student_dashboard')
@@ -176,6 +182,9 @@ def student_dashboard():
     current_session = get_total_session(student['idno'])
 
     return render_template('client/studentdashboard.html', student=student, pagetitle=pagetitle, labs=labs, idno=student['idno'], current_session=current_session)
+
+
+
 
 @app.route('/update_profile', methods=['POST'])
 def update_profile():
@@ -331,7 +340,7 @@ def logout():
         logout_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         update_session_history(student_idno, logout_time)
 
-    flash("You have Logged Out", 'info')
+    flash("You Have Been Logged Out", 'info')
     return redirect(url_for('login'))
 
 def format_duration(seconds):
@@ -446,7 +455,6 @@ def dashboard():
                            students=students,
                            page=page,
                            total_pages=total_pages)
-
 
 @app.route('/admin', methods=['GET', 'POST'])  
 def admin_login():
@@ -605,6 +613,33 @@ def delete_announcement(announcement_id):
             return jsonify({"success": False, "message": "Failed to delete announcement"})
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
+    
+
+@app.route('/activity_breakdown', methods=['GET'])
+def activity_breakdown():
+    # Connect to the database
+    db = sqlite3.connect('student.db')
+    cursor = db.cursor()
+
+    # Query to count the number of reservations for each purpose
+    cursor.execute("""
+        SELECT purpose, COUNT(*) as count 
+        FROM reservations 
+        GROUP BY purpose
+    """)
+    results = cursor.fetchall()
+
+    # Close the database connection
+    db.close()
+
+    # Convert the results into a dictionary
+    activity_data = {purpose: count for purpose, count in results}
+
+    # Print to check data on the server
+    print("Activity Breakdown Data:", activity_data)  
+
+    # Return the data as JSON
+    return jsonify(activity_data)
 
 
 @app.route('/get_user_count')

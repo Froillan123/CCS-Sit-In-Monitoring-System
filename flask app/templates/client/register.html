@@ -79,6 +79,7 @@
                 <input type="text" id="username" name="username" required> 
             </div>
     
+            <!-- Registration Password -->
             <div class="input-box">
                 <span class="details">Password</span>
                 <div class="password-container">
@@ -93,13 +94,13 @@
           </div>
 
          <!-- Repeat Password -->
-        <div class="input-box">
-                <span class="details">Repeat Password</span>
-                <div class="password-container">
-                    <input type="password" id="repeat_password" name="repeat_password">
-                    <i id="repeatPasswordEye" class="ri-eye-off-fill"></i>
-                </div>
+         <div class="input-box">
+            <span class="details">Repeat Password</span>
+            <div class="password-container">
+                <input type="password" id="repeat_password" name="repeat_password">
+                <i id="repeatPasswordEye" class="ri-eye-off-fill"></i>
             </div>
+        </div>
 
         
         </div>
@@ -121,6 +122,41 @@
   </div>
 </div>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const regPasswordInput = document.getElementById('reg_password');
+        const regPasswordEye = document.getElementById('regPasswordEye');
+        
+        const repeatPasswordInput = document.getElementById('repeat_password');
+        const repeatPasswordEye = document.getElementById('repeatPasswordEye');
+
+        // Toggle visibility for the registration password field
+        regPasswordEye.addEventListener('click', function () {
+            if (regPasswordInput.type === 'password') {
+                regPasswordInput.type = 'text'; // Show the password
+                regPasswordEye.classList.remove('ri-eye-off-fill');
+                regPasswordEye.classList.add('ri-eye-fill');
+            } else {
+                regPasswordInput.type = 'password'; // Hide the password
+                regPasswordEye.classList.remove('ri-eye-fill');
+                regPasswordEye.classList.add('ri-eye-off-fill');
+            }
+        });
+
+        // Toggle visibility for the repeat password field
+        repeatPasswordEye.addEventListener('click', function () {
+            if (repeatPasswordInput.type === 'password') {
+                repeatPasswordInput.type = 'text'; // Show the password
+                repeatPasswordEye.classList.remove('ri-eye-off-fill');
+                repeatPasswordEye.classList.add('ri-eye-fill');
+            } else {
+                repeatPasswordInput.type = 'password'; // Hide the password
+                repeatPasswordEye.classList.remove('ri-eye-fill');
+                repeatPasswordEye.classList.add('ri-eye-off-fill');
+            }
+        });
+    });
+</script>
 
 
 

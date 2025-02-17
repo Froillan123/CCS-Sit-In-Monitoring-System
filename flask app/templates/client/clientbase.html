@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.css">
     <link rel="icon" href="{{ url_for('static', filename='images/logo.png') }}" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css">
     <title>CSS Sit In Monitoring System</title>
 </head>
 <body>
@@ -42,7 +41,82 @@
 
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+    // Input handling (focus/blur events)
+    const inputs = document.querySelectorAll('.form__input');
+    inputs.forEach(input => {
+        input.value = '';
+        let parent = input.parentNode.parentNode;
+        parent.classList.remove("focus");
+    });
 
+    const flashMessages = document.querySelectorAll('.flash-message');
+    flashMessages.forEach(flashMessage => {
+        setTimeout(() => {
+            flashMessage.classList.add('fade-out');
+        }, 2500);
+        flashMessage.addEventListener('animationend', () => {
+            flashMessage.remove();
+        });
+    });
+
+    function addfocus() {
+        let parent = this.parentNode.parentNode;
+        parent.classList.add("focus");
+    }
+
+    function remfocus() {
+        let parent = this.parentNode.parentNode;
+        if (this.value == "") {
+            parent.classList.remove("focus");
+        }
+    }
+
+    inputs.forEach(input => {
+        input.addEventListener("focus", addfocus);
+        input.addEventListener("blur", remfocus);
+    });
+
+    // Sidebar menu toggle functionality
+    const sideMenu = document.querySelector('aside');
+    const menuBtn = document.getElementById('menu-btn');
+    const closeBtn = document.getElementById('close-btn');
+
+    menuBtn.addEventListener('click', () => {
+        sideMenu.style.display = 'block';
+    });
+
+    closeBtn.addEventListener('click', () => {
+        sideMenu.style.display = 'none';
+    });
+
+    // Password visibility toggle function
+    const passwordAccess = (passwordFieldId, eyeIconId) => {
+        const input = document.getElementById(passwordFieldId);
+        const iconEye = document.getElementById(eyeIconId);
+
+        console.log(`Input: ${passwordFieldId}`, input); // Debugging
+        console.log(`Icon: ${eyeIconId}`, iconEye); // Debugging
+
+        if (input && iconEye) {
+            iconEye.addEventListener('click', () => {
+                console.log(`Toggling visibility for ${passwordFieldId}`); // Debugging
+                input.type = input.type === 'password' ? 'text' : 'password';
+                iconEye.classList.toggle('ri-eye-fill');
+                iconEye.classList.toggle('ri-eye-off-fill');
+            });
+        } else {
+            console.error(`Element not found: ${passwordFieldId} or ${eyeIconId}`); // Debugging
+        }
+    };
+
+    // Initialize password visibility toggles
+    passwordAccess('login_password', 'loginPasswordEye'); // Login Password
+    passwordAccess('reg_password', 'regPasswordEye'); // Registration Password
+    passwordAccess('repeat_password', 'repeatPasswordEye'); // Repeat Password
+});
+    </script>
 </body>
 </html>
