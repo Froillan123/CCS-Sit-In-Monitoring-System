@@ -16,5 +16,5 @@ EXPOSE 8080
 # Define environment variable
 ENV FLASK_APP=app.py
 
-# Run app.py when the container launches
-CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]
+# Start the app with gunicorn
+CMD ["gunicorn", "-b", "0.0.0.0:8080", "-k", "gevent", "app:app"]
