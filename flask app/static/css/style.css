@@ -1976,9 +1976,94 @@ button:hover {
   background-color: #9d2db0;
 }
 
+/* Responsive Design for Screens 1113px and Below */
+@media (max-width: 1113px) {
+  .reservations-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto; /* Allow horizontal scrolling if needed */
+  }
 
+  .reservations-table thead {
+    display: none; /* Hide the table header on small screens */
+  }
+
+  .reservations-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .reservations-table tr {
+    display: block;
+    margin-bottom: 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--background-color);
+  }
+
+  .reservations-table td {
+    display: block;
+    text-align: right;
+    padding: 10px;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .reservations-table td::before {
+    content: attr(data-label); /* Use data-label attribute to show column headers */
+    float: left;
+    font-weight: 500;
+    color: var(--first-color);
+    text-transform: uppercase;
+  }
+
+  .reservations-table td:last-child {
+    border-bottom: none; /* Remove border for the last cell in each row */
+  }
+
+  .approve-btn {
+    width: 100%; /* Make the button full width on small screens */
+    margin-top: 10px;
+  }
+}
+
+/* Default styles for the button container */
+.view-reservations-button {
+  position: fixed;
+  left: 20%;
+  top: 0%;
+  z-index: 1000; /* Ensure it stays above other content */
+}
+
+/* Responsive styles for screens 1252px and below */
+@media (max-width: 1252px) {
+  .view-reservations-button {
+    left: 25%; /* Adjust position for smaller screens */
+  }
+
+  #viewReservationsBtn {
+    padding: 8px 16px; /* Smaller padding for smaller screens */
+    font-size: 14px; /* Smaller font size for smaller screens */
+  }
+}
+@media (max-width: 1252px)
+{
+  .view-reservations-button {
+    left: 30%; /* Adjust position for smaller screens */
+  }
+}
+@media (max-width: 1009px)
+{
+  .view-reservations-button {
+    left: 40%; /* Adjust position for smaller screens */
+  }
+}
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .view-reservations-button {
+    position: fixed;
+    left: 20%;
+  }
   #reservations h1 {
     font-size: 1.75rem;
   }
@@ -2003,6 +2088,22 @@ button:hover {
 
   #announcements h1 {
       font-size: 1.5rem;
+  }
+}
+
+#backToReservationsBtn {
+  cursor: pointer;
+  width: auto;
+  margin-top: 0.7rem;
+  margin-left: -0.5rem;
+  padding: 8px 16px;
+  font-size: 17px;
+}
+
+/* Responsive styles for screens <= 758px */
+@media (max-width: 758px) {
+  #backToReservationsBtn {
+    font-size: 14px;
   }
 }
 
