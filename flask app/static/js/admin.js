@@ -91,33 +91,37 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(updateUserCount, 1000); // Update every 1 second
     updateUserCount();
 
-    const socket = io('https://css-sit-in-monitoring-system.onrender.com', {
+    const socketURL =
+    window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:5000' // Local WebSocket URL
+        : 'https://css-sit-in-monitoring-system.onrender.com'; // Render WebSocket URL
+
+    const socket = io(socketURL, {
         transports: ['websocket'],  // Force WebSocket transport
         upgrade: false,             // Disable fallback to polling
         reconnection: true,         // Enable reconnection
         reconnectionAttempts: 5,    // Number of reconnection attempts
         reconnectionDelay: 1000,    // Delay between reconnection attempts (1 second)
     });
-    
-    socket.on('update_active_users', function(activeUsers) {
+
+    socket.on('update_active_users', function (activeUsers) {
         const activeUsersCountElement = document.getElementById('active-users-count');
         if (activeUsersCountElement) {
             activeUsersCountElement.textContent = activeUsers.length;
         }
     });
-    
-    socket.on('connect', function() {
-        console.log('WebSocket connected');
-    });
-    
-    socket.on('disconnect', function() {
-        console.log('WebSocket disconnected');
-    });
-    
-    socket.on('connect_error', function(error) {
-        console.error('WebSocket connection error:', error);
+
+    socket.on('connect', function () {
+        console.log('WebSocket connected to', socketURL);
     });
 
+    socket.on('disconnect', function () {
+        console.log('WebSocket disconnected');
+    });
+
+    socket.on('connect_error', function (error) {
+        console.error('WebSocket connection error:', error);
+    });
     // Fetch announcements
     const announcementForm = document.getElementById('announcement-form');
     const announcementsBody = document.getElementById('announcements-body');

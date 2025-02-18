@@ -312,7 +312,24 @@ async function fetchActivityBreakdown() {
 // Fetch chart data on page load
 fetchActivityBreakdown();
 
-const socket = io('https://css-sit-in-monitoring-system.onrender.com', {
+const socketURL =
+    window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:5000' // Local WebSocket URL
+        : 'https://css-sit-in-monitoring-system.onrender.com'; // Render WebSocket URL
+
+const socket = io(socketURL, {
     transports: ['websocket'],  // Force WebSocket transport
     upgrade: false,             // Disable fallback to polling
+});
+
+socket.on('connect', function () {
+    console.log('WebSocket connected to', socketURL);
+});
+
+socket.on('disconnect', function () {
+    console.log('WebSocket disconnected');
+});
+
+socket.on('connect_error', function (error) {
+    console.error('WebSocket connection error:', error);
 });

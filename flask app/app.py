@@ -701,4 +701,5 @@ def emit_active_users():
     socketio.emit('update_active_users', active_users)
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000)  # Run the server on Render
+    port = int(os.environ.get('PORT', 5000))  # Use Render's PORT if available, otherwise default to 5000
+    socketio.run(app, host='0.0.0.0', port=port, debug=True)
