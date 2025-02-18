@@ -91,7 +91,14 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(updateUserCount, 1000); // Update every 1 second
     updateUserCount();
 
-    const socket = io.connect('wss://css-sit-in-monitoring-system.onrender.com');
+    const socket = io.connect('https://css-sit-in-monitoring-system.onrender.com', {
+        transports: ['websocket'],
+        reconnection: true,
+        reconnectionAttempts: 5, // attempts to reconnect
+        reconnectionDelay: 1000, // time between each reconnection attempt
+        reconnectionDelayMax: 5000, // max delay between attempts
+      });
+      
 
     socket.on('update_active_users', function(activeUsers) {
         const activeUsersCountElement = document.getElementById('active-users-count');
@@ -108,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('WebSocket disconnected');
     });
 
-
+    
     // Fetch announcements
     const announcementForm = document.getElementById('announcement-form');
     const announcementsBody = document.getElementById('announcements-body');

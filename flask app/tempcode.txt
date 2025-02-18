@@ -119,34 +119,8 @@ CREATE TABLE announcements (
 
 
 
-<div class="laboratories-section">
-    <h2>Laboratories</h2>
-    <div class="laboratory-grid">
-      <a href="#" class="laboratory-card">
-        <h3>Lab 1</h3>
-        <p>Chemistry Lab</p>
-      </a>
-      <a href="#" class="laboratory-card">
-        <h3>Lab 2</h3>
-        <p>Physics Lab</p>
-      </a>
-      <a href="#" class="laboratory-card">
-        <h3>Lab 3</h3>
-        <p>Biology Lab</p>
-      </a>
-      <a href="#" class="laboratory-card">
-        <h3>Lab 4</h3>
-        <p>Computer Lab</p>
-      </a>
-      <a href="#" class="laboratory-card">
-        <h3>Lab 5</h3>
-        <p>Engineering Lab</p>
-      </a>
-      <a href="#" class="laboratory-card">
-        <h3>Lab 6</h3>
-        <p>Research Lab</p>
-      </a>
-    </div>
+socketio = SocketIO(app, cors_allowed_origins="https://css-sit-in-monitoring-system.onrender.com")
 
 
+const socket = io.connect('wss://css-sit-in-monitoring-system.onrender.com/socket.io/');
 
