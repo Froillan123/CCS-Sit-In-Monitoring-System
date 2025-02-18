@@ -1,6 +1,6 @@
 from flask import Flask, render_template, redirect, url_for, session, request, flash, jsonify, Response
 from dbhelper import *
-from flask_socketio import SocketIO, emit, disconnect
+from flask_socketio import SocketIO, emit
 import os
 import time
 from datetime import timedelta, datetime
@@ -12,6 +12,7 @@ app.config["SESSION_COOKIE_NAME"] = "main_app_session"
 app.secret_key = os.urandom(24)
 app.config['UPLOAD_FOLDER'] = 'static/images'
 socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, async_mode='eventlet') 
 
 
 active_users_dict = {}
@@ -42,20 +43,19 @@ def login():
         user = get_user_by_credentials(username, password)
 
         if user:
-            # Check if the user has sessions left
             if user['sessions_left'] <= 0:
                 flash("You have no sessions left. Please request an extension.", 'warning')
-                return redirect(url_for('no_sessions_left'))  # Redirect to the no sessions left page
+                return redirect(url_for('no_sessions_left'))
 
             session['user_username'] = username
-            session['student_idno'] = user['idno']  # Use idno instead of id
+            session['student_idno'] = user['idno']
             session['student_firstname'] = user['firstname']
             session['student_lastname'] = user['lastname']
             session['student_midname'] = user['midname']
 
             # Add user to active_users_dict
             active_users_dict[username] = True
-            notify_active_users_update()  # Notify SSE stream of the update
+            socketio.emit('update_active_users', list(active_users_dict.keys()))  # Emit active users update
 
             # Insert login time into session_history
             login_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -349,7 +349,7 @@ def load_section(section_id):
     else:
         return "Section not found", 404
     
-@app.route('/logout', methods=['GET', 'POST'])  # Allow both GET and POST requests
+@app.route('/logout', methods=['GET', 'POST'])
 def logout():
     username = session.get('user_username')
 
@@ -362,7 +362,7 @@ def logout():
     # Remove user from active users dictionary
     if username in active_users_dict:
         del active_users_dict[username]
-        notify_active_users_update()  # Notify SSE stream of the update
+        socketio.emit('update_active_users', list(active_users_dict.keys()))  # Emit active users update
 
     # Update session_history with logout time and duration
     student_idno = session.get('student_idno')
@@ -372,6 +372,7 @@ def logout():
 
     flash("You Have Been Logged Out", 'info')
     return redirect(url_for('login'))
+
 
 def format_duration(seconds):
     if not seconds:
@@ -456,31 +457,28 @@ def dashboard():
     if 'admin_username' not in session:
         flash("You need to login first", 'warning')
         return redirect(url_for('admin_login'))
-    
+
     admin_username = session.get('admin_username')
     active_students = list(active_users_dict.keys())
     laboratories = get_count_laboratories()
     student_count = get_count_students()
     active_students_count = len(active_students)
-    
+
     # Pagination logic
-    page = request.args.get('page', 1, type=int)  # Get the current page number
-    per_page = 10  # Number of students per page
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
     offset = (page - 1) * per_page
 
-    # Fetch students with pagination
     students = get_paginated_students(offset, per_page)
-    total_students = get_count_students()  # Total number of students
-
-    # Calculate total pages
+    total_students = get_count_students()
     total_pages = (total_students + per_page - 1) // per_page
 
-    return render_template('admin/dashboard.html', 
-                           student_count=student_count, 
-                           active_students=active_students, 
-                           laboratories=laboratories, 
-                           admin_username=admin_username, 
-                           pagetitle=pagetitle, 
+    return render_template('admin/dashboard.html',
+                           student_count=student_count,
+                           active_students=active_students,
+                           laboratories=laboratories,
+                           admin_username=admin_username,
+                           pagetitle=pagetitle,
                            active_students_count=active_students_count,
                            students=students,
                            page=page,
@@ -666,13 +664,18 @@ def activity_breakdown():
         GROUP BY purpose
     """, (student_idno,))
     results = cursor.fetchall()
-
     db.close()
 
     # Convert the results into a dictionary
     activity_data = {purpose: count for purpose, count in results}
 
     return jsonify(activity_data)
+
+
+@socketio.on('connect')
+def handle_connect():
+    """Handle WebSocket connection."""
+    emit('update_active_users', list(active_users_dict.keys()))
 
 
 @app.route('/get_user_count')
@@ -687,5 +690,5 @@ def emit_active_users():
     print(f"Emitting active users: {active_users}") 
     socketio.emit('update_active_users', active_users)
 
-if __name__ == "__main__":
-    app.run(debug=True)
+if __name__ == '__main__':
+    socketio.run(app, debug=True, host='0.0.0.0')

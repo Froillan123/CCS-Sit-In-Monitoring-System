@@ -91,21 +91,24 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(updateUserCount, 1000); // Update every 1 second
     updateUserCount();
 
-    const eventSource = new EventSource("/sse/active_users");
+    const socket = io();
 
-    eventSource.onmessage = function (event) {
-        const activeUsersCount = JSON.parse(event.data);
+    socket.on('update_active_users', function(activeUsers) {
         const activeUsersCountElement = document.getElementById('active-users-count');
         if (activeUsersCountElement) {
-            activeUsersCountElement.textContent = activeUsersCount;
+            activeUsersCountElement.textContent = activeUsers.length;
         }
-    };
-    
-    eventSource.onerror = function (error) {
-        console.error('EventSource failed:', error);
-        eventSource.close(); // Close the connection after error
-    };
+    });
 
+    socket.on('connect', function() {
+        console.log('WebSocket connected');
+    });
+
+    socket.on('disconnect', function() {
+        console.log('WebSocket disconnected');
+    });
+
+    
     // Fetch announcements
     const announcementForm = document.getElementById('announcement-form');
     const announcementsBody = document.getElementById('announcements-body');
