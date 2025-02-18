@@ -4,15 +4,17 @@ from flask_socketio import SocketIO, emit
 import os
 import time
 from datetime import timedelta, datetime
+from flask_cors import CORS
 import json
 app = Flask(__name__)
-
+CORS(app)
 
 app.config["SESSION_COOKIE_NAME"] = "main_app_session"
 app.secret_key = os.urandom(24)
 app.config['UPLOAD_FOLDER'] = 'static/images'
-socketio = SocketIO(app, cors_allowed_origins="*")
-socketio = SocketIO(app, async_mode='eventlet') 
+socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins="*")
+socketio = SocketIO(app, async_mode='eventlet')
+
 
 
 active_users_dict = {}

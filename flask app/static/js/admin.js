@@ -91,8 +91,11 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(updateUserCount, 1000); // Update every 1 second
     updateUserCount();
 
-    const socket = io();
-
+    const socket = io('https://css-sit-in-monitoring-system.onrender.com', {
+        transports: ['websocket'],  // Force WebSocket transport
+        upgrade: false,             // Disable fallback to polling
+    });
+    
     socket.on('update_active_users', function(activeUsers) {
         const activeUsersCountElement = document.getElementById('active-users-count');
         if (activeUsersCountElement) {
