@@ -102,15 +102,14 @@ document.addEventListener('DOMContentLoaded', () => {
             activeUsersCountElement.textContent = activeUsers.length;
         }
     });
-
+    
     socket.on('connect', function() {
         console.log('WebSocket connected');
     });
-
+    
     socket.on('disconnect', function() {
         console.log('WebSocket disconnected');
-    });
-
+    });        
     
     // Fetch announcements
     const announcementForm = document.getElementById('announcement-form');

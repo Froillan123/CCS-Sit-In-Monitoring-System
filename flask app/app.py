@@ -10,10 +10,9 @@ app = Flask(__name__)
 CORS(app)
 
 app.config["SESSION_COOKIE_NAME"] = "main_app_session"
-app.secret_key = os.urandom(24)
 app.config['UPLOAD_FOLDER'] = 'static/images'
+app.secret_key = os.urandom(24)
 socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins="*")
-socketio = SocketIO(app, async_mode='eventlet')
 
 
 
@@ -680,6 +679,7 @@ def handle_connect():
     emit('update_active_users', list(active_users_dict.keys()))
 
 
+
 @app.route('/get_user_count')
 def get_user_count():
     active_students = list(active_users_dict.keys())
@@ -693,4 +693,4 @@ def emit_active_users():
     socketio.emit('update_active_users', active_users)
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, host='0.0.0.0')
+    socketio.run(app, host='0.0.0.0', port=5000)  # Run the server on Render
