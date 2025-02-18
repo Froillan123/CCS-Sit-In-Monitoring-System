@@ -1478,62 +1478,167 @@ button:hover {
 }
 
 /* Lab Rules Section Styles */
-.rules-container {
-  background-color: #fff;
-  padding: 1.5625rem; /* 25px */
-  max-width: 90%; /* Ensure it doesn't overflow on smaller screens */
-  height: 80vh; /* 80% of viewport height */
-  margin-top: 2rem;
-  margin-left: auto;
-  margin-right: auto;
-  overflow-y: auto; /* Make the container scrollable vertically */
-}
-
-#lab-rules h1
-{
+#lab-rules h1 {
   font-size: 3rem;
   font-weight: 700;
   color: var(--first-color);
+  text-align: center;
+  margin-bottom: 1.5rem;
 }
 
-@media (max-width: 447px)
-{
-  #lab-rules h1
-  {
+@media (max-width: 447px) {
+  #lab-rules h1 {
     font-size: 2.5rem;
     font-weight: 600;
   }
 }
 
-.rules-header {
+.lab-rules-container {
+  background-color: #fff;
+  padding: 1.5625rem; /* 25px */
+  max-width: 90%; /* Ensure it doesn't overflow on smaller screens */
+  height: 80vh; /* 80% of viewport height */
+  margin: 2rem auto;
+  overflow-y: auto; /* Make the container scrollable vertically */
+  border-radius: 12px;
+}
+
+.lab-rules-header {
   text-align: center;
   margin-bottom: 1.5625rem; /* 25px */
-
 }
-.rules-header h2 {
+
+.lab-rules-header h2 {
   font-size: 2.5rem; /* 28px */
   color: #2c3e50; /* Dark blue for emphasis */
   margin-bottom: 0.625rem; /* 10px */
   font-weight: 500; /* Bold heading */
 }
 
-.rules-header h3 {
-  font-size: 2rem; /* 20px */
+.lab-rules-header h3 {
+  font-size: 2.1rem; /* 20px */
   color: #666;
   font-weight: 400; /* Semi-bold subheading */
 }
 
-.rules-content {
+.lab-rules-content {
   font-size: 1.7rem; /* 16px */
   color: #333;
   line-height: 1.8; /* Improved line height for readability */
   padding: 0.625rem; /* 10px */
 }
 
-.rules-content p {
+.lab-rules-content p {
   margin-bottom: 1.25rem; /* 20px */
   color: #444; /* Slightly darker text for better readability */
 }
+
+.lab-rules-list {
+  list-style-type: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.lab-rules-list li {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+
+.lab-rules-list li i {
+  font-size: 1.8rem;
+  color: var(--first-color);
+  width: 2rem;
+  text-align: center;
+  margin-top: 0.3rem;
+}
+
+.lab-rules-list li span {
+  font-size: 1.5rem;
+  color: #444;
+  line-height: 1.6;
+}
+
+.lab-rules-list li ul {
+  margin-top: 0.5rem;
+  padding-left: 1.5rem;
+}
+
+.lab-rules-list li ul li {
+  list-style-type: disc;
+  margin-bottom: 0.5rem;
+  padding: 0;
+  background-color: transparent;
+  border-left: none;
+}
+
+.lab-rules-disciplinary-action {
+  margin-top: 1.5625rem; /* 25px */
+  padding: 1.25rem; /* 20px */
+  background-color: #f8f9fa;
+  border-radius: 0.625rem; /* 10px */
+  border: 1px solid #e0e0e0; /* Add a subtle border */
+}
+
+.lab-rules-disciplinary-action h3 {
+  font-size: 1.6rem; /* 20px */
+  color: #2c3e50; /* Dark blue for emphasis */
+  margin-bottom: 0.9375rem; /* 15px */
+  font-weight: 600; /* Bold heading */
+}
+
+.lab-rules-disciplinary-action p {
+  margin-bottom: 0.625rem; /* 10px */
+  font-size: 1.4rem; /* 14px */
+  color: #666;
+}
+
+/* Responsive Design */
+@media (max-width: 48rem) { /* 768px */
+  .lab-rules-container {
+    max-width: 100%; /* Adjust width for smaller screens */
+    padding: 0.9375rem; /* 15px */
+    height: auto; /* Allow height to adjust based on content */
+    max-height: 80vh; /* Limit height to 80% of viewport */
+  }
+
+  .lab-rules-header h2 {
+    font-size: 2rem; /* 24px */
+  }
+
+  .lab-rules-header h3 {
+    font-size: 1.5rem; /* 18px */
+  }
+
+  .lab-rules-content {
+    font-size: 1.3rem; /* 14px */
+  }
+  .lab-rules-list li i {
+    font-size: 1.5rem;
+  }
+
+  .lab-rules-list li span {
+    font-size: 1.3rem;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 48rem) { /* 768px */
+  .button-container .btn-danger {
+    display: none; /* Hide the logout button on smaller screens */
+  }
+}
+
+
+
+
+
+
 
 .rules-box {
   background-color: #fff;
@@ -1584,52 +1689,6 @@ button:hover {
   line-height: 1.5;
 }
 
-.disciplinary-action {
-  margin-top: 1.5625rem; /* 25px */
-  padding: 1.25rem; /* 20px */
-  background-color: #f8f9fa;
-  border-radius: 0.625rem; /* 10px */
-  border: 1px solid #e0e0e0; /* Add a subtle border */
-}
-
-.disciplinary-action h3 {
-  font-size: 1.6rem; /* 20px */
-  color: #2c3e50; /* Dark blue for emphasis */
-  margin-bottom: 0.9375rem; /* 15px */
-  font-weight: 600; /* Bold heading */
-}
-
-.disciplinary-action p {
-  margin-bottom: 0.625rem; /* 10px */
-  font-size: 1.4rem; /* 14px */
-  color: #666;
-}
-
-/* Responsive Design */
-@media (max-width: 48rem) { /* 768px */
-  .rules-container {
-    width: 100%; /* Adjust width for smaller screens */
-    padding: 0.9375rem; /* 15px */
-    height: auto; /* Allow height to adjust based on content */
-    max-height: 80vh; /* Limit height to 80% of viewport */
-  }
-
-  .rules-header h2 {
-    font-size: 2rem; /* 24px */
-  }
-
-  .rules-header h3 {
-    font-size: 1.5rem; /* 18px */
-  }
-
-  .rules-content {
-    font-size: 1.3rem; /* 14px */
-  }
-
-  .button-container .btn-danger {
-    display: none; /* Hide the logout button on smaller screens */
-  }
-}
 
 /* Profile Section Styles */
 .profile-container {
@@ -1836,9 +1895,9 @@ button:hover {
 
 
 
-#reservations {
+#reservationsForm {
   max-width: 600px;
-  margin-top: 8rem;
+  margin-top: 2rem;
   margin-right: auto;
   margin-left: auto;
   padding: 20px;
@@ -1847,7 +1906,7 @@ button:hover {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-#reservations h1 {
+#reservationsForm h1 {
   text-align: center;
   color: var(--first-color);
   font-weight: 500;
@@ -2029,41 +2088,13 @@ button:hover {
 
 /* Default styles for the button container */
 .view-reservations-button {
-  position: fixed;
-  left: 20%;
-  top: 0%;
-  z-index: 1000; /* Ensure it stays above other content */
+ width: 200px;
+ font-size: 17px;
+ margin-top: -1.2rem;
 }
 
-/* Responsive styles for screens 1252px and below */
-@media (max-width: 1252px) {
-  .view-reservations-button {
-    left: 25%; /* Adjust position for smaller screens */
-  }
-
-  #viewReservationsBtn {
-    padding: 8px 16px; /* Smaller padding for smaller screens */
-    font-size: 14px; /* Smaller font size for smaller screens */
-  }
-}
-@media (max-width: 1252px)
-{
-  .view-reservations-button {
-    left: 30%; /* Adjust position for smaller screens */
-  }
-}
-@media (max-width: 1009px)
-{
-  .view-reservations-button {
-    left: 40%; /* Adjust position for smaller screens */
-  }
-}
-/* Responsive adjustments */
 @media (max-width: 768px) {
-  .view-reservations-button {
-    position: fixed;
-    left: 20%;
-  }
+
   #reservations h1 {
     font-size: 1.75rem;
   }
@@ -2100,12 +2131,51 @@ button:hover {
   font-size: 17px;
 }
 
+.edit-btn {
+  padding: 6px 12px;
+  background-color: #ffc107; /* Yellow for edit */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-left: 5px;
+}
+
+.cancel-btn {
+  padding: 6px 12px;
+  background-color: #dc3545; /* Red for cancel */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-left: 5px;
+}
+
+.edit-btn:hover {
+  background-color: #e0a800; /* Darker yellow on hover */
+}
+
+.cancel-btn:hover {
+  background-color: #c82333; /* Darker red on hover */
+}
+
+.approve-btn:disabled,
+.edit-btn:disabled,
+.cancel-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
 /* Responsive styles for screens <= 758px */
 @media (max-width: 758px) {
   #backToReservationsBtn {
     font-size: 14px;
   }
 }
+
+
 
 /* Responsive Design */
 @media (max-width: 768px) {

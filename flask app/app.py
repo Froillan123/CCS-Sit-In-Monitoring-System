@@ -49,6 +49,9 @@ def login():
 
             session['user_username'] = username
             session['student_idno'] = user['idno']  # Use idno instead of id
+            session['student_firstname'] = user['firstname']
+            session['student_lastname'] = user['lastname']
+            session['student_midname'] = user['midname']
 
             # Add user to active_users_dict
             active_users_dict[username] = True
@@ -114,13 +117,18 @@ def forgot_password():
 @app.route('/reservations', methods=['POST'])
 def reservations():
     student_idno = session.get('student_idno')
-    student_name = session.get('user_username')
+    student_firstname = session.get('student_firstname', '')
+    student_lastname = session.get('student_lastname', '')
+    student_midname = session.get('student_midname', '')
+
+    # Construct the full name
+    student_name = f"{student_firstname} {student_midname} {student_lastname}".strip()
 
     print(f"Session Data - Student ID: {student_idno}, Student Name: {student_name}")
 
     # Retrieve form data safely
-    lab_id = request.form.get('lab_id', '').strip()  # Use lab_id instead of lab_name
-    purpose = request.form.get('purpose_select', '').strip()  # Use only dropdown
+    lab_id = request.form.get('lab_id', '').strip()
+    purpose = request.form.get('purpose_select', '').strip()
     reservation_date = request.form.get('reservation_date', '').strip()
     time_in = request.form.get('time_in', '').strip()
     time_out = request.form.get('time_out', '').strip()
@@ -134,7 +142,7 @@ def reservations():
 
     # Validate date format
     try:
-        datetime.strptime(reservation_date, '%Y-%m-%d')  # FIXED BUG
+        datetime.strptime(reservation_date, '%Y-%m-%d')
         print("Date format is valid")
     except ValueError:
         print("Error: Invalid date format")
@@ -147,22 +155,22 @@ def reservations():
         print("Database connected successfully")
 
         cursor.execute("""
-            INSERT INTO  reservations(student_idno, student_name, lab_id, purpose, reservation_date, time_in, time_out) 
+            INSERT INTO reservations(student_idno, student_name, lab_id, purpose, reservation_date, time_in, time_out) 
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (student_idno, student_name, lab_id, purpose, reservation_date, time_in, time_out))
         
         db.commit()
         print("Reservation inserted successfully")
 
+        return jsonify({'status': 'success', 'message': 'Reservation created successfully'}), 200
+
     except sqlite3.Error as e:
-        print(f"Database Error: {e}")
-        return jsonify({'status': 'error', 'message': 'Database error occurred'}), 500
+        print(f"Database error: {e}")
+        return jsonify({'status': 'error', 'message': 'Database error'}), 500
 
     finally:
         db.close()
-        print("Database connection closed")
 
-    return jsonify({'status': 'success', 'message': 'Reservation successful!'})
 
 
 @app.route('/student_dashboard')
@@ -181,9 +189,31 @@ def student_dashboard():
     labs = get_lab_names()  # Fetch the list of lab names with IDs
     current_session = get_total_session(student['idno'])
 
-    return render_template('client/studentdashboard.html', student=student, pagetitle=pagetitle, labs=labs, idno=student['idno'], current_session=current_session)
+    # Fetch reservations for the student
+    reservations = get_reservations_by_student_id(student['idno'])
 
+    return render_template(
+        'client/studentdashboard.html',
+        student=student,
+        pagetitle=pagetitle,
+        labs=labs,
+        idno=student['idno'],
+        current_session=current_session,
+        reservations=reservations  # Pass reservations to the template
+    )
 
+@app.route('/cancel-reservation/<int:reservation_id>', methods=['POST'])
+def cancel_reservation(reservation_id):
+    try:
+        # Delete the reservation from the database
+        success = delete_record('reservations', id=reservation_id)
+        
+        if success:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to delete reservation'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 
 @app.route('/update_profile', methods=['POST'])
@@ -200,7 +230,7 @@ def update_profile():
         username = session['user_username']
 
         # Update the student's details in the database
-        update_record('students', username=username, firstname=data['firstname'], lastname=data['lastname'], course=data['course'], year_level=data['year_level'], email=data['email'])
+        update_record('students', username=username, firstname=data['firstname'], lastname=data['lastname'], midname=data['midname'], course=data['course'], year_level=data['year_level'], email=data['email'])
 
         # Handle profile picture upload
         if 'profile_picture' in request.files:
@@ -509,7 +539,6 @@ def admin_register():
         admin_firstname = name_parts[0] if len(name_parts) > 0 else ""
         admin_lastname = name_parts[1] if len(name_parts) > 1 else ""
 
-        # Add the new admin to the database
         if add_record('admin_users', 
                       admin_username=admin_username, 
                       password=password, 
@@ -524,6 +553,7 @@ def admin_register():
             return render_template('admin/adminregister.html')
 
     return render_template('admin/adminregister.html')
+
 
 @app.route('/adminLogout')
 def adminLogout():
@@ -617,15 +647,24 @@ def delete_announcement(announcement_id):
 
 @app.route('/activity_breakdown', methods=['GET'])
 def activity_breakdown():
+    # Ensure the user is logged in
+    if 'student_idno' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    # Get the logged-in student's ID
+    student_idno = session['student_idno']
+
     # Connect to the database
     db = sqlite3.connect('student.db')
     cursor = db.cursor()
 
+    # Fetch activity breakdown for the logged-in student
     cursor.execute("""
         SELECT purpose, COUNT(*) as count 
         FROM reservations 
+        WHERE student_idno = ?
         GROUP BY purpose
-    """)
+    """, (student_idno,))
     results = cursor.fetchall()
 
     db.close()

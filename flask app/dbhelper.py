@@ -51,6 +51,23 @@ def get_paginated_students(offset, per_page):
     students = getprocess(sql, (per_page, offset))
     return students
 
+def get_reservations_by_student_id(student_id):
+    # Assuming you're using SQLite
+    conn = sqlite3.connect('student.db')
+    cursor = conn.cursor()
+
+    query = """
+    SELECT r.id, r.student_name, r.purpose, l.lab_name, r.reservation_date, r.time_in, r.time_out, r.status
+    FROM reservations r
+    JOIN laboratories l ON r.lab_id = l.id
+    WHERE r.student_idno = ?
+    """
+    cursor.execute(query, (student_id,))
+    reservations = cursor.fetchall()
+
+    conn.close()
+    return reservations
+
 # Retrieve a student by ID number
 def get_student_by_id(idno: str) -> dict:
     sql = "SELECT * FROM students WHERE idno = ?"

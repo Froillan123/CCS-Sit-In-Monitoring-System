@@ -216,82 +216,97 @@ updateChartForSmallScreens();
 
 
 async function fetchActivityBreakdown() {
-  try {
-      console.log("Fetching activity breakdown data...");
-      const response = await fetch('/activity_breakdown');
-      if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-      const data = await response.json();
-      console.log("Received data:", data);
+    try {
+        console.log("Fetching activity breakdown data...");
+        const response = await fetch('/activity_breakdown');
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log("Received data:", data);
 
-      // Define default activities and count from database
-      const activityLabels = ["Class", "Research", "Meeting", "Coding", "Assignment Work", "Project Development"];
-      const activityCounts = activityLabels.map(label => data[label] || 0); // Default to 0 if missing
+        // Define default activities and count from database
+        const activityLabels = ["Research", "Meeting", "Coding", "Assignment Work", "Project Development"];
+        const activityCounts = activityLabels.map(label => data[label] || 0); // Default to 0 if missing
 
-      // Ensure canvas exists
-      const canvas = document.getElementById('activityBreakdownChart');
-      if (!canvas) {
-          console.error("Canvas element not found!");
-          return;
-      }
+        // Check if all counts are zero
+        const noData = activityCounts.every(count => count === 0);
 
-      // Destroy previous chart if it exists and is a valid chart object
-      if (window.activityBreakdownChart instanceof Chart) {
-          console.log("Destroying existing chart...");
-          window.activityBreakdownChart.destroy();
-      }
+        // Ensure canvas exists
+        const canvas = document.getElementById('activityBreakdownChart');
+        const noDataPrompt = document.getElementById('noDataPrompt');
 
-      // Create new chart
-      const ctx = canvas.getContext('2d');
-      window.activityBreakdownChart = new Chart(ctx, {
-          type: 'doughnut',
-          data: {
-              labels: activityLabels,
-              datasets: [{
-                  data: activityCounts,
-                  backgroundColor: [
-                      '#1abc9c', // Green for Class
-                      '#3498db', // Blue for Research
-                      '#9b59b6', // Purple for Meetings
-                      '#e74c3c', // Red for Coding
-                      '#f1c40f', // Yellow for Assignment Work
-                      '#e67e22'  // Orange for Project Development
-                  ],
-                  borderColor: '#fff',
-                  borderWidth: 2,
-              }]
-          },
-          options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                  legend: {
-                      position: 'bottom',
-                      labels: {
-                          color: '#2c3e50',
-                          font: { size: 14 },
-                          padding: 20,
-                      }
-                  },
-                  tooltip: {
-                      enabled: true,
-                      backgroundColor: '#2c3e50',
-                      titleColor: '#fff',
-                      bodyColor: '#fff',
-                      padding: 10,
-                      cornerRadius: 5,
-                  }
-              }
-          }
-      });
+        if (!canvas) {
+            console.error("Canvas element not found!");
+            return;
+        }
 
-      // Force chart update
-      window.activityBreakdownChart.update();
+        // Show or hide the no data prompt
+        if (noData) {
+            noDataPrompt.style.display = 'block';
+            canvas.style.display = 'none'; // Hide the canvas if no data
+        } else {
+            noDataPrompt.style.display = 'none';
+            canvas.style.display = 'block'; // Show the canvas if data is present
+        }
 
-  } catch (error) {
-      console.error("Error fetching activity breakdown data:", error);
-  }
+        // Destroy previous chart if it exists and is a valid chart object
+        if (window.activityBreakdownChart instanceof Chart) {
+            console.log("Destroying existing chart...");
+            window.activityBreakdownChart.destroy();
+        }
+
+        // Create new chart only if there is data
+        if (!noData) {
+            const ctx = canvas.getContext('2d');
+            window.activityBreakdownChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: activityLabels,
+                    datasets: [{
+                        data: activityCounts,
+                        backgroundColor: [
+                            '#3498db', // Blue for Research
+                            '#9b59b6', // Purple for Meetings
+                            '#e74c3c', // Red for Coding
+                            '#f1c40f', // Yellow for Assignment Work
+                            '#e67e22'  // Orange for Project Development
+                        ],
+                        borderColor: '#fff',
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#2c3e50',
+                                font: { size: 14 },
+                                padding: 20,
+                            }
+                        },
+                        tooltip: {
+                            enabled: true,
+                            backgroundColor: '#2c3e50',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            padding: 10,
+                            cornerRadius: 5,
+                        }
+                    }
+                }
+            });
+
+            // Force chart update
+            window.activityBreakdownChart.update();
+        }
+
+    } catch (error) {
+        console.error("Error fetching activity breakdown data:", error);
+    }
 }
 
 // Fetch chart data on page load

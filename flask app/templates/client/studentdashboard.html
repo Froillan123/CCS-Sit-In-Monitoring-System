@@ -25,7 +25,7 @@
                   <img src="{{ url_for('static', filename='images/' + student.profile_picture if student.profile_picture else 'default.png') }}" alt="Profile Picture" />
                 </div>
                 <div class="profile-info">
-                  <h3>{{ student.firstname }} {{ student.lastname }}</h3>
+                  <h3>{{ student.firstname }} {{ student.midname }} {{ student.lastname }}</h3>
                 </div>
               </div>
 
@@ -154,6 +154,9 @@
             
             <div class="chart-container">
               <h3>Activity Breakdown Chart</h3>
+              <div id="noDataPrompt" style="display: none; color: red; font-weight: bold;">
+                  No data available to display.
+              </div>
               <canvas id="activityBreakdownChart"></canvas>
           </div>
           
@@ -202,7 +205,7 @@
               </div>
               <div class="detail-item">
                 <label for="editable-course"><i class="fas fa-graduation-cap"></i> Course:</label>
-                <input type="text" id="editable-course" value="{{ student.course }}" />
+                <input type="text" id="editable-course" value="{{ student.course }}" readonly/>
               </div>
             </div>
             <div class="detail-row">
@@ -238,45 +241,83 @@
     
 
         <!-- Lab Rules Section -->
-      <div id="lab-rules" class="dashboard-section" style="display: none;">
-        <h1>Lab Rules and Regulations</h1>
-        <div class="rules-container">
-          <div class="rules-header">
-            <h2>University of Cebu</h2>
-            <h3>COLLEGE OF INFORMATION & COMPUTER STUDIES</h3>
-          </div>
-          <div class="rules-content">
-            <p>To avoid embarrassment and maintain camaraderie with your friends and superiors at our laboratories, please observe the following:</p>
-            <ol class="rules-list1">
-              <li>Maintain silence, proper decorum, and discipline inside the laboratory. Mobile phones, walkmans, and other personal pieces of equipment must be switched off.</li>
-              <li>Games are not allowed inside the lab. This includes computer-related games, card games, and other games that may disturb the operation of the lab.</li>
-              <li>Surfing the Internet is allowed only with the permission of the instructor. Downloading and installing of software are strictly prohibited.</li>
-              <li>Getting access to other websites not related to the course (especially pornographic and illicit sites) is strictly prohibited.</li>
-              <li>Deleting computer files and changing the set-up of the computer is a major offense.</li>
-              <li>Observe computer time usage carefully. A fifteen-minute allowance is given for each use. Otherwise, the unit will be given to those who wish to "sit-in".</li>
-              <li>Observe proper decorum while inside the laboratory:
-                <ul>
-                  <li>Do not get inside the lab unless the instructor is present.</li>
-                  <li>All bags, knapsacks, and the likes must be deposited at the counter.</li>
-                  <li>Follow the seating arrangement of your instructor.</li>
-                  <li>At the end of class, all software programs must be closed.</li>
-                  <li>Return all chairs to their proper places after using.</li>
-                </ul>
-              </li>
-              <li>Chewing gum, eating, drinking, smoking, and other forms of vandalism are prohibited inside the lab.</li>
-              <li>Anyone causing a continual disturbance will be asked to leave the lab. Acts or gestures offensive to the members of the community, including public display of physical intimacy, are not tolerated.</li>
-              <li>Persons exhibiting hostile or threatening behavior such as yelling, swearing, or disregarding requests made by lab personnel will be asked to leave the lab.</li>
-              <li>For serious offenses, the lab personnel may call the Civil Security Office (CSU) for assistance.</li>
-              <li>Any technical problem or difficulty must be addressed to the laboratory supervisor, student assistant, or instructor immediately.</li>
-            </ol>
-            <div class="disciplinary-action">
-              <h3>DISCIPLINARY ACTION</h3>
-              <p><strong>First Offense:</strong> The Head or the Dean or OIC recommends to the Guidance Center for a suspension from classes for each offender.</p>
-              <p><strong>Second and Subsequent Offenses:</strong> A recommendation for a heavier sanction will be endorsed to the Guidance Center.</p>
+        <div id="lab-rules" class="dashboard-section" style="display: none;">
+          <h1>Lab Rules and Regulations</h1>
+          <div class="lab-rules-container">
+            <div class="lab-rules-header">
+              <h2>University of Cebu</h2>
+              <h3>COLLEGE OF INFORMATION & COMPUTER STUDIES</h3>
+            </div>
+            <div class="lab-rules-content">
+              <p>To avoid embarrassment and maintain camaraderie with your friends and superiors at our laboratories, please observe the following:</p>
+              <ol class="lab-rules-list">
+                <li>
+                  <i class="fas fa-volume-mute"></i>
+                  <span>Maintain silence, proper decorum, and discipline inside the laboratory. Mobile phones, walkmans, and other personal pieces of equipment must be switched off.</span>
+                </li>
+                <li>
+                  <i class="fas fa-gamepad"></i>
+                  <span>Games are not allowed inside the lab. This includes computer-related games, card games, and other games that may disturb the operation of the lab.</span>
+                </li>
+                <li>
+                  <i class="fas fa-wifi"></i>
+                  <span>Surfing the Internet is allowed only with the permission of the instructor. Downloading and installing of software are strictly prohibited.</span>
+                </li>
+                <li>
+                  <i class="fas fa-ban"></i>
+                  <span>Getting access to other websites not related to the course (especially pornographic and illicit sites) is strictly prohibited.</span>
+                </li>
+                <li>
+                  <i class="fas fa-trash"></i>
+                  <span>Deleting computer files and changing the set-up of the computer is a major offense.</span>
+                </li>
+                <li>
+                  <i class="fas fa-clock"></i>
+                  <span>Observe computer time usage carefully. A fifteen-minute allowance is given for each use. Otherwise, the unit will be given to those who wish to "sit-in".</span>
+                </li>
+                <li>
+                  <i class="fas fa-clipboard-list"></i>
+                    <span>Observe proper decorum while inside the laboratory:
+                      <ul>
+                        <li>Do not get inside the lab unless the instructor is present.</li>
+                        <li>All bags, knapsacks, and the likes must be deposited at the counter.</li>
+                        <li>Follow the seating arrangement of your instructor.</li>
+                        <li>At the end of class, all software programs must be closed.</li>
+                        <li>Return all chairs to their proper places after using.</li>
+                      </ul>
+                    </span>
+
+                </li>
+                <li>
+                  <i class="fas fa-utensils"></i>
+                  <span>Chewing gum, eating, drinking, smoking, and other forms of vandalism are prohibited inside the lab.</span>
+                </li>
+                <li>
+                  <i class="fas fa-exclamation-triangle"></i>
+                  <span>Anyone causing a continual disturbance will be asked to leave the lab. Acts or gestures offensive to the members of the community, including public display of physical intimacy, are not tolerated.</span>
+                </li>
+                <li>
+                  <i class="fas fa-angry"></i>
+                  <span>Persons exhibiting hostile or threatening behavior such as yelling, swearing, or disregarding requests made by lab personnel will be asked to leave the lab.</span>
+                </li>
+                <li>
+                  <i class="fas fa-shield-alt"></i>
+                  <span>For serious offenses, the lab personnel may call the Civil Security Office (CSU) for assistance.</span>
+                </li>
+                <li>
+                  <i class="fas fa-tools"></i>
+                  <span>Any technical problem or difficulty must be addressed to the laboratory supervisor, student assistant, or instructor immediately.</span>
+                </li>
+              </ol>
+              <div class="lab-rules-disciplinary-action">
+                <h3><i class="fas fa-gavel"></i> DISCIPLINARY ACTION</h3>
+                <p><strong>First Offense:</strong> The Head or the Dean or OIC recommends to the Guidance Center for a suspension from classes for each offender.</p>
+                <p><strong>Second and Subsequent Offenses:</strong> A recommendation for a heavier sanction will be endorsed to the Guidance Center.</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+
     <!-- History Section -->
     <div id="history" class="dashboard-section" style="display: none;">
       <h1>History</h1>
@@ -291,6 +332,7 @@
             <i class="fas fa-eye"></i> View Reservations
           </button>
         </div>
+        <div id="reservationsForm">
         <h1>Reservation Form</h1>
         <form id="reservationForm" action="/reservations" method="POST">
           <div class="form-group">
@@ -307,7 +349,6 @@
             <label for="purpose">Purpose:</label>
             <select id="purpose_select" name="purpose_select" required>
               <option value="" disabled selected>Select Purpose</option>
-              <option value="Class">Class</option>
               <option value="Research">Research</option>
               <option value="Meeting">Meeting</option>
               <option value="Coding">Coding</option>
@@ -338,53 +379,49 @@
           </button>
         </form>
       </div>
+      </div>
 
           <!-- Reservations Table Section -->
           <div id="reservationsTable" class="dashboard-section" style="display: none;">
-               <!-- Add a "Back" Button -->
-               <button id="backToReservationsBtn">
-                <i class="fas fa-arrow-left"></i> Back to Reservations
-              </button>
-              <table class="reservations-table">
-                <thead>
-                  <tr>
-                    <th>Student Name</th>
-                    <th>Purpose</th>
-                    <th>Reservation Date</th>
-                    <th>Time In</th>
-                    <th>Time Out</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <!-- Reservations will be dynamically inserted here -->
-                  <tr>
-                    <td>John Doe</td>
-                    <td>Research</td>
-                    <td>2023-10-15</td>
-                    <td>09:00</td>
-                    <td>11:00</td>
-                    <td>Pending</td>
-                    <td><button class="approve-btn">Approve</button></td>
-                  </tr>
-                  <tr>
-                    <td>Jane Smith</td>
-                    <td>Class</td>
-                    <td>2023-10-16</td>
-                    <td>10:00</td>
-                    <td>12:00</td>
-                    <td>Approved</td>
-                    <td><button class="approve-btn" disabled>Approved</button></td>
-                  </tr>
-                </tbody>
-              </table>
-              
-
+            <!-- Add a "Back" Button -->
+            <button id="backToReservationsBtn">
+              <i class="fas fa-arrow-left"></i> Back to Reservation Form
+            </button>
+            <table class="reservations-table">
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Purpose</th>
+                  <th>Lab Name</th>
+                  <th>Reservation Date</th>
+                  <th>Time In</th>
+                  <th>Time Out</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for reservation in reservations %}
+                <tr data-reservation-id="{{ reservation[0] }}">
+                  <td data-label="Student Name">{{ reservation[1] }}</td>
+                  <td data-label="Purpose">{{ reservation[2] }}</td>
+                  <td data-label="Lab Name">{{ reservation[3] }}</td>
+                  <td data-label="Reservation Date">{{ reservation[4] }}</td>
+                  <td data-label="Time In">{{ reservation[5] }}</td>
+                  <td data-label="Time Out">{{ reservation[6] }}</td>
+                  <td data-label="Status">{{ reservation[7] }}</td>
+                  <td data-label="Action">
+                    {% if reservation[7] == 'Pending' %}
+                      <button class="cancel-btn">Cancel</button>
+                    {% else %}
+                      <button class="cancel-btn" disabled>Cancel</button>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
-
-
-
 
 
         <div id="laboratories" class="dashboard-section">
@@ -458,8 +495,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-  // Section Toggling Logic
-  const links = document.querySelectorAll('.sidebar-links a');
+   // Section Toggling Logic
+   const links = document.querySelectorAll('.sidebar-links a');
   const sections = document.querySelectorAll('.dashboard-section');
 
   // Function to show the selected section and hide others
@@ -467,7 +504,7 @@
     sections.forEach(section => {
       section.style.display = section.id === sectionId ? 'block' : 'none';
     });
-    localStorage.setItem('activeSection', sectionId); // Save the active section
+    localStorage.setItem('activeDashboardSection', sectionId); // Save the active section
   }
 
   // Function to set the active link
@@ -478,7 +515,7 @@
   }
 
   // Load the active section from localStorage
-  const activeSection = localStorage.getItem('activeSection') || 'dashboard';
+  const activeSection = localStorage.getItem('activeDashboardSection') || 'dashboard';
   showSection(activeSection);
   setActiveLink(activeSection);
 
@@ -489,6 +526,16 @@
       const sectionId = this.getAttribute('data-section');
       showSection(sectionId);
       setActiveLink(sectionId);
+
+      // If the Reservations section is active, load the correct view (form or table)
+      if (sectionId === 'reservations') {
+        const currentView = localStorage.getItem('reservationsCurrentView') || 'form';
+        if (currentView === 'table') {
+          showReservationsTable();
+        } else {
+          showReservationForm();
+        }
+      }
     });
   });
 
@@ -496,8 +543,48 @@
   const logoutLink = document.getElementById('logout-link');
   if (logoutLink) {
     logoutLink.addEventListener('click', function () {
-      localStorage.removeItem('activeSection');
+      localStorage.removeItem('activeDashboardSection');
+      localStorage.removeItem('reservationsCurrentView');
     });
+  }
+
+  // Reservation View Toggling Logic
+  function showReservationsTable() {
+    document.getElementById('reservations').style.display = 'none';
+    document.getElementById('reservationsTable').style.display = 'block';
+    localStorage.setItem('reservationsCurrentView', 'table'); // Save the current view
+  }
+
+  function showReservationForm() {
+    document.getElementById('reservations').style.display = 'block';
+    document.getElementById('reservationsTable').style.display = 'none';
+    localStorage.setItem('reservationsCurrentView', 'form'); // Save the current view
+  }
+
+  // Event listener for the "View Reservations" button
+  const viewReservationsBtn = document.getElementById('viewReservationsBtn');
+  if (viewReservationsBtn) {
+    viewReservationsBtn.addEventListener('click', function () {
+      showReservationsTable();
+    });
+  }
+
+  // Event listener for the "Back to Reservations" button
+  const backToReservationsBtn = document.getElementById('backToReservationsBtn');
+  if (backToReservationsBtn) {
+    backToReservationsBtn.addEventListener('click', function () {
+      showReservationForm();
+    });
+  }
+
+  // On page load, if the Reservations section is active, load the correct view
+  if (activeSection === 'reservations') {
+    const currentView = localStorage.getItem('reservationsCurrentView') || 'form';
+    if (currentView === 'table') {
+      showReservationsTable();
+    } else {
+      showReservationForm();
+    }
   }
 
   // Profile Picture Upload Handling
@@ -531,12 +618,11 @@
   }
 });
 
-// Function to save profile changes
 function saveProfileChanges() {
   const updatedData = {
     firstname: document.getElementById('editable-firstname').value,
     lastname: document.getElementById('editable-lastname').value,
-    midname: document.getElementById('editable-midname').value,
+    midname: document.getElementById('editable-midname').value, // Ensure this line is present
     course: document.getElementById('editable-course').value,
     year_level: document.getElementById('editable-year-level').value,
     email: document.getElementById('editable-email').value,
@@ -573,7 +659,6 @@ function saveProfileChanges() {
       alert('An error occurred while updating the profile.');
     });
 }
-
 // Function to fetch announcements
 function fetchAnnouncements() {
   fetch('/get_announcements')
@@ -1126,5 +1211,63 @@ const reservationDateInput = document.getElementById('reservation_date');
       event.preventDefault();
     }
   });
+
+
+
+  const approveButtons = document.querySelectorAll('.approve-btn');
+  const editButtons = document.querySelectorAll('.edit-btn');
+  const cancelButtons = document.querySelectorAll('.cancel-btn');
+  cancelButtons.forEach((button) => {
+  button.addEventListener('click', function () {
+    const row = this.closest('tr');
+    const reservationId = row.dataset.reservationId;
+
+    // Confirmation dialog
+    const isConfirmed = confirm("Are you sure you want to cancel your reservation?");
+    
+    if (isConfirmed) {
+      // Update status to "Cancelled"
+      const statusCell = row.querySelector('td:nth-child(7)');
+      statusCell.textContent = 'Cancelled';
+
+      // Disable all buttons in the action cell
+      const actionCell = row.querySelector('td:nth-child(8)');
+      actionCell.querySelectorAll('button').forEach((btn) => {
+        btn.disabled = true;
+      });
+
+      // Send an AJAX request to cancel the reservation
+      fetch(`/cancel-reservation/${reservationId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            console.log('Reservation cancelled successfully');
+            // Refresh the page to reflect the changes
+            window.location.reload();
+          } else {
+            console.error('Failed to cancel reservation');
+          }
+        })
+        .catch((error) => {
+          console.error('Error:', error);
+        });
+    }
+  });
+
+  });
+
+  // Function to show the reservations table and hide the form
+  function showReservationsTable() {
+    document.getElementById('reservations').style.display = 'none';
+    document.getElementById('reservationsTable').style.display = 'block';
+    localStorage.setItem('currentView', 'table'); // Save the current view
+  }
+
+
 </script>
 {% endblock %}
