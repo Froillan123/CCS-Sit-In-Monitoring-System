@@ -94,6 +94,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const socket = io('https://css-sit-in-monitoring-system.onrender.com', {
         transports: ['websocket'],  // Force WebSocket transport
         upgrade: false,             // Disable fallback to polling
+        reconnection: true,         // Enable reconnection
+        reconnectionAttempts: 5,    // Number of reconnection attempts
+        reconnectionDelay: 1000,    // Delay between reconnection attempts (1 second)
     });
     
     socket.on('update_active_users', function(activeUsers) {
@@ -109,8 +112,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     socket.on('disconnect', function() {
         console.log('WebSocket disconnected');
-    });        
+    });
     
+    socket.on('connect_error', function(error) {
+        console.error('WebSocket connection error:', error);
+    });
+
     // Fetch announcements
     const announcementForm = document.getElementById('announcement-form');
     const announcementsBody = document.getElementById('announcements-body');

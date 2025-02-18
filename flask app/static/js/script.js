@@ -311,3 +311,8 @@ async function fetchActivityBreakdown() {
 
 // Fetch chart data on page load
 fetchActivityBreakdown();
+
+const socket = io('https://css-sit-in-monitoring-system.onrender.com', {
+    transports: ['websocket'],  // Force WebSocket transport
+    upgrade: false,             // Disable fallback to polling
+});

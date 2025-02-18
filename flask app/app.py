@@ -676,8 +676,13 @@ def activity_breakdown():
 @socketio.on('connect')
 def handle_connect():
     """Handle WebSocket connection."""
+    print("Client connected:", request.sid)
     emit('update_active_users', list(active_users_dict.keys()))
 
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle WebSocket disconnection."""
+    print("Client disconnected:", request.sid)
 
 
 @app.route('/get_user_count')
