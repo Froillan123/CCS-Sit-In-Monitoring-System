@@ -11,7 +11,7 @@ app = Flask(__name__)
 app.config["SESSION_COOKIE_NAME"] = "main_app_session"
 app.secret_key = os.urandom(24)
 app.config['UPLOAD_FOLDER'] = 'static/images'
-socketio = SocketIO(app, cors_allowed_origins="https://css-sit-in-monitoring-system.onrender.com")
+socketio = SocketIO(app, cors_allowed_origins="*")
 socketio = SocketIO(app, async_mode='eventlet') 
 
 

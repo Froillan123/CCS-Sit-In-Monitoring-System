@@ -311,26 +311,3 @@ async function fetchActivityBreakdown() {
 
 // Fetch chart data on page load
 fetchActivityBreakdown();
-
-// Establish a connection to the server
-const socket = io.connect('https://css-sit-in-monitoring-system.onrender.com', {
-    transports: ['websocket'],
-    reconnection: true,
-    reconnectionAttempts: 5, // attempts to reconnect
-    reconnectionDelay: 1000, // time between each reconnection attempt
-    reconnectionDelayMax: 5000, // max delay between attempts
-  });
-  
-
-// When the socket connects to the server
-socket.on('connect', () => {
-    console.log('Connected to server');
-});
-
-// Emit a message event to the server (this can be a custom event)
-socket.emit('message', 'Hello from client');  // The message can vary depending on the use case
-
-// Listen for a response from the server (you can change the event name as needed)
-socket.on('response', function(data) {
-    console.log(data);  // Log the server's response or handle it in the UI
-});
