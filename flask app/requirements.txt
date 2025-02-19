@@ -14,3 +14,4 @@ flask-sse
 eventlet
 gevent
 gevent-websocket
+openai

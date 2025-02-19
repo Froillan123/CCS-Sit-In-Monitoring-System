@@ -8,6 +8,7 @@ import time
 from datetime import timedelta, datetime
 from flask_cors import CORS
 import json
+import openai
 from threading import Thread
 app = Flask(__name__)
 CORS(app)
@@ -16,6 +17,53 @@ app.config["SESSION_COOKIE_NAME"] = "main_app_session"
 app.config['UPLOAD_FOLDER'] = 'static/images'
 app.secret_key = os.urandom(24)
 socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins="*")
+
+client = openai.OpenAI(
+    api_key="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",
+    base_url="https://openrouter.ai/api/v1"
+)
+
+
+def get_db_connection():
+    conn = sqlite3.connect('student.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    data = request.json
+    message = data['message']
+    student_idno = data['student_idno']
+
+    # Save user message to the database
+    conn = get_db_connection()
+    conn.execute('INSERT INTO chat_history (student_idno, message, sender) VALUES (?, ?, ?)',
+                 (student_idno, message, 'user'))
+    conn.commit()
+
+    # Get AI response
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": message}]
+    )
+    reply = response.choices[0].message.content
+
+    # Save bot message to the database
+    conn.execute('INSERT INTO chat_history (student_idno, message, sender) VALUES (?, ?, ?)',
+                 (student_idno, reply, 'bot'))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'reply': reply})
+
+
+@app.route('/chat/history', methods=['GET'])
+def get_chat_history():
+    student_idno = request.args.get('student_idno')
+    conn = get_db_connection()
+    history = conn.execute('SELECT * FROM chat_history WHERE student_idno = ? ORDER BY timestamp', (student_idno,)).fetchall()
+    conn.close()
+    return jsonify([dict(row) for row in history])
 
 active_users_dict = {}
 announcements = []

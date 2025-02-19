@@ -333,3 +333,16 @@ def get_student_activity_breakdown(student_idno: str) -> dict:
 def update_reservation_status(reservation_id: int, status: str) -> bool:
     sql = "UPDATE reservations SET status = ? WHERE id = ?"
     return postprocess(sql, (status, reservation_id))
+
+
+# Save a message to the database
+def save_message(student_idno, message, sender):
+    sql = 'INSERT INTO chat_history (student_idno, message, sender) VALUES (?, ?, ?)'
+    params = (student_idno, message, sender)
+    return postprocess(sql, params)
+
+# Retrieve chat history for a student
+def get_chat_history(student_idno):
+    sql = 'SELECT * FROM chat_history WHERE student_idno = ? ORDER BY timestamp'
+    params = (student_idno,)
+    return getprocess(sql, params)

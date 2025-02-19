@@ -17,6 +17,8 @@
     width: auto !important; /* Default width */
     max-width: 400px !important; /* Prevent excessive scaling */
 }
+
+
 /* Smaller screens (e.g., mobile devices) */
 @media (max-width: 480px) {
     .swal-default-size {
@@ -30,6 +32,204 @@
     .swal-default-size {
         font-size: 1rem !important;  /* Further reduce font size */
         max-width: 250px !important; /* Further reduce width */
+      }
+}
+
+/* Chat Modal */
+.chat-modal {
+    position: fixed;
+    bottom: 20px;
+    right: -400px; /* Hidden by default */
+    width: 350px;
+    height: 500px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    transition: right 0.3s ease;
+    z-index: 1000;
+}
+
+.chat-modal.active {
+    right: 20px; /* Slide in when active */
+}
+
+.chat-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: var(--first-color);
+    color: white;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+.chat-modal-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.close-btn {
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.close-btn:hover {
+    color: var(--second-color);
+}
+
+.chat-modal-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    background-color: var(--background-color);
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 15px;
+    padding: 10px;
+
+}
+
+.message {
+    padding: 12px 15px;
+    margin-bottom: 15px;
+    border-radius: 15px;
+    max-width: 80%;
+    font-size: 1rem;
+    line-height: 1.4;
+    word-wrap: break-word;
+    box-sizing: border-box;
+}
+
+.bot-message {
+    background-color: #fff;
+    color: var(--text-color);
+    align-self: flex-start;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    max-width: 75%;
+}
+
+.user-message {
+    background-color: var(--first-color);
+    color: white;
+    align-self: flex-end;
+    max-width: 75%;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.chat-input {
+    display: flex;
+    gap: 15px;
+    padding: 10px;
+    background-color: #f1f1f1;
+    border-radius: 25px;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+.chat-input input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    outline: none;
+}
+
+.chat-input button {
+    padding: 10px 15px;
+    background-color: var(--first-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.chat-input button:hover {
+    background-color: var(--second-color);
+}
+
+/* Responsive Design for Smaller Screens */
+@media (max-width: 424px) {
+    .chat-modal {
+        width: 100%; /* Full width on small screens */
+        height: 100%; /* Full height on small screens */
+        bottom: 0;
+        right: -100%; /* Hide off-screen */
+        border-radius: 0; /* Remove rounded corners */
+    }
+
+    .chat-modal.active {
+        right: 0; /* Slide in from the right */
+    }
+
+    .chat-modal-header {
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+    }
+
+    .chat-messages {
+        max-height: calc(100vh - 150px); /* Adjust height for smaller screens */
+    }
+
+    .chat-input {
+        flex-direction: column; /* Stack input and button vertically */
+    }
+
+    .chat-input input {
+        width: 100%; /* Full width input */
+    }
+
+    .chat-input button {
+        width: 100%; /* Full width button */
+    }
+}
+:root
+{
+  --second-color: hsl(273, 100%, 51%);
+}
+.chat-icon {
+    position: fixed;
+    bottom: 50px;
+    right: 20px;
+    width: 10rem;
+    height: 10rem;
+    background-color: var(--first-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.chat-icon:hover {
+    background-color: var(--second-color);
+}
+
+.chat-icon svg {
+    width: 4rem;
+    height: 4rem;
+}
+
+/* Media query for small screens */
+@media (max-width: 600px) {
+    .chat-icon {
+        width: 6rem;
+        height: 6rem;
+        bottom: 50px; /* Optionally move the icon up */
+    }
+
+    .chat-icon svg {
+        width: 2rem;
+        height: 2rem;
     }
 }
 </style>
@@ -531,7 +731,29 @@
 
         </div>
 
-  
+        <div class="chat-icon" onclick="toggleChat()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="24" height="24">
+              <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+          </svg>
+      </div>
+
+
+      <div class="chat-modal" id="chatModal">
+        <div class="chat-modal-header">
+            <h3>Chat with Us</h3>
+            <span class="close-btn" onclick="toggleChat()">&times;</span>
+        </div>
+        <div class="chat-modal-body">
+            <div class="chat-messages" id="chatMessages">
+                <!-- Chat messages will appear here -->
+            </div>
+            <div class="chat-input">
+                <input type="text" placeholder="Type a message..." id="chatInput">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
 
 <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -1352,8 +1574,79 @@ cancelButtons.forEach((button) => {
     statusFilter.addEventListener("change", applyFilter);
 });
 
+const studentIdno = "{{ session.student_idno }}"; // This will be replaced by your server-side template engine
 
+// Toggle chat modal and load chat history
+function toggleChat() {
+    const chatModal = document.getElementById("chatModal");
+    chatModal.classList.toggle("active");
 
+    if (chatModal.classList.contains("active")) {
+        loadChatHistory(); // Load chat history when modal opens
+    }
+}
 
+// Load chat history from the backend
+async function loadChatHistory() {
+    const chatMessages = document.getElementById("chatMessages");
+    chatMessages.innerHTML = ""; // Clear existing messages
+
+    try {
+        const response = await fetch(`/chat/history?student_idno=${studentIdno}`);
+        const history = await response.json();
+
+        history.forEach((message) => {
+            addMessage(message.sender, message.message);
+        });
+    } catch (error) {
+        console.error("Failed to load chat history:", error);
+    }
+}
+
+// Send a new message
+async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const message = input.value.trim();
+
+    if (message) {
+        // Add user message to the chat window
+        addMessage('user', message);
+        input.value = '';
+
+        // Send the message to the backend
+        try {
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message, student_idno: studentIdno })
+            });
+
+            const data = await response.json();
+            // Add bot's reply to the chat window
+            addMessage('bot', data.reply);
+        } catch (error) {
+            console.error("Failed to send message:", error);
+        }
+    }
+}
+
+// Add a message to the chat window
+function addMessage(sender, message) {
+    const chatMessages = document.getElementById('chatMessages');
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', `${sender}-message`);
+
+    // Add sender name and student ID (if user)
+    const senderName = sender === 'bot' ? 'CCS BOT' : `User (ID: ${studentIdno})`;
+    const messageContent = document.createElement('div');
+    messageContent.classList.add('message-content');
+    messageContent.innerHTML = `<strong>${senderName}:</strong> ${message}`;
+
+    messageDiv.appendChild(messageContent);
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll to the latest message
+}
 </script>
 {% endblock %}
