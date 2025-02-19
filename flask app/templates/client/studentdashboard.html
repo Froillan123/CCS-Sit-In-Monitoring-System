@@ -111,11 +111,72 @@
 }
 
 .bot-message {
-    background-color: #fff;
-    color: var(--text-color);
-    align-self: flex-start;
-    border: 1px solid #e0e0e0;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    background-color: #fff; /* White background */
+    color: var(--text-color); /* Use your theme's text color */
+    align-self: flex-start; /* Align to the left */
+    border: 1px solid #e0e0e0; /* Light border */
+    border-radius: 15px 15px 15px 4px; /* Rounded corners, left side more rounded */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    padding: 12px 16px; /* Comfortable padding */
+    max-width: 80%; /* Limit width for better readability */
+    margin: 8px 0; /* Spacing between messages */
+    position: relative; /* For pseudo-elements */
+    animation: fadeIn 0.3s ease-in-out; /* Fade-in animation */
+    word-wrap: break-word; /* Ensure long words don't overflow */
+}
+
+/* Add a small arrow/triangle to the bot message */
+.bot-message::before {
+    content: '';
+    position: absolute;
+    left: -10px; /* Position the arrow */
+    top: 10px; /* Adjust vertical position */
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 10px solid #fff; /* Match the background color */
+    z-index: 1;
+}
+
+.bot-message::after {
+    content: '';
+    position: absolute;
+    left: -11px; /* Position the border arrow */
+    top: 10px; /* Adjust vertical position */
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 10px solid #e0e0e0; /* Match the border color */
+    z-index: 0;
+}
+
+/* Fade-in animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+    .bot-message {
+        max-width: 90%; /* Wider on smaller screens */
+        padding: 10px 14px; /* Slightly smaller padding */
+        font-size: 14px; /* Smaller font size */
+    }
+
+    .bot-message::before,
+    .bot-message::after {
+        left: -8px; /* Adjust arrow position for smaller screens */
+        top: 8px;
+    }
 }
 
 .user-message {
@@ -749,12 +810,11 @@
                 <!-- Chat messages will appear here -->
             </div>
             <div class="chat-input">
-                <input type="text" placeholder="Type a message..." id="chatInput">
+                <input type="text" placeholder="Type a message..." id="chatInput" onkeypress="handleKeyPress(event)">
                 <button onclick="sendMessage()">Send</button>
             </div>
         </div>
     </div>
-
 
 <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -1603,8 +1663,11 @@ async function loadChatHistory() {
         console.error("Failed to load chat history:", error);
     }
 }
-
-// Send a new message
+function handleKeyPress(event) {
+    if (event.key === 'Enter') {
+        sendMessage(); // Call sendMessage when Enter is pressed
+    }
+}
 async function sendMessage() {
     const input = document.getElementById('chatInput');
     const message = input.value.trim();

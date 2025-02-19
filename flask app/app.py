@@ -10,6 +10,8 @@ from flask_cors import CORS
 import json
 import openai
 from threading import Thread
+from prompts import get_response 
+
 app = Flask(__name__)
 CORS(app)
 
@@ -18,10 +20,10 @@ app.config['UPLOAD_FOLDER'] = 'static/images'
 app.secret_key = os.urandom(24)
 socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins="*")
 
-client = openai.OpenAI(
-    api_key="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",
-    base_url="https://openrouter.ai/api/v1"
-)
+# client = openai.OpenAI(
+#     api_key="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",
+#     base_url="https://openrouter.ai/api/v1"
+# )
 
 
 def get_db_connection():
@@ -41,12 +43,8 @@ def chat():
                  (student_idno, message, 'user'))
     conn.commit()
 
-    # Get AI response
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": message}]
-    )
-    reply = response.choices[0].message.content
+    # Get custom chatbot response
+    reply = get_response(message, session)  # Pass session to get_response
 
     # Save bot message to the database
     conn.execute('INSERT INTO chat_history (student_idno, message, sender) VALUES (?, ?, ?)',

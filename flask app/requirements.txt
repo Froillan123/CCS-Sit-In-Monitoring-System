@@ -16,3 +16,4 @@ gevent
 gevent-websocket
 openai
 deepai
+fuzzywuzzy
