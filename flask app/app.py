@@ -19,7 +19,7 @@ app.secret_key = os.urandom(24)
 socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins="*")
 
 client = openai.OpenAI(
-    api_key="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",
+    api_key="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",
     base_url="https://openrouter.ai/api/v1"
 )
 
