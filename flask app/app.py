@@ -1,6 +1,5 @@
 import eventlet
 eventlet.monkey_patch()
-
 from flask import Flask, render_template, redirect, url_for, session, request, flash, jsonify, Response
 from dbhelper import *
 from flask_socketio import SocketIO, emit
@@ -17,8 +16,6 @@ app.config["SESSION_COOKIE_NAME"] = "main_app_session"
 app.config['UPLOAD_FOLDER'] = 'static/images'
 app.secret_key = os.urandom(24)
 socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins="*")
-
-
 
 active_users_dict = {}
 announcements = []
@@ -57,8 +54,6 @@ def login():
             session['student_firstname'] = user['firstname']
             session['student_lastname'] = user['lastname']
             session['student_midname'] = user['midname']
-
-            # Add user to active_users_dict
             active_users_dict[username] = True
             socketio.emit('update_active_users', list(active_users_dict.keys()))  # Emit active users update
 
@@ -66,7 +61,6 @@ def login():
             login_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             insert_session_history(user['idno'], login_time)
 
-            # Decrease the student's sessions left by 1
             if user['sessions_left'] > 0:
                 user['sessions_left'] -= 1
                 update_student_sessions(user['idno'], user['sessions_left'])
@@ -83,12 +77,10 @@ def login():
 def no_sessions_left():
     pagetitle = "No Sessions Left"
     if request.method == 'POST':
-        # Handle the request for session extension
         student_idno = session.get('student_idno')
         if student_idno:
-            # Logic to handle the extension request (e.g., send an email, save to database, etc.)
             flash("Your request for a session extension has been submitted.", 'info')
-            return redirect(url_for('login'))  # Redirect back to login after submission
+            return redirect(url_for('login'))  
 
     return render_template('client/no_sessions_left.html', pagetitle=pagetitle)
 
@@ -126,76 +118,47 @@ def reservations():
     student_lastname = session.get('student_lastname', '')
     student_midname = session.get('student_midname', '')
 
-    # Construct full student name
     student_name = f"{student_firstname} {student_midname} {student_lastname}".strip()
 
-    print(f"Session Data - Student ID: {student_idno}, Student Name: {student_name}")
-
-    # Retrieve form data safely
     lab_id = request.form.get('lab_id', '').strip()
     purpose = request.form.get('purpose_select', '').strip()
     reservation_date = request.form.get('reservation_date', '').strip()
     time_in = request.form.get('time_in', '').strip()
     time_out = request.form.get('time_out', '').strip()
 
-    print(f"Received Form Data - Lab ID: {lab_id}, Purpose: {purpose}, Reservation Date: {reservation_date}, Time In: {time_in}, Time Out: {time_out}")
 
-    # Ensure required fields are filled
     if not all([student_idno, student_name, lab_id, purpose, reservation_date, time_in, time_out]):
         print("Error: Missing required fields")
         return jsonify({'status': 'error', 'message': 'All fields are required'}), 400
 
-    # Validate date format
     try:
         datetime.strptime(reservation_date, '%Y-%m-%d')
-        print("Date format is valid")
     except ValueError:
-        print("Error: Invalid date format")
         return jsonify({'status': 'error', 'message': 'Invalid date format (YYYY-MM-DD expected)'}), 400
 
-    # Insert into the database with status "Pending"
-    try:
-        db = sqlite3.connect('student.db')
-        cursor = db.cursor()
-        print("Database connected successfully")
-
-        cursor.execute("""
-            INSERT INTO reservations (student_idno, student_name, lab_id, purpose, reservation_date, time_in, time_out, status) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (student_idno, student_name, lab_id, purpose, reservation_date, time_in, time_out, "Pending"))
-
-        db.commit()
+    if create_reservation(
+        student_idno=student_idno,
+        student_name=student_name,
+        lab_id=lab_id,
+        purpose=purpose,
+        reservation_date=reservation_date,
+        time_in=time_in,
+        time_out=time_out
+    ):
         print("Reservation inserted successfully")
-
         return jsonify({'status': 'success', 'message': 'Reservation created successfully'}), 200
-
-    except sqlite3.Error as e:
-        print(f"Database error: {e}")
-        return jsonify({'status': 'error', 'message': 'Database error'}), 500
-
-    finally:
-        db.close()
-
+    else:
+        print("Error: Failed to create reservation")
+        return jsonify({'status': 'error', 'message': 'Failed to create reservation'}), 500
 
 
 
 @app.route('/approve-reservation/<int:reservation_id>', methods=['POST'])
 def approve_reservation(reservation_id):
     try:
-        db = sqlite3.connect('student.db')
-        cursor = db.cursor()
-
-        # Update the reservation status to 'Approved'
-        cursor.execute("UPDATE reservations SET status = 'Approved' WHERE id = ?", (reservation_id,))
-        db.commit()
-
-        if cursor.rowcount > 0:
-            db.close()
+        if update_reservation_status(reservation_id, 'Approved'):
             return jsonify({'success': True, 'message': 'Reservation approved successfully'})
-
-        db.close()
         return jsonify({'success': False, 'message': 'Reservation not found'})
-
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
@@ -214,10 +177,9 @@ def student_dashboard():
         flash("Student not found", 'danger')
         return redirect(url_for('login'))
 
-    labs = get_lab_names()  # Fetch the list of lab names with IDs
+    labs = get_lab_names()  
     current_session = get_total_session(student['idno'])
 
-    # Fetch reservations for the student
     reservations = get_reservations_by_student_id(student['idno'])
 
     return render_template(
@@ -227,7 +189,7 @@ def student_dashboard():
         labs=labs,
         idno=student['idno'],
         current_session=current_session,
-        reservations=reservations  # Pass reservations to the template
+        reservations=reservations 
     )
 
 @app.route('/cancel-reservation/<int:reservation_id>', methods=['POST'])
@@ -257,10 +219,8 @@ def update_profile():
         data = json.loads(data)
         username = session['user_username']
 
-        # Update the student's details in the database
         update_record('students', username=username, firstname=data['firstname'], lastname=data['lastname'], midname=data['midname'], course=data['course'], year_level=data['year_level'], email=data['email'])
 
-        # Handle profile picture upload
         if 'profile_picture' in request.files:
             file = request.files['profile_picture']
             if file.filename != '':
@@ -313,19 +273,16 @@ def register():
             flash("All fields are required.", 'error')
             return redirect(url_for('login'))
 
-        # Check if student ID already exists
         existing_student = get_student_by_id(idno)
         if existing_student:
             flash("Student ID already exists.", 'error')
             return redirect(url_for('register'))
-
-        # Check if email already exists
+        
         existing_email = get_student_by_email(email)
         if existing_email:
             flash("Email already exists.", 'error')
             return redirect(url_for('register'))
 
-        # Prepare student data with default profile picture
         student_data = {
             'idno': idno,
             'lastname': lastname,
@@ -336,7 +293,7 @@ def register():
             'email': email,
             'username': username,
             'password': password,
-            'profile_picture': 'default.png'  # Assign default profile picture
+            'profile_picture': 'default.png'  
         }
 
         # Add student record to the database
@@ -387,12 +344,10 @@ def logout():
 
     session.pop('user_username', None)
 
-    # Remove user from active users dictionary
     if username in active_users_dict:
         del active_users_dict[username]
         socketio.emit('update_active_users', list(active_users_dict.keys()))  # Emit active users update
 
-    # Update session_history with logout time and duration
     student_idno = session.get('student_idno')
     if student_idno:
         logout_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -400,7 +355,6 @@ def logout():
 
     flash("You Have Been Logged Out", 'info')
     return redirect(url_for('login'))
-
 
 def format_duration(seconds):
     if not seconds:
@@ -413,47 +367,14 @@ def format_duration(seconds):
     
 @app.route('/get_session_history/<student_idno>', methods=['GET'])
 def get_session_history(student_idno):
-    sql = """
-        SELECT * FROM session_history
-        WHERE student_idno = ?
-        ORDER BY id  -- Order by the primary key (id) to ensure insertion order
-        LIMIT 30
-    """
-    history = getprocess(sql, (student_idno,))
+    history = get_student_session_history(student_idno)
     return jsonify(history)
-
-
 
 @app.route('/get_weekly_usage/<student_idno>', methods=['GET'])
 def get_weekly_usage(student_idno):
-    sql = """
-        SELECT strftime('%w', login_time) AS day, COUNT(*) AS session_count
-        FROM session_history
-        WHERE student_idno = ? AND strftime('%w', login_time) BETWEEN '0' AND '6' -- Sunday to Saturday
-        GROUP BY day
-        ORDER BY day;
-    """
-    usage_data = getprocess(sql, (student_idno,))
-
-    # Map SQLite weekday numbers to readable names
-    day_mapping = {
-        '0': 'Sunday',  # Sunday
-        '1': 'Monday',
-        '2': 'Tuesday',
-        '3': 'Wednesday',
-        '4': 'Thursday',
-        '5': 'Friday',
-        '6': 'Saturday'
-    }
-
-    # Format data as JSON
-    formatted_data = {day_mapping.get(row['day'], 0): row['session_count'] for row in usage_data}
-
-    print("Formatted Data:", formatted_data)  # Debugging: Print the data
-
+    formatted_data = get_student_weekly_usage(student_idno)
+    print("Formatted Data:", formatted_data)
     return jsonify(formatted_data)
-
-
 
 @app.route('/sse/active_users')
 def sse_active_users():
@@ -491,8 +412,6 @@ def dashboard():
     laboratories = get_count_laboratories()
     student_count = get_count_students()
     active_students_count = len(active_students)
-
-    # Pagination logic
     page = request.args.get('page', 1, type=int)
     per_page = 10
     offset = (page - 1) * per_page
@@ -500,8 +419,6 @@ def dashboard():
     students = get_paginated_students(offset, per_page)
     total_students = get_count_students()
     total_pages = (total_students + per_page - 1) // per_page
-
-    # Fetch all reservations
     reservations = get_all_reservations()
 
     return render_template('admin/dashboard.html',
@@ -514,7 +431,7 @@ def dashboard():
                            students=students,
                            page=page,
                            total_pages=total_pages,
-                           reservations=reservations)  # Pass reservations to the template
+                           reservations=reservations) 
 
 @app.route('/admin', methods=['GET', 'POST'])  
 def admin_login():
@@ -552,20 +469,14 @@ def admin_register():
         if secret_key != "kimperor123":
             flash("Unauthorized access!", 'error')
             return render_template('admin/adminregister.html')
-
-        # Validate admin username format
         if not admin_username.startswith("admin-"):
             flash("Invalid admin username format!", 'error')
             return render_template('admin/adminregister.html')
-
-        # Check if admin username already exists
         existing_admin = get_admin_by_username(admin_username)
         if existing_admin:
             flash("Admin username already exists!", 'error')
             return render_template('admin/adminregister.html')
-
-        # Split the full name into first name and last name
-        name_parts = name.strip().split(maxsplit=1)  # Split into 2 parts
+        name_parts = name.strip().split(maxsplit=1)  
         admin_firstname = name_parts[0] if len(name_parts) > 0 else ""
         admin_lastname = name_parts[1] if len(name_parts) > 1 else ""
 
@@ -573,7 +484,7 @@ def admin_register():
                       admin_username=admin_username, 
                       password=password, 
                       email=email, 
-                      name=name,  # Add this line
+                      name=name, 
                       admin_firstname=admin_firstname, 
                       admin_lastname=admin_lastname):
             flash("Admin registered successfully!", 'success')
@@ -596,8 +507,6 @@ def adminLogout():
 def create_announcement():
     data = request.get_json()
     announcement_text = data.get('announcement_text')
-
-    # Get the admin's username from the session
     admin_username = session.get('admin_username')
 
     if not admin_username:
@@ -607,7 +516,6 @@ def create_announcement():
         return jsonify({"success": False, "message": "Missing announcement text"})
 
     try:
-        # Use the add_record function to insert the announcement
         success = add_record(
             table="announcements",
             admin_username=admin_username,
@@ -634,8 +542,8 @@ def get_announcement(announcement_id):
 @app.route('/get_announcements', methods=['GET'])
 def get_announcements():
     try:
-        announcements = get_all_announcements()  # Ensure this function exists and works
-        return jsonify(announcements)  # Return the announcements as JSON
+        announcements = get_all_announcements() 
+        return jsonify(announcements)  
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
 
@@ -677,32 +585,12 @@ def delete_announcement(announcement_id):
 
 @app.route('/activity_breakdown', methods=['GET'])
 def activity_breakdown():
-    # Ensure the user is logged in
     if 'student_idno' not in session:
         return jsonify({'error': 'Unauthorized'}), 401
 
-    # Get the logged-in student's ID
     student_idno = session['student_idno']
-
-    # Connect to the database
-    db = sqlite3.connect('student.db')
-    cursor = db.cursor()
-
-    # Fetch activity breakdown for the logged-in student
-    cursor.execute("""
-        SELECT purpose, COUNT(*) as count 
-        FROM reservations 
-        WHERE student_idno = ?
-        GROUP BY purpose
-    """, (student_idno,))
-    results = cursor.fetchall()
-    db.close()
-
-    # Convert the results into a dictionary
-    activity_data = {purpose: count for purpose, count in results}
-
+    activity_data = get_student_activity_breakdown(student_idno)
     return jsonify(activity_data)
-
 
 @socketio.on('connect')
 def handle_connect():

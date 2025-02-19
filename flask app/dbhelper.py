@@ -274,3 +274,62 @@ def get_all_reservations():
     finally:
         db.close()
 
+
+def create_reservation(student_idno: str, student_name: str, lab_id: str, 
+                      purpose: str, reservation_date: str, time_in: str, 
+                      time_out: str, status: str = "Pending") -> bool:
+    sql = """
+        INSERT INTO reservations 
+        (student_idno, student_name, lab_id, purpose, reservation_date, time_in, time_out, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """
+    return postprocess(sql, (student_idno, student_name, lab_id, purpose, 
+                           reservation_date, time_in, time_out, status))
+
+
+def get_student_session_history(student_idno: str, limit: int = 30) -> list:
+    sql = """
+        SELECT * FROM session_history
+        WHERE student_idno = ?
+        ORDER BY id DESC
+        LIMIT ?
+    """
+    return getprocess(sql, (student_idno, limit))
+
+
+def get_student_weekly_usage(student_idno: str) -> dict:
+    sql = """
+        SELECT strftime('%w', login_time) AS day, COUNT(*) AS session_count
+        FROM session_history
+        WHERE student_idno = ? AND strftime('%w', login_time) BETWEEN '0' AND '6'
+        GROUP BY day
+        ORDER BY day;
+    """
+    usage_data = getprocess(sql, (student_idno,))
+    
+    day_mapping = {
+        '0': 'Sunday',
+        '1': 'Monday',
+        '2': 'Tuesday',
+        '3': 'Wednesday',
+        '4': 'Thursday',
+        '5': 'Friday',
+        '6': 'Saturday'
+    }
+    
+    return {day_mapping.get(row['day'], 0): row['session_count'] for row in usage_data}
+
+
+def get_student_activity_breakdown(student_idno: str) -> dict:
+    sql = """
+        SELECT purpose, COUNT(*) as count 
+        FROM reservations 
+        WHERE student_idno = ?
+        GROUP BY purpose
+    """
+    results = getprocess(sql, (student_idno,))
+    return {row['purpose']: row['count'] for row in results}
+
+def update_reservation_status(reservation_id: int, status: str) -> bool:
+    sql = "UPDATE reservations SET status = ? WHERE id = ?"
+    return postprocess(sql, (status, reservation_id))

@@ -1,19 +1,23 @@
 import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
+import time
 
 # Database configuration
-db_config = {
-    'host': 'localhost',
-    'user': 'root',  # Default XAMPP MySQL username
+config = {
+    'user': 'root',
     'password': '',  # Default XAMPP MySQL password (empty)
-    'database': 'student'  # Your database name
+    'host': '127.0.0.1',  # Use IP instead of 'localhost'
+    'port': 3306,  # Ensure it's the correct port
+    'database': 'student',
+    'raise_on_warnings': True
 }
+
 
 # Function to execute queries that modify data (INSERT, UPDATE, DELETE)
 def postprocess(sql: str, params=()) -> bool:
     try:
-        connection = mysql.connector.connect(**db_config)
+        connection = mysql.connector.connect(**config)
         cursor = connection.cursor()
         cursor.execute(sql, params)
         connection.commit()
@@ -26,10 +30,10 @@ def postprocess(sql: str, params=()) -> bool:
             cursor.close()
             connection.close()
 
-# Function to execute queries that retrieve data (SELECT)
 def getprocess(sql: str, params=()) -> list:
+    connection = None  # Ensure 'connection' is always defined
     try:
-        connection = mysql.connector.connect(**db_config)
+        connection = mysql.connector.connect(**config)
         cursor = connection.cursor(dictionary=True)  # Return results as dictionaries
         cursor.execute(sql, params)
         return cursor.fetchall()
@@ -37,7 +41,7 @@ def getprocess(sql: str, params=()) -> list:
         print(f"Error: {e}")
         return []
     finally:
-        if connection.is_connected():
+        if connection and connection.is_connected():
             cursor.close()
             connection.close()
 
@@ -46,23 +50,56 @@ def getall_records(table: str) -> list:
     sql = f"SELECT * FROM {table}"
     return getprocess(sql)
 
+# Retrieve paginated students
+def get_paginated_students(offset, per_page):
+    sql = """
+        SELECT 
+            idno, 
+            firstname, 
+            lastname, 
+            midname, 
+            course, 
+            year_level, 
+            email 
+        FROM students
+        LIMIT %s OFFSET %s
+    """
+    return getprocess(sql, (per_page, offset))
+
+# Retrieve reservations by student ID
+def get_reservations_by_student_id(student_id):
+    sql = """
+        SELECT r.id, r.student_name, r.purpose, l.lab_name, r.reservation_date, r.time_in, r.time_out, r.status
+        FROM reservations r
+        JOIN laboratories l ON r.lab_id = l.id
+        WHERE r.student_idno = %s
+    """
+    return getprocess(sql, (student_id,))
+
 # Retrieve a student by ID number
 def get_student_by_id(idno: str) -> dict:
     sql = "SELECT * FROM students WHERE idno = %s"
-    student = getprocess(sql, (idno,))
-    return student[0] if student else None
+    result = getprocess(sql, (idno,))
+    return result[0] if result else None
+
+# Retrieve a lab by name
+def get_lab_by_name(lab_name: str) -> dict:
+    sql = "SELECT * FROM laboratories WHERE lab_name = %s"
+    result = getprocess(sql, (lab_name,))
+    return result[0] if result else None
+
 
 # Retrieve a student by email
 def get_student_by_email(email: str) -> dict:
     sql = "SELECT * FROM students WHERE email = %s"
-    student = getprocess(sql, (email,))
-    return student[0] if student else None
+    result = getprocess(sql, (email,))
+    return result[0] if result else None
 
 # Retrieve a student by username and password
 def get_user_by_credentials(username: str, password: str) -> dict:
     sql = "SELECT * FROM students WHERE username = %s AND password = %s"
-    user = getprocess(sql, (username, password))
-    return user[0] if user else None
+    result = getprocess(sql, (username, password))
+    return result[0] if result else None
 
 # Retrieve the total count of students
 def get_count_students() -> int:
@@ -79,20 +116,20 @@ def get_count_laboratories() -> int:
 # Retrieve a student by username
 def get_student_by_username(username: str) -> dict:
     sql = "SELECT * FROM students WHERE username = %s"
-    student = getprocess(sql, (username,))
-    return student[0] if student else None
+    result = getprocess(sql, (username,))
+    return result[0] if result else None
 
 # Retrieve students by first name
 def get_fname_student(firstname: str) -> list:
     sql = "SELECT * FROM students WHERE firstname = %s"
     return getprocess(sql, (firstname,))
 
-# Retrieve an admin user by username
+# Retrieve admin by username
 def get_username_admin(admin_username: str) -> list:
     sql = "SELECT * FROM admin_users WHERE admin_username = %s"
     return getprocess(sql, (admin_username,))
 
-# Retrieve an admin's first name by username
+# Retrieve admin's first name
 def get_firstname_admin(admin_username: str) -> str:
     sql = "SELECT admin_firstname FROM admin_users WHERE admin_username = %s"
     result = getprocess(sql, (admin_username,))
@@ -101,22 +138,22 @@ def get_firstname_admin(admin_username: str) -> str:
 # Retrieve an admin user by username and password
 def get_admin_user_by_credentials(admin_username: str, password: str) -> dict:
     sql = "SELECT * FROM admin_users WHERE admin_username = %s AND password = %s"
-    admin_user = getprocess(sql, (admin_username, password))
-    return admin_user[0] if admin_user else None
+    result = getprocess(sql, (admin_username, password))
+    return result[0] if result else None
 
 # Retrieve an admin by username
 def get_admin_by_username(admin_username: str) -> dict:
     sql = "SELECT * FROM admin_users WHERE admin_username = %s"
-    admin = getprocess(sql, (admin_username,))
-    return admin[0] if admin else None
+    result = getprocess(sql, (admin_username,))
+    return result[0] if result else None
 
-# Retrieve the total session count for a student
+# Retrieve total sessions left for a student
 def get_total_session(idno: str) -> dict:
     sql = "SELECT sessions_left FROM students WHERE idno = %s"
-    session = getprocess(sql, (idno,))
-    return session[0] if session else None
+    result = getprocess(sql, (idno,))
+    return result[0] if result else None
 
-# Retrieve all announcements from the database
+# Retrieve all announcements
 def get_all_announcements() -> list:
     sql = "SELECT * FROM announcements ORDER BY announcement_date DESC"
     return getprocess(sql)
@@ -127,19 +164,19 @@ def get_laboratories() -> list:
     return getprocess(sql)
 
 # Retrieve a student by ID number
-def get_student_by_idno(student_idno: str) -> dict:
+def get_student_by_idno(student_idno):
     sql = "SELECT * FROM students WHERE idno = %s"
-    students = getprocess(sql, (student_idno,))
-    return students[0] if students else None
+    result = getprocess(sql, (student_idno,))
+    return result[0] if result else None
 
-# Retrieve an announcement by its ID
+# Retrieve an announcement by ID
 def get_announcement_by_id(announcement_id: int) -> dict:
     sql = "SELECT * FROM announcements WHERE id = %s"
     result = getprocess(sql, (announcement_id,))
     return result[0] if result else None
 
-# Retrieve lab names and IDs
-def get_lab_names() -> list:
+# Retrieve all lab names
+def get_lab_names():
     sql = "SELECT id, lab_name FROM laboratories"
     result = getprocess(sql)
     return [{'id': row['id'], 'lab_name': row['lab_name']} for row in result] if result else []
@@ -185,17 +222,22 @@ def delete_record(table: str, **kwargs) -> bool:
     return postprocess(sql, (value,))
 
 # Update student sessions
-def update_student_sessions(idno: str, sessions_left: int) -> bool:
+def update_student_sessions(idno, sessions_left):
     sql = "UPDATE students SET sessions_left = %s WHERE idno = %s"
-    return postprocess(sql, (sessions_left, idno))
+    success = postprocess(sql, (sessions_left, idno))
+    if success:
+        print("Sessions updated successfully!")
+    else:
+        print("Failed to update sessions.")
+    return success
 
 # Insert session history
-def insert_session_history(student_idno: str, login_time: str) -> bool:
+def insert_session_history(student_idno, login_time):
     sql = "INSERT INTO session_history (student_idno, login_time) VALUES (%s, %s)"
     return postprocess(sql, (student_idno, login_time))
 
-# Update session history with logout time and duration
-def update_session_history(student_idno: str, logout_time: str) -> bool:
+# Update session history
+def update_session_history(student_idno, logout_time):
     sql = """
         UPDATE session_history
         SET logout_time = %s,
@@ -204,7 +246,73 @@ def update_session_history(student_idno: str, logout_time: str) -> bool:
     """
     return postprocess(sql, (logout_time, logout_time, student_idno))
 
-# Insert an extension request
-def insert_extension_request(student_idno: str, request_time: str) -> bool:
+# Insert extension request
+def insert_extension_request(student_idno, request_time):
     sql = "INSERT INTO extension_requests (student_idno, request_time) VALUES (%s, %s)"
     return postprocess(sql, (student_idno, request_time))
+
+# Retrieve all reservations
+def get_all_reservations():
+    sql = "SELECT * FROM reservations WHERE status = 'Pending'"
+    return getprocess(sql)
+
+# Create a reservation
+def create_reservation(student_idno: str, student_name: str, lab_id: str, 
+                      purpose: str, reservation_date: str, time_in: str, 
+                      time_out: str, status: str = "Pending") -> bool:
+    sql = """
+        INSERT INTO reservations 
+        (student_idno, student_name, lab_id, purpose, reservation_date, time_in, time_out, status)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    """
+    return postprocess(sql, (student_idno, student_name, lab_id, purpose, 
+                           reservation_date, time_in, time_out, status))
+
+# Retrieve student session history
+def get_student_session_history(student_idno: str, limit: int = 30) -> list:
+    sql = """
+        SELECT * FROM session_history
+        WHERE student_idno = %s
+        ORDER BY id DESC
+        LIMIT %s
+    """
+    return getprocess(sql, (student_idno, limit))
+
+# Retrieve student weekly usage
+def get_student_weekly_usage(student_idno: str) -> dict:
+    sql = """
+        SELECT DAYOFWEEK(login_time) AS day, COUNT(*) AS session_count
+        FROM session_history
+        WHERE student_idno = %s
+        GROUP BY day
+        ORDER BY day;
+    """
+    usage_data = getprocess(sql, (student_idno,))
+    
+    day_mapping = {
+        1: 'Sunday',
+        2: 'Monday',
+        3: 'Tuesday',
+        4: 'Wednesday',
+        5: 'Thursday',
+        6: 'Friday',
+        7: 'Saturday'
+    }
+    
+    return {day_mapping.get(row['day'], 0): row['session_count'] for row in usage_data}
+
+# Retrieve student activity breakdown
+def get_student_activity_breakdown(student_idno: str) -> dict:
+    sql = """
+        SELECT purpose, COUNT(*) as count 
+        FROM reservations 
+        WHERE student_idno = %s
+        GROUP BY purpose
+    """
+    results = getprocess(sql, (student_idno,))
+    return {row['purpose']: row['count'] for row in results}
+
+# Update reservation status
+def update_reservation_status(reservation_id: int, status: str) -> bool:
+    sql = "UPDATE reservations SET status = %s WHERE id = %s"
+    return postprocess(sql, (status, reservation_id))
