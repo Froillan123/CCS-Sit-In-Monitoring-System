@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Sharp" rel="stylesheet">
     <link rel='stylesheet' href="{{ url_for('static', filename='css/dashboard.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='images/dashboard.png') }}" type="image/x-icon">
+    
     <title>Dashboard</title>
 </head>
 <style>
@@ -215,8 +216,41 @@
 
               <div id="reservation" class="dashboard-section">
                 <h1>Student Reservation</h1>
-            </div>
-
+                <table id="reservationsTable" class="table">
+                  <thead>
+                    <tr>
+                      <th>Student ID</th>
+                      <th>Student Name</th>
+                      <th>Lab</th>
+                      <th>Purpose</th>
+                      <th>Reservation Date</th>
+                      <th>Time In</th>
+                      <th>Time Out</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for reservation in reservations %}
+                    <tr data-reservation-id="{{ reservation.id }}">
+                      <td data-label="Student ID">{{ reservation.student_idno }}</td>
+                      <td data-label="Student Name">{{ reservation.student_name }}</td>
+                      <td data-label="Lab">{{ reservation.lab_id }}</td>
+                      <td data-label="Purpose">{{ reservation.purpose }}</td>
+                      <td data-label="Reservation Date">{{ reservation.reservation_date }}</td>
+                      <td data-label="Time In">{{ reservation.time_in }}</td>
+                      <td data-label="Time Out">{{ reservation.time_out }}</td>
+                      <td class="status-cell" data-status="{{ reservation.status }}" data-label="Status">
+                        {{ reservation.status }}
+                      </td>
+                      <td data-label="Actions">
+                        <button class="approve-btn" data-reservation-id="{{ reservation.id }}">Approve</button>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
         </main>
         <!-- End of Main Content -->
 
@@ -328,19 +362,9 @@
     </div>
 </div>
 
-
-<!-- Custom Delete Confirmation Alert -->
-<div id="deleteConfirmation" class="custom-alert">
-    <div class="alert-content">
-        <p>Are you sure you want to delete this announcement?</p>
-        <button id="confirmDelete">Confirm</button>
-        <button id="cancelDelete">Cancel</button>
-    </div>
-</div>
-
-
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 
@@ -399,6 +423,8 @@
     });
 
 });
+
+
     </script>
 </body>
 </html>

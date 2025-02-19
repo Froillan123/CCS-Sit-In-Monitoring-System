@@ -586,9 +586,10 @@ main .recent-orders a{
     padding: 10px;
     border: 1px solid #ccc;
     border-radius: 5px;
-    font-size: 14px;
+    font-size: 16px;
     height: 150px;
     resize: none;
+    font-family: Arial, Helvetica, sans-serif;
   }
   
   button[type="submit"] {
@@ -954,7 +955,7 @@ main .recent-orders a{
 {
     #sitInChart1 {
        
-        height: 300px !important;
+        height: 400px !important;
       }
 }
 
@@ -1069,4 +1070,63 @@ h1 {
     margin: 0 4px;
     font-weight: bold;
     color: #007bff;
+}
+
+#reservationsTable {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10px; /* Add spacing between rows */
+}
+
+#reservationsTable thead th {
+    background-color: #007bff; /* Bootstrap primary color */
+    color: white;
+    padding: 12px;
+    text-align: center;
+}
+
+#reservationsTable tbody tr {
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Add shadow to rows */
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+
+
+#reservationsTable tbody td {
+    padding: 12px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.status-cell {
+    font-weight: bold;
+}
+
+.status-cell[data-status="Pending"] {
+    color: #ffc107; /* Bootstrap warning color */
+}
+
+.status-cell[data-status="Approved"] {
+    color: #28a745; /* Bootstrap success color */
+}
+
+
+
+.approve-btn, .delete-btn {
+    padding: 10px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    width: auto;
+    transition: background-color 0.2s;
+}
+
+.approve-btn {
+    background-color: #28a745; /* Green */
+    color: white;
+}
+
+.approve-btn:hover {
+    background-color: #218838; /* Darker green */
 }

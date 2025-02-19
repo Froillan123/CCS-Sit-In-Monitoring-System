@@ -2035,6 +2035,108 @@ button:hover {
   background-color: #9d2db0;
 }
 
+/* Filter Container Styling */
+.filter-container {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  margin-top: 2rem;
+}
+
+.filter-container label {
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+#statusFilter {
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 2px solid var(--first-color);
+  background-color: white;
+  color: var(--text-color);
+  cursor: pointer;
+}
+
+
+/* Status Colors */
+.status-pending {
+  color: #ffc107; /* Yellow for Pending */
+  font-weight: 500;
+}
+
+.status-approved {
+  color: #14a636; /* Green for Approved */
+  font-weight: 500;
+}
+
+/* Table Styling */
+.reservations-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+.reservations-table th,
+.reservations-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.reservations-table th {
+  background-color: var(--first-color);
+  color: white;
+  font-weight: 500;
+}
+
+.reservations-table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Button Styling */
+.approve-btn {
+  padding: 6px 12px;
+  background-color: var(--first-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.approve-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.approve-btn:hover:not(:disabled) {
+  background-color: #9d2db0;
+}
+
+.cancel-btn {
+  padding: 6px 12px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.cancel-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background-color: #c82333;
+}
+
 /* Responsive Design for Screens 1113px and Below */
 @media (max-width: 1113px) {
   .reservations-table {

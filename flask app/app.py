@@ -9,6 +9,7 @@ import time
 from datetime import timedelta, datetime
 from flask_cors import CORS
 import json
+from threading import Thread
 app = Flask(__name__)
 CORS(app)
 
@@ -125,7 +126,7 @@ def reservations():
     student_lastname = session.get('student_lastname', '')
     student_midname = session.get('student_midname', '')
 
-    # Construct the full name
+    # Construct full student name
     student_name = f"{student_firstname} {student_midname} {student_lastname}".strip()
 
     print(f"Session Data - Student ID: {student_idno}, Student Name: {student_name}")
@@ -139,7 +140,7 @@ def reservations():
 
     print(f"Received Form Data - Lab ID: {lab_id}, Purpose: {purpose}, Reservation Date: {reservation_date}, Time In: {time_in}, Time Out: {time_out}")
 
-    # Ensure required fields are present
+    # Ensure required fields are filled
     if not all([student_idno, student_name, lab_id, purpose, reservation_date, time_in, time_out]):
         print("Error: Missing required fields")
         return jsonify({'status': 'error', 'message': 'All fields are required'}), 400
@@ -152,17 +153,17 @@ def reservations():
         print("Error: Invalid date format")
         return jsonify({'status': 'error', 'message': 'Invalid date format (YYYY-MM-DD expected)'}), 400
 
-    # Insert into database
+    # Insert into the database with status "Pending"
     try:
         db = sqlite3.connect('student.db')
         cursor = db.cursor()
         print("Database connected successfully")
 
         cursor.execute("""
-            INSERT INTO reservations(student_idno, student_name, lab_id, purpose, reservation_date, time_in, time_out) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (student_idno, student_name, lab_id, purpose, reservation_date, time_in, time_out))
-        
+            INSERT INTO reservations (student_idno, student_name, lab_id, purpose, reservation_date, time_in, time_out, status) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (student_idno, student_name, lab_id, purpose, reservation_date, time_in, time_out, "Pending"))
+
         db.commit()
         print("Reservation inserted successfully")
 
@@ -174,6 +175,29 @@ def reservations():
 
     finally:
         db.close()
+
+
+
+
+@app.route('/approve-reservation/<int:reservation_id>', methods=['POST'])
+def approve_reservation(reservation_id):
+    try:
+        db = sqlite3.connect('student.db')
+        cursor = db.cursor()
+
+        # Update the reservation status to 'Approved'
+        cursor.execute("UPDATE reservations SET status = 'Approved' WHERE id = ?", (reservation_id,))
+        db.commit()
+
+        if cursor.rowcount > 0:
+            db.close()
+            return jsonify({'success': True, 'message': 'Reservation approved successfully'})
+
+        db.close()
+        return jsonify({'success': False, 'message': 'Reservation not found'})
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
 
 
 
@@ -477,6 +501,9 @@ def dashboard():
     total_students = get_count_students()
     total_pages = (total_students + per_page - 1) // per_page
 
+    # Fetch all reservations
+    reservations = get_all_reservations()
+
     return render_template('admin/dashboard.html',
                            student_count=student_count,
                            active_students=active_students,
@@ -486,7 +513,8 @@ def dashboard():
                            active_students_count=active_students_count,
                            students=students,
                            page=page,
-                           total_pages=total_pages)
+                           total_pages=total_pages,
+                           reservations=reservations)  # Pass reservations to the template
 
 @app.route('/admin', methods=['GET', 'POST'])  
 def admin_login():

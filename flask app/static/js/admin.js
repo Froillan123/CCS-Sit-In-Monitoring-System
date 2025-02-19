@@ -91,212 +91,177 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(updateUserCount, 1000); // Update every 1 second
     updateUserCount();
 
-    const socketURL =
-    window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:5000' // Local WebSocket URL
-        : 'https://css-sit-in-monitoring-system.onrender.com'; // Render WebSocket URL
-
-    const socket = io(socketURL, {
-        transports: ['websocket'],  // Force WebSocket transport
-        upgrade: false,             // Disable fallback to polling
-        reconnection: true,         // Enable reconnection
-        reconnectionAttempts: 5,    // Number of reconnection attempts
-        reconnectionDelay: 1000,    // Delay between reconnection attempts (1 second)
-    });
-
-    socket.on('update_active_users', function (activeUsers) {
-        const activeUsersCountElement = document.getElementById('active-users-count');
-        if (activeUsersCountElement) {
-            activeUsersCountElement.textContent = activeUsers.length;
-        }
-    });
-
-    socket.on('connect', function () {
-        console.log('WebSocket connected to', socketURL);
-    });
-
-    socket.on('disconnect', function () {
-        console.log('WebSocket disconnected');
-    });
-
-    socket.on('connect_error', function (error) {
-        console.error('WebSocket connection error:', error);
-    });
     // Fetch announcements
-    const announcementForm = document.getElementById('announcement-form');
-    const announcementsBody = document.getElementById('announcements-body');
+const announcementForm = document.getElementById('announcement-form');
+const announcementsBody = document.getElementById('announcements-body');
 
-    function fetchAnnouncements() {
-        fetch('/get_announcements')
-            .then(response => response.json())
-            .then(data => {
-                announcementsBody.innerHTML = ''; // Clear existing rows
-    
-                data.forEach(announcement => {
-                    const row = document.createElement('tr');
-                    const announcementDate = new Date(announcement.announcement_date).toLocaleString();
-    
-                    row.innerHTML = `
-                        <td>${announcementDate}</td>
-                        <td>${announcement.admin_username}</td>
-                        <td>${announcement.announcement_text}</td>
-                        <td>
-                            <div class="action-buttons">
-                                <button class="edit-btn" data-id="${announcement.id}">
-                                    <i class="bx bx-edit"></i> Edit
-                                </button>
-                                <button class="delete-btn" data-id="${announcement.id}">
-                                    <i class="bx bx-trash"></i> Delete
-                                </button>
-                            </div>
-                        </td>
-                    `;
-    
-                    announcementsBody.appendChild(row);
-                });
-    
-                // Add event listeners for edit and delete buttons
-                addEditDeleteListeners();
-            })
-            .catch(error => console.error('Error fetching announcements:', error));
-    }
-    
-    // Fetch announcements when the page loads
-    fetchAnnouncements();
-
-    // Handle announcement form submission
-    announcementForm.addEventListener('submit', function (e) {
-        e.preventDefault();
-
-        // Validate adminUsername
-        if (!adminUsername) {
-            alert('Admin username not found. Please log in again.');
-            return;
-        }
-
-        const announcementText = document.getElementById('announcement-text').value;
-
-        // Submit the new announcement
-        fetch('/create_announcement', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                admin_username: adminUsername,
-                announcement_text: announcementText,
-            }),
-        })
+function fetchAnnouncements() {
+    fetch('/get_announcements')
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                alert('Announcement posted successfully!');
-                document.getElementById('announcement-text').value = ''; // Clear the textarea
-                fetchAnnouncements(); // Refresh the announcements table
-            } else {
-                alert('Failed to post announcement: ' + data.message);
-            }
+            announcementsBody.innerHTML = ''; // Clear existing rows
+
+            data.forEach(announcement => {
+                const row = document.createElement('tr');
+                const announcementDate = new Date(announcement.announcement_date).toLocaleString();
+
+                row.innerHTML = `
+                    <td>${announcementDate}</td>
+                    <td>${announcement.admin_username}</td>
+                    <td>${announcement.announcement_text}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="edit-btn" data-id="${announcement.id}">
+                                <i class="bx bx-edit"></i> Edit
+                            </button>
+                            <button class="delete-btn" data-id="${announcement.id}">
+                                <i class="bx bx-trash"></i> Delete
+                            </button>
+                        </div>
+                    </td>
+                `;
+
+                announcementsBody.appendChild(row);
+            });
+
+            // Add event listeners for edit and delete buttons
+            addEditDeleteListeners();
         })
-        .catch(error => console.error('Error posting announcement:', error));
-    });
+        .catch(error => console.error('Error fetching announcements:', error));
+}
 
-    // Add event listeners for edit and delete buttons
-    function addEditDeleteListeners() {
-        // Edit Button
-        document.querySelectorAll('.edit-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const announcementId = e.target.getAttribute('data-id');
-                openEditModal(announcementId);
-            });
-        });
+// Fetch announcements when the page loads
+fetchAnnouncements();
 
-        // Delete Button
-        document.querySelectorAll('.delete-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const announcementId = e.target.getAttribute('data-id');
-                showDeleteConfirmation(announcementId);
-            });
-        });
+// Handle announcement form submission
+announcementForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    if (!adminUsername) {
+        Swal.fire('Error', 'Admin username not found. Please log in again.', 'error');
+        return;
     }
 
-    // Open Edit Modal
-    function openEditModal(announcementId) {
-        fetch(`/get_announcement/${announcementId}`)
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('edit-announcement-id').value = announcementId;
-                document.getElementById('edit-announcement-text').value = data.announcement_text;
-                document.getElementById('editModal').style.display = 'flex'; // Use flex to center the modal
-            })
-            .catch(error => console.error('Error fetching announcement:', error));
-    }
+    const announcementText = document.getElementById('announcement-text').value;
 
-    // Close Modal
-    document.querySelector('.close-modal').addEventListener('click', () => {
-        document.getElementById('editModal').style.display = 'none';
+    fetch('/create_announcement', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            admin_username: adminUsername,
+            announcement_text: announcementText,
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire('Success', 'Announcement posted successfully!', 'success');
+            document.getElementById('announcement-text').value = '';
+            fetchAnnouncements();
+        } else {
+            Swal.fire('Error', 'Failed to post announcement: ' + data.message, 'error');
+        }
+    })
+    .catch(error => console.error('Error posting announcement:', error));
+});
+
+// Add event listeners for edit and delete buttons
+function addEditDeleteListeners() {
+    document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const announcementId = e.target.getAttribute('data-id');
+            openEditModal(announcementId);
+        });
     });
 
-    // Handle edit announcement form submission
-    document.getElementById('edit-announcement-form').addEventListener('submit', (e) => {
-        e.preventDefault();
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const announcementId = e.target.getAttribute('data-id');
+            showDeleteConfirmation(announcementId);
+        });
+    });
+}
 
-        const announcementId = document.getElementById('edit-announcement-id').value;
-        const announcementText = document.getElementById('edit-announcement-text').value;
-
-        fetch(`/update_announcement/${announcementId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                announcement_text: announcementText,
-            }),
-        })
+// Open Edit Modal
+function openEditModal(announcementId) {
+    fetch(`/get_announcement/${announcementId}`)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                alert('Announcement updated successfully!');
-                document.getElementById('editModal').style.display = 'none';
-                fetchAnnouncements(); // Refresh the table
-            } else {
-                alert('Failed to update announcement: ' + data.message);
-            }
+            document.getElementById('edit-announcement-id').value = announcementId;
+            document.getElementById('edit-announcement-text').value = data.announcement_text;
+            document.getElementById('editModal').style.display = 'flex';
         })
-        .catch(error => console.error('Error updating announcement:', error));
-    });
+        .catch(error => console.error('Error fetching announcement:', error));
+}
 
-    let currentAnnouncementIdToDelete = null;
+// Close Edit Modal
+document.querySelector('.close-modal').addEventListener('click', () => {
+    document.getElementById('editModal').style.display = 'none';
+});
 
-    // Show Delete Confirmation Modal
-    function showDeleteConfirmation(announcementId) {
-        currentAnnouncementIdToDelete = announcementId;
-        document.getElementById('deleteConfirmation').style.display = 'flex';
-    }
+// Handle edit announcement form submission
+document.getElementById('edit-announcement-form').addEventListener('submit', (e) => {
+    e.preventDefault();
 
-    // Confirm Delete
-    document.getElementById('confirmDelete').addEventListener('click', () => {
-        if (currentAnnouncementIdToDelete) {
-            fetch(`/delete_announcement/${currentAnnouncementIdToDelete}`, {
-                method: 'DELETE',
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Announcement deleted successfully!');
-                    fetchAnnouncements(); // Refresh the table
-                } else {
-                    alert('Failed to delete announcement: ' + data.message);
-                }
-            })
-            .catch(error => console.error('Error deleting announcement:', error));
+    const announcementId = document.getElementById('edit-announcement-id').value;
+    const announcementText = document.getElementById('edit-announcement-text').value;
+
+    fetch(`/update_announcement/${announcementId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ announcement_text: announcementText }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire('Success', 'Announcement updated successfully!', 'success');
+            document.getElementById('editModal').style.display = 'none';
+            fetchAnnouncements();
+        } else {
+            Swal.fire('Error', 'Failed to update announcement: ' + data.message, 'error');
         }
-        document.getElementById('deleteConfirmation').style.display = 'none';
-    });
+    })
+    .catch(error => console.error('Error updating announcement:', error));
+});
 
-    // Cancel Delete
-    document.getElementById('cancelDelete').addEventListener('click', () => {
-        document.getElementById('deleteConfirmation').style.display = 'none';
+// Show Delete Confirmation Modal
+function showDeleteConfirmation(announcementId) {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: 'You won\'t be able to revert this!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            deleteAnnouncement(announcementId);
+        }
     });
+}
+
+// Confirm Delete
+function deleteAnnouncement(announcementId) {
+    fetch(`/delete_announcement/${announcementId}`, {
+        method: 'DELETE',
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire('Deleted!', 'Announcement has been deleted.', 'success');
+            fetchAnnouncements();
+        } else {
+            Swal.fire('Error', 'Failed to delete announcement: ' + data.message, 'error');
+        }
+    })
+    .catch(error => console.error('Error deleting announcement:', error));
+}
+
 
     // Section toggling functionality
     const links = document.querySelectorAll('.sidebar a[data-section]'); // Only select links with data-section
@@ -344,10 +309,10 @@ const programData = {
     BSCpE: [5, 14, 10, 8, 12, 9],
     BSBA: [7, 11, 13, 6, 9, 15],
     BSCS: [10, 8, 12, 14, 7, 11],
-    BSEd: [6, 9, 15, 10, 8, 12],
-    BSEdSec: [7, 10, 14, 12, 8, 9],
+    BSEd: [6, 9, 15, 10, 8, 12], 
     BSHRM: [8, 12, 7, 11, 14, 10],
     BSN: [9, 15, 6, 12, 10, 8],
+    BEEd: [7, 10, 14, 12, 8, 9],
     BCE: [11, 7, 14, 9, 12, 6],
     BME: [13, 10, 8, 12, 7, 11],
     BEE: [10, 12, 9, 11, 8, 14],
@@ -375,12 +340,10 @@ const colorPalette = [
     'rgba(103, 58, 183, 0.6)', 'rgba(255, 87, 34, 0.6)', 'rgba(0, 188, 212, 0.6)',
     'rgba(121, 85, 72, 0.6)', 'rgba(205, 220, 57, 0.6)', 'rgba(158, 158, 158, 0.6)',
     'rgba(192, 192, 192, 0.6)', 'rgba(0, 150, 136, 0.6)', 'rgba(255, 235, 59, 0.6)',
-    'rgba(255, 193, 7, 0.6)', 'rgba(158, 158, 158, 0.6)', 'rgba(96, 125, 139, 0.6)',
-    'rgba(244, 67, 54, 0.6)', 'rgba(63, 81, 181, 0.6)', 'rgba(33, 150, 243, 0.6)',
-    'rgba(255, 87, 34, 0.6)',
+    'rgba(255, 193, 7, 0.6)', 'rgba(96, 125, 139, 0.6)', 'rgba(244, 67, 54, 0.6)',
+    'rgba(63, 81, 181, 0.6)', 'rgba(33, 150, 243, 0.6)', 'rgba(255, 87, 34, 0.6)',
 ];
 
-// Assign colors to programs
 const backgroundColors = Object.keys(programData).map((_, i) => colorPalette[i % colorPalette.length]);
 const borderColors = backgroundColors.map(color => color.replace('0.6', '1'));
 
@@ -405,50 +368,37 @@ const sitInChart = new Chart(ctx, {
     options: {
         responsive: true,
         maintainAspectRatio: false,
-        indexAxis: 'x', // Horizontal bars
+        indexAxis: 'x', 
         scales: {
             y: {
                 beginAtZero: true,
                 title: {
                     display: true,
                     text: 'Sit-In Count',
-                    font: {
-                        size: 14, // Smaller font size for mobile
-                    },
+                    font: { size: 14 },
                 },
-                ticks: {
-                    font: {
-                        size: 12, // Smaller font size for mobile
-                    },
-                },
+                ticks: { font: { size: 12 } },
+                grid: { display: false } // Remove background grid lines
             },
             x: {
                 title: {
                     display: true,
                     text: 'Programs',
-                    font: {
-                        size: 14, // Smaller font size for mobile
-                    },
+                    font: { size: 14 },
                 },
                 ticks: {
-                    font: {
-                        size: 12, // Smaller font size for mobile
-                    },
+                    font: { size: 12 },
                     callback: function (value) {
-                        // Truncate long labels for better readability
                         return this.getLabelForValue(value).substring(0, 10) + '...';
                     },
                 },
+                grid: { display: false } // Remove background grid lines
             },
         },
         plugins: {
             legend: {
                 display: true,
-                labels: {
-                    font: {
-                        size: 12, // Smaller font size for mobile
-                    },
-                },
+                labels: { font: { size: 12 } },
             },
             tooltip: {
                 enabled: true,
@@ -462,12 +412,7 @@ const sitInChart = new Chart(ctx, {
             },
         },
         layout: {
-            padding: {
-                left: 10,
-                right: 10,
-                top: 10,
-                bottom: 10,
-            },
+            padding: { left: 10, right: 10, top: 10, bottom: 10 },
         },
     },
 });
@@ -481,4 +426,86 @@ if (chartContainer) {
 
 
 
-  
+const socketURL =
+window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5000' // Local WebSocket URL
+    : 'https://css-sit-in-monitoring-system.onrender.com'; // Render WebSocket URL
+
+const socket = io(socketURL, {
+    transports: ['websocket'],  // Force WebSocket transport
+    upgrade: false,             // Disable fallback to polling
+    reconnection: true,         // Enable reconnection
+    reconnectionAttempts: 5,    // Number of reconnection attempts
+    reconnectionDelay: 1000,    // Delay between reconnection attempts (1 second)
+});
+
+socket.on('update_active_users', function (activeUsers) {
+    const activeUsersCountElement = document.getElementById('active-users-count');
+    if (activeUsersCountElement) {
+        activeUsersCountElement.textContent = activeUsers.length;
+    }
+});
+
+socket.on('connect', function () {
+    console.log('WebSocket connected to', socketURL);
+});
+
+socket.on('disconnect', function () {
+    console.log('WebSocket disconnected');
+});
+
+socket.on('connect_error', function (error) {
+    console.error('WebSocket connection error:', error);
+});
+
+
+document.querySelectorAll(".approve-btn").forEach(button => {
+    button.addEventListener("click", function () {
+        let reservationId = this.dataset.reservationId;
+        let studentName = this.closest("tr").querySelector("td:nth-child(2)").textContent;
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: `Do you want to approve the reservation for ${studentName}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, approve it!',
+            cancelButtonText: 'No, cancel!',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/approve-reservation/${reservationId}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            title: 'Approved!',
+                            text: `Reservation for ${studentName} has been approved.`,
+                            icon: 'success',
+                            confirmButtonText: 'OK',
+                        }).then(() => {
+                            location.reload(); // Refresh the page after confirmation
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Failed to approve reservation.',
+                            icon: 'error',
+                            confirmButtonText: 'OK',
+                        });
+                    }
+                })
+                .catch(error => {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'An error occurred while approving the reservation.',
+                        icon: 'error',
+                        confirmButtonText: 'OK',
+                    });
+                });
+            }
+        });
+    });
+});

@@ -382,11 +382,23 @@
       </div>
 
           <!-- Reservations Table Section -->
-          <div id="reservationsTable" class="dashboard-section" style="display: none;">
-            <!-- Add a "Back" Button -->
-            <button id="backToReservationsBtn">
-              <i class="fas fa-arrow-left"></i> Back to Reservation Form
-            </button>
+            <div id="reservationsTable" class="dashboard-section" style="display: none;">
+              <!-- Back Button -->
+              <button id="backToReservationsBtn">
+                <i class="fas fa-arrow-left"></i> Back to Reservation Form
+              </button>
+
+              <div class="filter-container">
+                <label for="statusFilter">Filter by Status:</label>
+                <select id="statusFilter">
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                    <option value="all">All</option>
+                </select>
+            </div>
+            
+            <!-- Table -->
+        <!-- Table -->
             <table class="reservations-table">
               <thead>
                 <tr>
@@ -400,16 +412,24 @@
                   <th>Action</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="reservationsBody">
                 {% for reservation in reservations %}
-                <tr data-reservation-id="{{ reservation[0] }}">
+                <tr data-reservation-id="{{ reservation[0] }}" data-status="{{ reservation[7] | lower }}">
                   <td data-label="Student Name">{{ reservation[1] }}</td>
                   <td data-label="Purpose">{{ reservation[2] }}</td>
                   <td data-label="Lab Name">{{ reservation[3] }}</td>
                   <td data-label="Reservation Date">{{ reservation[4] }}</td>
                   <td data-label="Time In">{{ reservation[5] }}</td>
                   <td data-label="Time Out">{{ reservation[6] }}</td>
-                  <td data-label="Status">{{ reservation[7] }}</td>
+                  <td data-label="Status">
+                    {% if reservation[7] == 'Pending' %}
+                      <span class="status-pending">Pending</span>
+                    {% elif reservation[7] == 'Approved' %}
+                      <span class="status-approved">Approved</span>
+                    {% else %}
+                      {{ reservation[7] }}
+                    {% endif %}
+                  </td>
                   <td data-label="Action">
                     {% if reservation[7] == 'Pending' %}
                       <button class="cancel-btn">Cancel</button>
@@ -421,6 +441,7 @@
                 {% endfor %}
               </tbody>
             </table>
+           
           </div>
 
 
@@ -1113,44 +1134,7 @@ document.getElementById('reservationForm').addEventListener('submit', async func
     // Show the reservation form
     document.getElementById('reservations').style.display = 'block';
   });
-  document.addEventListener('DOMContentLoaded', function () {
-  const approveButtons = document.querySelectorAll('.approve-btn');
-
-  approveButtons.forEach((button) => {
-    button.addEventListener('click', function () {
-      const row = this.closest('tr');
-      const statusCell = row.querySelector('td:nth-child(6)');
-      const actionCell = row.querySelector('td:nth-child(7)');
-
-      // Update status to "Approved"
-      statusCell.textContent = 'Approved';
-
-      // Disable the button
-      this.disabled = true;
-      this.textContent = 'Approved';
-
-      // Optional: Send an AJAX request to update the status in the database
-      const reservationId = row.dataset.reservationId; // Assuming you have a data-reservation-id attribute
-      fetch(`/approve-reservation/${reservationId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.success) {
-            console.log('Reservation approved successfully');
-          } else {
-            console.error('Failed to approve reservation');
-          }
-        })
-        .catch((error) => {
-          console.error('Error:', error);
-        });
-    });
-  });
-});
+ 
 
 
 const reservationDateInput = document.getElementById('reservation_date');
@@ -1261,13 +1245,40 @@ const reservationDateInput = document.getElementById('reservation_date');
 
   });
 
-  // Function to show the reservations table and hide the form
-  function showReservationsTable() {
-    document.getElementById('reservations').style.display = 'none';
-    document.getElementById('reservationsTable').style.display = 'block';
-    localStorage.setItem('currentView', 'table'); // Save the current view
-  }
+  document.addEventListener("DOMContentLoaded", function () {
+    let tableBody = document.getElementById("reservationsBody");
+    let rows = Array.from(tableBody.querySelectorAll("tr"));
 
+    // Sort: Show Pending first, then Approved
+    rows.sort((a, b) => {
+        let statusA = a.getAttribute("data-status");
+        let statusB = b.getAttribute("data-status");
 
+        if (statusA === "pending" && statusB !== "pending") return -1;
+        if (statusA !== "pending" && statusB === "pending") return 1;
+        return 0;
+    });
+
+    // Re-append sorted rows to the table
+    rows.forEach(row => tableBody.appendChild(row));
+
+    // Set default filter to "Pending"
+    let statusFilter = document.getElementById("statusFilter");
+    statusFilter.value = "pending";
+
+    // Apply filter on page load
+    function applyFilter() {
+        let filterValue = statusFilter.value;
+        rows.forEach(row => {
+            let status = row.getAttribute("data-status");
+            row.style.display = (filterValue === "all" || status === filterValue) ? "" : "none";
+        });
+    }
+
+    applyFilter(); // Show only Pending on load
+
+    // Reapply filter when dropdown changes
+    statusFilter.addEventListener("change", applyFilter);
+});
 </script>
 {% endblock %}

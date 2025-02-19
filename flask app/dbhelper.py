@@ -1,6 +1,7 @@
 from sqlite3 import connect, Row
 from datetime import datetime
 import sqlite3
+import time
 database = "student.db"
 
 # Function to execute queries that modify data (INSERT, UPDATE, DELETE)
@@ -253,4 +254,23 @@ def insert_extension_request(student_idno, request_time):
     sql = "INSERT INTO extension_requests (student_idno, request_time) VALUES (?, ?)"
     return postprocess(sql, (student_idno, request_time))
 
+
+def get_all_reservations():
+    try:
+        db = sqlite3.connect('student.db')
+        db.row_factory = sqlite3.Row  # Enables dictionary-like access
+        cursor = db.cursor()
+
+        # Fetch only reservations that are pending
+        cursor.execute("SELECT * FROM reservations WHERE status = 'Pending'")
+        reservations = cursor.fetchall()
+
+        return [dict(row) for row in reservations]  # Convert rows to dictionaries
+
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+        return []
+
+    finally:
+        db.close()
 
