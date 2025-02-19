@@ -12,6 +12,26 @@
   min-height: auto; /* Override min-height */
 }
 
+.swal-default-size {
+    font-size: 1.6rem !important; /* Reset font size */
+    width: auto !important; /* Default width */
+    max-width: 400px !important; /* Prevent excessive scaling */
+}
+/* Smaller screens (e.g., mobile devices) */
+@media (max-width: 480px) {
+    .swal-default-size {
+        font-size: 1.2rem !important;  /* Reduce font size */
+        max-width: 300px !important;   /* Reduce width */
+    }
+}
+
+/* Very small screens (e.g., extra small mobile) */
+@media (max-width: 320px) {
+    .swal-default-size {
+        font-size: 1rem !important;  /* Further reduce font size */
+        max-width: 250px !important; /* Further reduce width */
+    }
+}
 </style>
       <!-- Dashboard Container -->
           <div class="dashboard-wrapper">
@@ -72,9 +92,10 @@
               <button class="notification-button">
                 <i class="fas fa-bell"></i> Notifications
               </button>
-              <button class="calendar-button">
+              <button class="calendar-button" id="openCalendar">
                 <i class="fas fa-calendar-alt"></i> Calendar
-              </button>
+            </button>
+            
             </div>
           </div>
         
@@ -513,6 +534,7 @@
   
 
 <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
@@ -1088,7 +1110,6 @@ progressBars.forEach(progressBar => {
     }
 });
 
-
 document.getElementById('reservationForm').addEventListener('submit', async function (e) {
     e.preventDefault();
 
@@ -1108,15 +1129,41 @@ document.getElementById('reservationForm').addEventListener('submit', async func
         const result = await response.json();
 
         if (result.status === 'success') {
-            alert(result.message); // Show alert on success
-            location.reload(); // Refresh the page
+            Swal.fire({
+                title: "Success!",
+                text: result.message,
+                icon: "success",
+                confirmButtonColor: "#3085d6",
+                customClass: {
+                    popup: 'swal-default-size' // Apply custom class
+                }
+            }).then(() => {
+                location.reload(); // Refresh the page
+            });
         } else {
-            alert(result.message); // Show alert for errors
+            Swal.fire({
+                title: "Error!",
+                text: result.message,
+                icon: "error",
+                confirmButtonColor: "#d33",
+                customClass: {
+                    popup: 'swal-default-size'
+                }
+            });
         }
     } catch (error) {
-        alert('An error occurred while submitting the form.');
+        Swal.fire({
+            title: "Error!",
+            text: "An error occurred while submitting the form.",
+            icon: "error",
+            confirmButtonColor: "#d33",
+            customClass: {
+                popup: 'swal-default-size'
+            }
+        });
     }
 });
+
 
 
   // JavaScript to handle the SPA behavior
@@ -1198,52 +1245,76 @@ const reservationDateInput = document.getElementById('reservation_date');
 
 
 
-  const approveButtons = document.querySelectorAll('.approve-btn');
-  const editButtons = document.querySelectorAll('.edit-btn');
-  const cancelButtons = document.querySelectorAll('.cancel-btn');
-  cancelButtons.forEach((button) => {
-  button.addEventListener('click', function () {
-    const row = this.closest('tr');
-    const reservationId = row.dataset.reservationId;
+const approveButtons = document.querySelectorAll('.approve-btn');
+const editButtons = document.querySelectorAll('.edit-btn');
+const cancelButtons = document.querySelectorAll('.cancel-btn');
 
-    // Confirmation dialog
-    const isConfirmed = confirm("Are you sure you want to cancel your reservation?");
-    
-    if (isConfirmed) {
-      // Update status to "Cancelled"
-      const statusCell = row.querySelector('td:nth-child(7)');
-      statusCell.textContent = 'Cancelled';
 
-      // Disable all buttons in the action cell
-      const actionCell = row.querySelector('td:nth-child(8)');
-      actionCell.querySelectorAll('button').forEach((btn) => {
-        btn.disabled = true;
-      });
+cancelButtons.forEach((button) => {
+    button.addEventListener('click', function () {
+        const row = this.closest('tr');
+        const reservationId = row.dataset.reservationId;
 
-      // Send an AJAX request to cancel the reservation
-      fetch(`/cancel-reservation/${reservationId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.success) {
-            console.log('Reservation cancelled successfully');
-            // Refresh the page to reflect the changes
-            window.location.reload();
-          } else {
-            console.error('Failed to cancel reservation');
-          }
-        })
-        .catch((error) => {
-          console.error('Error:', error);
+        // SweetAlert confirmation with default scaling
+        Swal.fire({
+            title: "Are you sure?",
+            text: "You are about to cancel this reservation!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#3085d6",
+            confirmButtonText: "Yes, cancel it!",
+            cancelButtonText: "No, keep it",
+            customClass: {
+                popup: 'swal-default-size' // Apply custom class to override scaling
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Update status to "Cancelled"
+                const statusCell = row.querySelector('td:nth-child(7)');
+                statusCell.textContent = 'Cancelled';
+
+                // Disable all buttons in the action cell
+                const actionCell = row.querySelector('td:nth-child(8)');
+                actionCell.querySelectorAll('button').forEach((btn) => {
+                    btn.disabled = true;
+                });
+
+                // Send an AJAX request to cancel the reservation
+                fetch(`/cancel-reservation/${reservationId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.success) {
+                        Swal.fire({
+                            title: "Cancelled!",
+                            text: "Your reservation has been cancelled.",
+                            icon: "success",
+                            confirmButtonColor: "#3085d6",
+                            customClass: {
+                                popup: 'swal-default-size'
+                            }
+                        }).then(() => {
+                            // Reload to reflect changes
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire("Error!", "Failed to cancel the reservation.", "error");
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                    Swal.fire("Error!", "Something went wrong.", "error");
+                });
+            }
         });
-    }
-  });
+    });
+});
 
-  });
 
   document.addEventListener("DOMContentLoaded", function () {
     let tableBody = document.getElementById("reservationsBody");
@@ -1280,5 +1351,9 @@ const reservationDateInput = document.getElementById('reservation_date');
     // Reapply filter when dropdown changes
     statusFilter.addEventListener("change", applyFilter);
 });
+
+
+
+
 </script>
 {% endblock %}
