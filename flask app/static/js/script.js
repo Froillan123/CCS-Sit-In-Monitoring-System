@@ -315,7 +315,7 @@ fetchActivityBreakdown();
 const socketURL =
     window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
         ? 'http://localhost:5000' // Local WebSocket URL
-        : 'https://css-sit-in-monitoring-system.onrender.com'; // Render WebSocket URL
+        : 'https://ccs-sit-in-monitoring-system.onrender.com'; // Render WebSocket URL
 
 const socket = io(socketURL, {
     transports: ['websocket'],  // Force WebSocket transport
