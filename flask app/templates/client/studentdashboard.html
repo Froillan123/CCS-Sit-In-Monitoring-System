@@ -1,6 +1,9 @@
 {% extends 'client/clientbase.html' %}
 
 {% block content %}
+
+<meta charset="UTF-8">
+
 <style>
   :root
   {
@@ -17,6 +20,14 @@
     width: auto !important; /* Default width */
     max-width: 400px !important; /* Prevent excessive scaling */
 }
+
+.bot-name {
+    font-weight: bold;
+    font-size: 1.4rem; /* Slightly larger font */
+    color: var(--first-color); /* Ensure visibility */
+    text-transform: uppercase; /* Make it stand out */
+    margin-right: 0.5rem;
+  }
 
 
 /* Smaller screens (e.g., mobile devices) */
@@ -35,6 +46,10 @@
       }
 }
 
+
+.bot-icon {
+      margin-right: 5px;
+    }
 /* Chat Modal */
 .chat-modal {
     position: fixed;
@@ -68,11 +83,12 @@
 
 .chat-modal-header h3 {
     margin: 0;
-    font-size: 1.2rem;
+    font-size: 1.5rem;
+    font-weight: 500;
 }
 
 .close-btn {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
     cursor: pointer;
     transition: color 0.3s ease;
 }
@@ -802,8 +818,10 @@
 
       <div class="chat-modal" id="chatModal">
         <div class="chat-modal-header">
-            <h3>Chat with Us</h3>
-            <span class="close-btn" onclick="toggleChat()">&times;</span>
+          <h3><i class="fas fa-robot bot-icon"></i>CCS BOT</h3>
+            <span class="close-btn" onclick="toggleChat()">
+              <i class="fas fa-times" style="font-size: 2rem;"></i>
+            </span>
         </div>
         <div class="chat-modal-body">
             <div class="chat-messages" id="chatMessages">
@@ -1393,64 +1411,133 @@ progressBars.forEach(progressBar => {
     }
 });
 
-document.getElementById('reservationForm').addEventListener('submit', async function (e) {
-    e.preventDefault();
+document.addEventListener('DOMContentLoaded', function () {
+  const reservationDateInput = document.getElementById('reservation_date');
+  const timeInInput = document.getElementById('time_in');
+  const timeOutInput = document.getElementById('time_out');
+  const timeError = document.getElementById('timeError');
 
-    const formData = new FormData(this);
+  // Set the reservation date to today's date and disable editing
+  const today = new Date().toISOString().split('T')[0];
+  reservationDateInput.value = today;
+  reservationDateInput.readOnly = true;
 
-    // Convert reservation_date to YYYY-MM-DD
-    const dateInput = document.getElementById('reservation_date');
-    const formattedDate = new Date(dateInput.value).toISOString().split('T')[0];
-    formData.set('reservation_date', formattedDate);
+  // Validate time-out on input change
+  timeOutInput.addEventListener('change', function () {
+    const timeIn = timeInInput.value;
+    const timeOut = this.value;
 
-    try {
-        const response = await fetch('/reservations', {
-            method: 'POST',
-            body: formData
-        });
+    // Convert time strings to Date objects for comparison
+    const timeInDate = new Date(`1970-01-01T${timeIn}:00`);
+    const timeOutDate = new Date(`1970-01-01T${timeOut}:00`);
 
-        const result = await response.json();
+    // Calculate the difference in hours
+    const timeDifference = (timeOutDate - timeInDate) / (1000 * 60 * 60);
 
-        if (result.status === 'success') {
-            Swal.fire({
-                title: "Success!",
-                text: result.message,
-                icon: "success",
-                confirmButtonColor: "#3085d6",
-                customClass: {
-                    popup: 'swal-default-size' // Apply custom class
-                }
-            }).then(() => {
-                location.reload(); // Refresh the page
-            });
-        } else {
-            Swal.fire({
-                title: "Error!",
-                text: result.message,
-                icon: "error",
-                confirmButtonColor: "#d33",
-                customClass: {
-                    popup: 'swal-default-size'
-                }
-            });
-        }
-    } catch (error) {
-        Swal.fire({
-            title: "Error!",
-            text: "An error occurred while submitting the form.",
-            icon: "error",
-            confirmButtonColor: "#d33",
-            customClass: {
-                popup: 'swal-default-size'
-            }
-        });
+    if (timeOut <= timeIn) {
+      timeError.style.display = 'block';
+      timeError.textContent = 'Time Out must be after Time In.';
+      this.setCustomValidity('Time Out must be after Time In.');
+    } else if (timeDifference > 3) {
+      timeError.style.display = 'block';
+      timeError.textContent = 'Maximum reservation duration is 3 hours.';
+      this.setCustomValidity('Maximum reservation duration is 3 hours.');
+    } else {
+      timeError.style.display = 'none';
+      this.setCustomValidity('');
     }
+  });
+
+  // Validate time-in on input change
+  timeInInput.addEventListener('change', function () {
+    const timeIn = this.value;
+    const timeOut = timeOutInput.value;
+
+    // Convert time strings to Date objects for comparison
+    const timeInDate = new Date(`1970-01-01T${timeIn}:00`);
+    const timeOutDate = new Date(`1970-01-01T${timeOut}:00`);
+
+    // Calculate the difference in hours
+    const timeDifference = (timeOutDate - timeInDate) / (1000 * 60 * 60);
+
+    if (timeOut && timeOut <= timeIn) {
+      timeError.style.display = 'block';
+      timeError.textContent = 'Time Out must be after Time In.';
+      timeOutInput.setCustomValidity('Time Out must be after Time In.');
+    } else if (timeOut && timeDifference > 3) {
+      timeError.style.display = 'block';
+      timeError.textContent = 'Maximum reservation duration is 3 hours.';
+      timeOutInput.setCustomValidity('Maximum reservation duration is 3 hours.');
+    } else {
+      timeError.style.display = 'none';
+      timeOutInput.setCustomValidity('');
+    }
+  });
 });
 
+document.getElementById('reservationForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+
+  const formData = new FormData(this);
+
+  try {
+    const response = await fetch('/reservations', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (result.status === 'success') {
+      Swal.fire({
+        title: 'Success!',
+        text: result.message,
+        icon: 'success',
+        confirmButtonColor: '#3085d6',
+        customClass: {
+          popup: 'swal-default-size',
+        },
+      }).then(() => {
+        location.reload(); // Refresh the page
+      });
+    } else {
+      Swal.fire({
+        title: 'Error!',
+        text: result.message,
+        icon: 'error',
+        confirmButtonColor: '#d33',
+        customClass: {
+          popup: 'swal-default-size',
+        },
+      });
+    }
+  } catch (error) {
+    Swal.fire({
+      title: 'Error!',
+      text: 'An error occurred while submitting the form.',
+      icon: 'error',
+      confirmButtonColor: '#d33',
+      customClass: {
+        popup: 'swal-default-size',
+      },
+    });
+  }
+});
+
+  // Prevent form submission if there are validation errors
+  document.getElementById('reservationForm').addEventListener('submit', function (event) {
+    if (!this.checkValidity()) {
+      event.preventDefault();
+    }
+  });
 
 
-  // JavaScript to handle the SPA behavior
-  document.getElementById('viewReservationsBtn').addEventListener('click', function() {
+
+
+
+
+   // JavaScript to handle the SPA behavior
+   document.getElementById('viewReservationsBtn').addEventListener('click', function() {
     // Hide the reservation form
     document.getElementById('reservations').style.display = 'none';
     // Show the reservations table
@@ -1465,66 +1552,6 @@ document.getElementById('reservationForm').addEventListener('submit', async func
     document.getElementById('reservations').style.display = 'block';
   });
  
-
-
-const reservationDateInput = document.getElementById('reservation_date');
-  const timeInInput = document.getElementById('time_in');
-  const timeOutInput = document.getElementById('time_out');
-  const dateError = document.getElementById('dateError');
-  const timeError = document.getElementById('timeError');
-
-  // Set the minimum date to today
-  const today = new Date().toISOString().split('T')[0];
-  reservationDateInput.setAttribute('min', today);
-
-  // Validate date on input change
-  reservationDateInput.addEventListener('change', function () {
-    const selectedDate = new Date(this.value);
-    const currentDate = new Date();
-
-    if (selectedDate < currentDate) {
-      dateError.style.display = 'block';
-      this.setCustomValidity('You cannot select a past date.');
-    } else {
-      dateError.style.display = 'none';
-      this.setCustomValidity('');
-    }
-  });
-
-  // Validate time-out on input change
-  timeOutInput.addEventListener('change', function () {
-    const timeIn = timeInInput.value;
-    const timeOut = this.value;
-
-    if (timeOut <= timeIn) {
-      timeError.style.display = 'block';
-      this.setCustomValidity('Time Out must be after Time In.');
-    } else {
-      timeError.style.display = 'none';
-      this.setCustomValidity('');
-    }
-  });
-
-  // Validate time-in on input change
-  timeInInput.addEventListener('change', function () {
-    const timeIn = this.value;
-    const timeOut = timeOutInput.value;
-
-    if (timeOut && timeOut <= timeIn) {
-      timeError.style.display = 'block';
-      timeOutInput.setCustomValidity('Time Out must be after Time In.');
-    } else {
-      timeError.style.display = 'none';
-      timeOutInput.setCustomValidity('');
-    }
-  });
-
-  // Prevent form submission if there are validation errors
-  document.getElementById('reservationForm').addEventListener('submit', function (event) {
-    if (!this.checkValidity()) {
-      event.preventDefault();
-    }
-  });
 
 
 
@@ -1703,14 +1730,26 @@ function addMessage(sender, message) {
     messageDiv.classList.add('message', `${sender}-message`);
 
     // Add sender name and student ID (if user)
-    const senderName = sender === 'bot' ? 'CCS BOT' : `User (ID: ${studentIdno})`;
+    const senderName = sender === 'bot' ? 
+        `<span class="bot-name">CCS BOT</span>` : 
+        `User (ID: ${studentIdno})`;
+
     const messageContent = document.createElement('div');
     messageContent.classList.add('message-content');
+    
+    // Ensure that message is correctly inserted as HTML to display the emoji
     messageContent.innerHTML = `<strong>${senderName}:</strong> ${message}`;
 
     messageDiv.appendChild(messageContent);
+
+    // If sender is bot, apply the 'bot-message' class to style it
+    if (sender === 'bot') {
+        messageDiv.classList.add('bot-message');
+    }
+
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll to the latest message
 }
+
 </script>
 {% endblock %}

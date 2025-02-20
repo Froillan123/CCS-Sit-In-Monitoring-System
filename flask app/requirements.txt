@@ -17,3 +17,5 @@ gevent-websocket
 openai
 deepai
 fuzzywuzzy
+Levenshtein
+regex

@@ -1,0 +1,43 @@
+{
+  "INTENTS": {
+
+    "reservation": [
+        "reservation", "book", "schedule", "reserve", "time slot", "make a booking", 
+        "book a lab", "help me for reserving", "i want to reserve", "i need to book", 
+        "can i reserve", "can i book", "make a reservation"
+    ],
+    "program_request": ["make me a program", "hello world", "create a program", "help me with a program", "write me a program"],
+    "sit_in_rules": ["sit-in", "sit in", "lab rules", "rules", "guidelines", "lab policies", "lab regulations"],
+    "greeting": ["hi", "hello", "hey", "good morning", "good afternoon", "greetings", "what's up"],
+    "cancel_reservation": ["cancel reservation", "remove reservation", "how to cancel", "cancel my booking", "cancel my slot"],
+    "update_profile": ["update profile", "change profile", "edit profile", "modify profile", "update my info", "change my details"],
+    "lab_availability": ["lab availability", "lab schedule", "lab hours", "when is the lab open", "lab timings", "lab open hours"],
+    "announcements": ["announcements", "news", "updates", "latest news", "what's new", "any updates"],
+    "logout": ["logout", "sign out", "log out", "how to logout", "exit", "sign off"],
+    "help": ["help", "support", "assistance", "what can you do", "how can you help", "need help"],
+    "activity_breakdown": ["activity breakdown", "my activity", "semester activity", "what have i done", "my reservations", "show my activity", "activity this sem", "activity this semester"],
+    "capabilities": ["what can you do", "your capabilities", "what are your features", "what do you do", "your functions"],
+    "unknown": ["unknown", "not sure", "no idea", "don't know"],
+    "session_left": ["how many sessions do I have left?", "my sessions left", "remaining sessions", "how many sessions"],
+    "session_history": ["my session history", "show my session history", "session history", "history of my sessions"],
+    "weekly_usage": ["my weekly session", "weekly usage", "show my weekly usage", "weekly session summary"],
+    "equipment_issues": ["equipment not working", "broken equipment", "report equipment issue", "computer not working", "printer issue", "scanner issue"],
+    "lab_assistance": ["need help in the lab", "lab assistance", "help in the lab", "lab support", "technical assistance"],
+    "feedback": ["give feedback", "submit feedback", "lab feedback", "suggestions", "complaints"],
+    "contact_admin": ["contact admin", "reach admin", "admin support", "talk to admin", "admin help"],
+    "lab_resources": ["lab resources", "available software", "installed tools", "lab tools", "what software is available"],
+    "lab_safety": ["lab safety", "safety guidelines", "emergency procedures", "safety protocols", "what to do in emergency"],
+    "lab_etiquette": ["lab etiquette", "proper behavior in lab", "lab manners", "how to behave in lab"],
+    "lab_access": ["lab access", "who can use the lab", "lab eligibility", "can I use the lab", "lab usage policy"],
+    "faq": ["faq", "frequently asked questions", "common questions", "lab faq"],
+    "thank_you": ["thank you", "thanks", "appreciate it", "thank you so much"],
+    "goodbye": ["goodbye", "bye", "see you", "take care"],
+    "lab_events": ["lab events", "upcoming events", "events in lab", "lab workshops", "lab seminars"],
+    "lab_training": ["lab training", "training sessions", "lab orientation", "how to use lab equipment"],
+    "lab_booking_policy": ["booking policy", "reservation rules", "how to book lab", "booking guidelines"],
+    "lab_capacity": ["lab capacity", "how many people can use lab", "maximum lab users", "lab seating capacity"],
+    "lab_cleanliness": ["lab cleanliness", "clean lab policy", "keeping lab clean", "lab hygiene"],
+    "lab_emergency": ["lab emergency", "emergency contact", "what to do in lab emergency", "lab emergency procedures"],
+    "delete_chat_history": ["delete history"]
+  }
+}

@@ -291,7 +291,7 @@ def get_student_session_history(student_idno: str, limit: int = 30) -> list:
     sql = """
         SELECT * FROM session_history
         WHERE student_idno = ?
-        ORDER BY id DESC
+        ORDER BY id 
         LIMIT ?
     """
     return getprocess(sql, (student_idno, limit))
