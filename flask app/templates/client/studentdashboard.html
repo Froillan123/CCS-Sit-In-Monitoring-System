@@ -467,9 +467,7 @@
           </div>
           
         </div>
-
-
-
+        
     <div id="profile" class="dashboard-section" style="display: none;">
       <div class="profile-container">
         <div class="profile-card">
@@ -502,16 +500,16 @@
                 <label for="editable-midname"><i class="fas fa-user"></i> Middle Name:</label>
                 <input type="text" id="editable-midname" value="{{ student.midname }}" />
               </div>
-              <div class="detail-item">
-                <label for="editable-course"><i class="fas fa-graduation-cap"></i> Course:</label>
-                <input type="text" id="editable-course" value="{{ student.course }}" readonly/>
-              </div>
-            </div>
-            <div class="detail-row">
-              <div class="detail-item">
-                <label for="editable-year-level"><i class="fas fa-calendar-alt"></i> Year Level:</label>
-                <input type="text" id="editable-year-level" value="{{ student.year_level }}" />
-              </div>
+                    <div class="detail-item">
+                      <label for="editable-course"><i class="fas fa-graduation-cap"></i> Course:</label>
+                      <input type="text" id="editable-course" value="{{ student.course }}"/>
+                    </div>
+                  </div>
+                  <div class="detail-row">
+                    <div class="detail-item">
+                      <label for="editable-year-level"><i class="fas fa-calendar-alt"></i> Year Level:</label>
+                      <input type="text" id="editable-year-level" value="{{ student.year_level }}" />
+                    </div>
               <div class="detail-item">
                 <label for="editable-email"><i class="fas fa-envelope"></i> Email:</label>
                 <input type="email" id="editable-email" value="{{ student.email }}" />

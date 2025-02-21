@@ -18,7 +18,7 @@
     "activity_breakdown": ["activity breakdown", "my activity", "semester activity", "what have i done", "my reservations", "show my activity", "activity this sem", "activity this semester"],
     "capabilities": ["what can you do", "your capabilities", "what are your features", "what do you do", "your functions"],
     "unknown": ["unknown", "not sure", "no idea", "don't know"],
-    "session_left": ["how many sessions do I have left?", "my sessions left", "remaining sessions", "how many sessions"],
+    "session_left": ["how many sessions do I have left?", "my sessions left", "remaining sessions", "how many sessions", "Can you tell me how many sessions I have left?"],
     "session_history": ["my session history", "show my session history", "session history", "history of my sessions"],
     "weekly_usage": ["my weekly session", "weekly usage", "show my weekly usage", "weekly session summary"],
     "equipment_issues": ["equipment not working", "broken equipment", "report equipment issue", "computer not working", "printer issue", "scanner issue"],

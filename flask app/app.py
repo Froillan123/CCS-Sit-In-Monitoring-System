@@ -37,16 +37,13 @@ def chat():
     message = data['message']
     student_idno = data['student_idno']
 
-    # Save user message to the database
     conn = get_db_connection()
     conn.execute('INSERT INTO chat_history (student_idno, message, sender) VALUES (?, ?, ?)',
                  (student_idno, message, 'user'))
     conn.commit()
 
-    # Get custom chatbot response
-    reply = get_response(message, session)  # Pass session to get_response
+    reply = get_response(message, session) 
 
-    # Save bot message to the database
     conn.execute('INSERT INTO chat_history (student_idno, message, sender) VALUES (?, ?, ?)',
                  (student_idno, reply, 'bot'))
     conn.commit()
@@ -241,7 +238,6 @@ def student_dashboard():
 @app.route('/cancel-reservation/<int:reservation_id>', methods=['POST'])
 def cancel_reservation(reservation_id):
     try:
-        # Delete the reservation from the database
         success = delete_record('reservations', id=reservation_id)
         
         if success:
@@ -265,7 +261,7 @@ def update_profile():
         data = json.loads(data)
         username = session['user_username']
 
-        update_record('students', username=username, firstname=data['firstname'], lastname=data['lastname'], midname=data['midname'], course=data['course'], year_level=data['year_level'], email=data['email'])
+        update_record('students', username=data['username'], firstname=data['firstname'], lastname=data['lastname'], midname=data['midname'], course=data['course'], year_level=data['year_level'], email=data['email'])
 
         if 'profile_picture' in request.files:
             file = request.files['profile_picture']
@@ -314,7 +310,6 @@ def register():
         username = request.form.get('username')
         password = request.form.get('password')
 
-        # Validate required fields
         if not all([idno, lastname, firstname, course, username, password]):
             flash("All fields are required.", 'error')
             return redirect(url_for('login'))
@@ -342,7 +337,6 @@ def register():
             'profile_picture': 'default.png'  
         }
 
-        # Add student record to the database
         if add_record('students', **student_data):
             flash("Registration successful!", 'success')
             return redirect(url_for('login'))
@@ -430,7 +424,7 @@ def sse_active_users():
             time.sleep(0.1)
 
     response = Response(event_stream(), mimetype="text/event-stream")
-    response.headers["X-Accel-Buffering"] = "no"  # Disable buffering
+    response.headers["X-Accel-Buffering"] = "no"  
     response.headers["Cache-Control"] = "no-cache"
     response.headers["Connection"] = "keep-alive"
     return response
@@ -511,7 +505,6 @@ def admin_register():
         email = request.form.get('email')
         name = request.form.get('name')
 
-        # Validate secret key
         if secret_key != "kimperor123":
             flash("Unauthorized access!", 'error')
             return render_template('admin/adminregister.html')
@@ -579,7 +572,7 @@ def create_announcement():
 @app.route('/get_announcement/<int:announcement_id>', methods=['GET'])
 def get_announcement(announcement_id):
     try:
-        announcement = get_announcement_by_id(announcement_id)  # Ensure this function exists
+        announcement = get_announcement_by_id(announcement_id)
         return jsonify(announcement)
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})

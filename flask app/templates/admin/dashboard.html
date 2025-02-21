@@ -38,6 +38,15 @@
                     <span class="material-icons-sharp">dashboard</span>
                     <h3>Dashboard</h3>
                 </a>
+                 <!-- New Student Reservation Link with Cool Icon -->
+                 <a href="#" data-section="reservation">
+                    <span class="material-icons-sharp">remove_red_eye</span>
+                    <h3>View Reservation</h3>
+                </a>
+                <a href="#" data-section="active-users">
+                    <span class="material-icons-sharp">people_alt</span>
+                    <h3>Active Users</h3>
+                </a>
                 <a href="#" data-section="users">
                     <span class="material-icons-sharp">person_outline</span>
                     <h3>Users</h3>
@@ -46,18 +55,13 @@
                     <span class="material-icons-sharp">receipt_long</span>
                     <h3>History</h3>
                 </a>
-                <a href="#" data-section="settings">
-                    <span class="material-icons-sharp">settings</span>
-                    <h3>Settings</h3>
-                </a>
                 <a href="#" data-section="announcement">
                     <span class="material-icons-sharp">campaign</span>
                     <h3>Announcement</h3>
                 </a>
-                <!-- New Student Reservation Link with Cool Icon -->
-                <a href="#" data-section="reservation">
-                    <span class="material-icons-sharp">event_seat</span>
-                    <h3>Student Reservation</h3>
+                <a href="#" data-section="settings">
+                    <span class="material-icons-sharp">settings</span>
+                    <h3>Settings</h3>
                 </a>
                 <!-- Logout Link (No data-section attribute) -->
                 <a href="{{ url_for('adminLogout') }}">
@@ -72,7 +76,7 @@
         <main>
             <!-- Dashboard Section -->
             <div id="dashboard" class="dashboard-section">
-                <h1>Analytics</h1>
+                <h1>Admin Dashboard</h1>
                 <!-- Analyses -->
                 <div class="analyse">
                     <div class="all_users">
@@ -93,7 +97,7 @@
                     <div class="visits">
                         <div class="status">
                             <div class="info">
-                                <h3>Active Users</h3>
+                                <h3>Total Active Users</h3>
                                 <h1 class="analytics" id="active-users-count">{{ active_students_count }}</h1>
                             </div>
                             <div class="progresss"></div>
@@ -250,6 +254,11 @@
                     {% endfor %}
                   </tbody>
                 </table>
+              </div>
+
+
+              <div id="active-users" class="dashboard-section">
+                <h1>Active Users</h1>
               </div>
         </main>
         <!-- End of Main Content -->

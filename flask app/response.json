@@ -19,7 +19,7 @@
       "update_profile": "To update your profile, head to the 'Profile' section and click 'Edit Profile'.",
       "lab_availability": "The lab is open from 8:00 AM to 8:00 PM on weekdays.",
       "announcements": "Check out the latest updates in the 'Announcements' section.",
-      "logout": "To log out, click the 'Logout' button in the top-right corner of the dashboard.",
+      "logout": "To log out, click the 'Logout' button in the bottom-left corner of the sidebar.",
       "help": "How can I help? You can ask me about reservations, lab rules, profile updates, and more.",
       "activity_breakdown": "Here's your activity breakdown for the semester:",
       "capabilities": "Here's what I can do:\n- Help you make or cancel reservations.\n- Provide info on lab rules and availability.\n- Show your activity breakdown for the semester.\n- Update your profile.\n- Log you out of the system.\n- Share announcements and updates.\nFeel free to ask me anything related to these topics!",
@@ -41,6 +41,6 @@
       "lab_capacity": "The lab can accommodate up to 30 users at a time. Be sure to book your slot ahead of time.",
       "lab_cleanliness": "Help us keep the lab clean:\n1. Dispose of trash properly.\n2. Wipe down your workspace after use.\n3. Report any spills or messes.",
       "lab_emergency": "In case of an emergency:\n1. Stay calm.\n2. Follow the instructor's directions.\n3. Use the emergency exits if necessary.\n4. Contact security at 123-456-7890.",
-      "delete_chat_history": "Your chat history has been successfully deleted."
+      "delete_chat_history": "Your chat history has been successfully deleted. Please refresh the page"
     }
   }

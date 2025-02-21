@@ -964,7 +964,7 @@ img {
 
 #labUsageChart {
   width: 100% !important; /* Ensure chart fills the container */
-  height: 500px !important; 
+  height: 400px !important; 
 }
 @media (max-width: 1114px)
 {

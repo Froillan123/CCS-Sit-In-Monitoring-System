@@ -6,6 +6,7 @@ import sqlite3
 import regex 
 from requests.exceptions import RequestException
 import requests
+
 API_KEY = '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'
 
 import json
