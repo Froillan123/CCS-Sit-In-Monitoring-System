@@ -1,0 +1,384 @@
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css');
+    :root {
+      --surface-color: #1e1e2f; /* Dark background for cards and sidebar */
+      --background-color: #121212; /* Dark background for the body */
+      --text-color: #ffffff; /* White text for better contrast */
+      --first-color: hsl(273, 77%, 65%); /* Updated primary color */
+      --secondary-color: #8392ab; /* Lighter text for secondary elements */
+      --success-color: #82d616;
+      --info-color: #17c1e8;
+      --warning-color: #fbcf33;
+      --danger-color: #ea0606;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Helvetica', sans-serif;
+    }
+
+    body {
+      background-color: var(--background-color);
+      color: var(--text-color);
+      min-height: 100vh;
+    }
+
+    .dashboard {
+      display: flex;
+      min-height: 100vh;
+      flex-wrap: wrap;
+    }
+
+    .sidebar {
+      width: 250px;
+      background: var(--surface-color);
+      padding: 1.5rem;
+      position: fixed;
+      height: 100%;
+      box-shadow: 0 20px 27px 0 rgb(0 0 0 / 10%);
+    }
+
+    .logo {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-color);
+      margin-bottom: 2rem;
+      padding: 0.5rem;
+    }
+
+    .nav-item {
+      list-style: none;
+      margin: 0.75rem 0;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      color: var(--secondary-color);
+      text-decoration: none;
+      border-radius: 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .nav-link:hover {
+      background: rgba(203, 12, 159, 0.1);
+      color: var(--first-color); /* Use the updated primary color */
+    }
+
+    .main-content {
+      margin-left: 250px;
+      padding: 2rem;
+      width: calc(100% - 250px);
+      flex: 1;
+    }
+
+    .header {
+      margin-bottom: 2rem;
+    }
+
+    .welcome-text {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-color);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--surface-color);
+      padding: 1rem;
+      border-radius: 1rem;
+      box-shadow: 0 20px 27px 0 rgb(0 0 0 / 10%);
+    }
+
+    .stat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 10%);
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+      color: var(--secondary-color);
+      font-size: 0.875rem;
+    }
+
+    .chart-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr); /* 2 columns for large screens */
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    /* Responsive Styles for Smaller Screens */
+    @media (max-width: 768px) {
+    .chart-grid {
+        grid-template-columns: repeat(1, 1fr); /* 1 column for mobile */
+    }
+    }
+
+    .chart-card {
+      background: var(--surface-color);
+      padding: 1.5rem;
+      border-radius: 1rem;
+      box-shadow: 0 20px 27px 0 rgb(0 0 0 / 10%);
+    }
+
+    .chart-header {
+      margin-bottom: 1rem;
+    }
+
+    .chart-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+
+    .table-container {
+  background: var(--surface-color);
+  padding: 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 20px 27px 0 rgb(0 0 0 / 10%);
+  overflow: hidden; /* Ensure the container doesn't overflow */
+}
+
+.table-scroll {
+  overflow-y: auto; /* Enable vertical scrolling */
+  max-height: 400px; /* Set a max height for the scrollable area */
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Lighter border for dark mode */
+}
+
+th {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+td {
+  color: var(--secondary-color);
+}
+
+/* Responsive Styles for Table */
+@media (max-width: 768px) {
+  .table-scroll {
+    max-height: 300px;
+    width: auto; /* Adjust height for smaller screens */
+  }
+  .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+}
+
+    canvas {
+      width: 100% !important; /* Ensures canvas is responsive */
+      height: 300px !important;
+    }
+
+
+    /* Add this to your existing CSS */
+.download-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  margin-top: 2rem;
+}
+
+.download-btn {
+  background-color: var(--first-color);
+  color: var(--surface-color);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+}
+
+.download-btn:hover {
+  background-color: rgba(203, 12, 159, 0.8);
+}
+
+.reports-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5rem;
+}
+
+.reports-table th,
+.reports-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.reports-table th {
+  background-color: rgba(203, 12, 159, 0.1);
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+.reports-table td {
+  color: var(--secondary-color);
+}
+
+.reports-table tr:hover {
+  background-color: rgba(203, 12, 159, 0.05);
+}
+
+    @media (max-width: 1200px) {
+      .sidebar {
+        width: 150px;
+      }
+      .main-content {
+        margin-left: 200px;
+        width: calc(100% - 200px);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+        box-shadow: none;
+      }
+      .main-content {
+        margin-left: 0;
+        width: 100%;
+      }
+      .dashboard {
+        flex-direction: column;
+      }
+    }
+
+    /* Sidebar Styles */
+.sidebar {
+  width: 250px;
+  background: var(--surface-color);
+  padding: 1.5rem;
+  position: fixed;
+  height: 100%;
+  box-shadow: 0 20px 27px 0 rgb(0 0 0 / 10%);
+  transition: width 0.3s ease;
+}
+
+.sidebar.collapsed {
+  width: 80px; /* Shrink to icons only */
+}
+
+.sidebar.collapsed .nav-link span {
+  display: none; /* Hide text when collapsed */
+}
+
+.sidebar .nav-link {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  color: var(--secondary-color);
+  text-decoration: none;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.sidebar .nav-link i {
+  margin-right: 1rem;
+  font-size: 1.25rem;
+}
+
+.sidebar .nav-link:hover {
+  background: rgba(203, 12, 159, 0.1);
+  color: var(--first-color);
+}
+
+/* Sidebar Toggle Button */
+.sidebar-toggle {
+  display: none; /* Hidden by default */
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  background: var(--surface-color);
+  color: var(--text-color);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  z-index: 1000;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 10%);
+}
+
+.sidebar-toggle i {
+  font-size: 1.25rem;
+}
+
+/* Responsive Styles */
+@media (max-width: 1200px) {
+  .sidebar {
+    width: 200px;
+  }
+  .main-content {
+    margin-left: 200px;
+    width: calc(100% - 200px);
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 80px; /* Collapse sidebar by default on mobile */
+  }
+  .sidebar.collapsed {
+    width: 80px; /* Ensure it stays collapsed */
+  }
+  .sidebar .nav-link span {
+    display: none; /* Hide text on mobile */
+  }
+  .main-content {
+    margin-left: 80px;
+    width: calc(100% - 80px);
+  }
+  .sidebar-toggle {
+    display: block; /* Show toggle button on mobile */
+  }
+  .logo
+  {
+    display: none;
+  }
+  .reports-table
+  {
+    width: 250px;
+  }
+}

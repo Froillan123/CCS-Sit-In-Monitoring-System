@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Froillan Kim - Portfolio</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <style>
+    /* General Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  background: #0f0f1a;
+  color: #ffffff;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+/* Navigation */
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(15, 15, 26, 0.9);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+nav.sticky {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+nav .logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  background: linear-gradient(45deg, #009ffd, #ffffff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+nav ul {
+  display: flex;
+  list-style: none;
+  gap: 2rem;
+}
+
+nav ul li a {
+  color: #ffffff;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+nav ul li a:hover {
+  color: #009ffd;
+}
+
+.hamburger {
+  display: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  nav ul {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: rgba(15, 15, 26, 0.9);
+    padding: 1rem;
+  }
+
+  nav ul.active {
+    display: flex;
+  }
+
+  .hamburger {
+    display: block;
+  }
+}
+
+/* Enhanced Starry Background */
+.stars-container {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.star {
+  position: absolute;
+  background: white;
+  border-radius: 50%;
+  animation: twinkle var(--duration) ease-in-out infinite;
+  opacity: 0;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0; transform: scale(0.3); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* Gradient Overlay */
+.gradient-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, #2a2a72 0%, transparent 100%);
+  opacity: 0.1;
+  z-index: -1;
+}
+
+/* Profile Section */
+.profile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6rem 2rem 4rem;
+  min-height: 100vh;
+}
+
+.profile-content {
+  max-width: 50%;
+  margin-left: 12rem;
+}
+
+.profile-image-container {
+  position: relative;
+}
+
+.profile-image {
+  width: 450px;
+  height: auto;
+  border-radius: 50%;
+  border: 4px solid #009ffd;
+  box-shadow: 0 0 20px rgba(0, 159, 253, 0.3);
+  transition: all 0.3s ease;
+  animation: float 6s ease-in-out infinite;
+  margin-right: 5rem;
+}
+
+.profile-image-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 159, 253, 0.3), transparent 70%);
+  animation: glow 3s ease-in-out infinite;
+}
+
+
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+    /* Responsive Design for Profile Section */
+    @media (max-width: 1440px) {
+      .profile-content {
+        margin-left: 8rem;
+      }
+
+      .profile-image {
+        width: 400px;
+        margin-right: 4rem;
+      }
+    }
+
+    @media (max-width: 1200px) {
+      .profile-content {
+        margin-left: 6rem;
+      }
+
+      .profile-image {
+        width: 350px;
+        margin-right: 3rem;
+      }
+    }
+
+    @media (max-width: 992px) {
+      .profile-content {
+        margin-left: 4rem;
+      }
+
+      .profile-image {
+        width: 300px;
+        margin-right: 2rem;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .profile {
+        flex-direction: column;
+        text-align: center;
+        padding: 6rem 2rem 2rem;
+      }
+
+      .profile-content {
+        max-width: 100%;
+        margin-left: 0;
+      }
+
+      .profile-image {
+        width: 250px;
+        margin-top: 2rem;
+        margin-right: 0;
+      }
+
+      .auto-text {
+        font-size: 1.5rem;
+      }
+    }
+
+.auto-text {
+  font-size: 2rem;
+  margin-top: 1rem;
+  background: linear-gradient(45deg, #009ffd, #ffffff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.about-me {
+      margin-top: 2rem;
+      font-size: 1.1rem;
+      line-height: 1.8;
+    }
+
+    /* About Section */
+    .about {
+      padding: 4rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      margin-top: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .about h2 {
+      text-align: center;
+      margin-bottom: 2rem;
+      font-size: 2rem;
+      background: linear-gradient(45deg, #009ffd, #ffffff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .about-content {
+      display: grid;
+      gap: 2rem;
+    }
+
+    .about-skills {
+      margin-top: 2rem;
+    }
+
+    .about-skills h3 {
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+      color: #009ffd;
+    }
+
+    .about-skills ul {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+    }
+
+    .about-skills ul li {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 1rem;
+      border-radius: 10px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .about-skills ul li:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-5px);
+    }
+
+
+/* Services Section */
+.services {
+  padding: 4rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.services h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 2rem;
+}
+
+.frameworks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+}
+
+.framework-box {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2rem;
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+  text-align: center;
+  transition: all 0.4s ease;
+}
+
+.framework-box:hover {
+  transform: translateY(-10px);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 20px rgba(0, 159, 253, 0.2);
+}
+
+.framework-box i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(45deg, #009ffd, #ffffff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Projects Section */
+.projects {
+  padding: 4rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.projects h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 2rem;
+  background: linear-gradient(45deg, #009ffd, #ffffff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.swiper {
+  width: 100%;
+  height: 100%;
+}
+
+.project-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+  transition: all 0.4s ease;
+  height: 400px; /* Adjusted height to accommodate images */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.project-card:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.project-card h3 {
+  color: #009ffd;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.project-card p {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.project-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+/* Contact Section */
+.contact {
+  padding: 4rem 2rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.contact h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 2rem;
+}
+
+.contact form {
+  display: grid;
+  gap: 1rem;
+}
+
+.contact input,
+.contact textarea {
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  color: #ffffff;
+  transition: all 0.3s ease;
+}
+
+.contact input:focus,
+.contact textarea:focus {
+  outline: none;
+  border-color: #009ffd;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.contact button {
+  padding: 1rem;
+  background: #009ffd;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.contact button:hover {
+  background: #007bb5;
+}
+
+
+ /* Footer */
+ footer {
+      padding: 2rem;
+      background: rgba(15, 15, 26, 0.9);
+      backdrop-filter: blur(10px);
+      text-align: center;
+      margin-top: 4rem;
+    }
+
+    footer .social-links {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    footer .social-links a {
+      color: #ffffff;
+      font-size: 1.5rem;
+      transition: all 0.3s ease;
+    }
+
+    footer .social-links a:hover {
+      color: #009ffd;
+    }
+
+    footer p {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .profile {
+    flex-direction: column;
+    text-align: center;
+    padding: 6rem 2rem 2rem;
+  }
+
+  .profile-content {
+    max-width: 100%;
+    margin-left: 0;
+  }
+
+  .profile-image {
+    width: 250px;
+    margin-top: 2rem;
+    margin-right: 0;
+  }
+
+  .auto-text {
+    font-size: 1.5rem;
+  }
+
+  .frameworks {
+    grid-template-columns: 1fr;
+  }
+
+  .project-card {
+    height: auto;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 12px; /* Width of the scrollbar */
+}
+
+/* Track (background of the scrollbar) */
+::-webkit-scrollbar-track {
+  background: #0f0f1a; /* Matches the black background */
+  border-radius: 10px;
+}
+
+/* Handle (the draggable part of the scrollbar) */
+::-webkit-scrollbar-thumb {
+  background: #009ffd; /* Matches your secondary color */
+  border-radius: 10px;
+  border: 3px solid #0f0f1a; /* Adds a border to blend with the background */
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #007bb5; /* Darker shade for hover effect */
+}
+  </style>
+</head>
+<body>
+    <nav>
+      <div class="logo">Portfolio</div>
+      <ul>
+        <li><a href="#profile">Home</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#services">Services</a></li>
+        <li><a href="#projects">Portfolio</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+      <div class="hamburger"><i class="fas fa-bars"></i></div>
+    </nav>
+  
+    <div class="portfolio">
+      <div class="stars-container"></div>
+      <div class="gradient-overlay"></div>
+  
+      <!-- Profile Section -->
+      <section id="profile" class="profile animate__animated animate__fadeIn">
+        <div class="profile-content">
+          <div class="auto-text" id="auto-text"></div>
+          <div class="about-me">
+            <p>Hello, It's Me</p>
+            <h1>Froillan Kim</h1>
+            <p>And I'm a Frontend Developer!</p>
+            <p>Nice to meet you! Please visit my site and have a good day to you all.</p>
+          </div>
+        </div>
+        <div class="profile-image-container">
+          <img src="KimPicture.jpg" alt="Profile Image" class="profile-image">
+          <div class="profile-image-glow"></div>
+        </div>
+      </section>
+
+  <!-- About Section -->
+  <section id="about" class="about">
+    <h2>About Me</h2>
+    <div class="about-content">
+      <p>
+        I am a passionate Python developer with over 3 years of experience in building modern web applications and backend systems. 
+        I specialize in creating scalable and efficient solutions with a focus on performance, security, and maintainability. 
+        My expertise includes Django, Flask, and data analysis with Python, and I love solving complex problems with elegant code.
+      </p>
+      <p>
+        I am constantly learning and exploring new technologies to stay ahead in the ever-evolving world of software development. 
+        When I'm not coding, I enjoy contributing to open-source projects, writing tech blogs, and mentoring aspiring developers.
+      </p>
+      <div class="about-skills">
+        <h3>Skills</h3>
+        <ul>
+          <li>Python</li>
+          <li>Django</li>
+          <li>Flask</li>
+          <li>UI Designer</li>
+          <li>REST APIs</li>
+          <li>SQL & NoSQL</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+  
+<!-- Services Section -->
+<section id="services" class="services">
+    <h2>Services</h2>
+    <div class="frameworks">
+      <div class="framework-box animate__animated animate__fadeInUp">
+        <i class="fab fa-python"></i>
+        <h3>Python Development</h3>
+        <p>Building scalable and efficient Python applications.</p>
+      </div>
+      <div class="framework-box animate__animated animate__fadeInUp" style="animation-delay: 0.2s">
+        <i class="fas fa-database"></i>
+        <h3>Backend Development</h3>
+        <p>Designing robust backend systems with Django and Flask.</p>
+      </div>
+      <div class="framework-box animate__animated animate__fadeInUp" style="animation-delay: 0.4s">
+        <i class="fas fa-chart-line"></i>
+        <h3>Data Analysis</h3>
+        <p>Analyzing and visualizing data with Python libraries.</p>
+      </div>
+    </div>
+  </section>
+  
+     <!-- Projects Section -->
+<!-- Projects Section -->
+<section id="projects" class="projects">
+    <h2>Portfolio</h2>
+    <div class="swiper">
+      <div class="swiper-wrapper">
+        <!-- Project 1: Attendance Checker -->
+        <div class="swiper-slide">
+          <div class="project-card">
+            <img src="portfolio2.jpg" alt="Attendance Checker" class="project-image">
+            <h3>Attendance Checker</h3>
+            <p>Developed an automated attendance tracking system using Python and OpenCV for QR code recognition.</p>
+          </div>
+        </div>
+        <!-- Project 2: Student List -->
+        <div class="swiper-slide">
+          <div class="project-card">
+            <img src="portfolio3.jpg" alt="Student List" class="project-image">
+            <h3>Student List Management</h3>
+            <p>Created a student list management system with Django and PostgreSQL for efficient data handling.</p>
+          </div>
+        </div>
+        <!-- Project 3: UI Design -->
+        <div class="swiper-slide">
+          <div class="project-card">
+            <img src="portfolio1.jpg" alt="UI Design" class="project-image">
+            <h3>UI Design</h3>
+            <p>Designed intuitive and user-friendly interfaces for web applications using Figma and Tailwind CSS.</p>
+          </div>
+        </div>
+        <!-- Project 4: Data Analysis Dashboard -->
+        <div class="swiper-slide">
+          <div class="project-card">
+            <img src="analytics.jpg" alt="Data Analysis Dashboard" class="project-image">
+            <h3>Data Analysis Dashboard</h3>
+            <p>Built a real-time data visualization dashboard using Chart.js for interactive charts and Django/Flask for backend data processing.</p>
+          </div>
+        </div>
+        <!-- Project 5: Task Management System -->
+        <div class="swiper-slide">
+            <div class="project-card">
+              <img src="portfolio4.jpg" alt="MySQL Database" class="project-image">
+              <h3>MySQL Database</h3>
+              <p>Designed and implemented a robust MySQL database for efficient data storage and retrieval, optimized for performance and scalability.</p>
+            </div>
+          </div>
+          
+        <!-- Project 6: Chat Application -->
+        <div class="swiper-slide">
+            <div class="project-card">
+              <img src="chat.jpg" alt="Chatbot" class="project-image">
+              <h3>AI-Powered Chatbot</h3>
+              <p>Developed an intelligent chatbot using OpenAI API for natural language processing and the Fuzz framework in Python for fuzzy string matching.</p>
+            </div>
+          </div>
+      </div>
+    </div>
+  </section>
+  
+      <!-- Contact Section -->
+      <section id="contact" class="contact animate__animated animate__fadeInUp">
+        <h2>Contact</h2>
+        <form>
+          <input type="text" placeholder="Your Name" required>
+          <input type="email" placeholder="Your Email" required>
+          <textarea placeholder="Your Message" required rows="5"></textarea>
+          <button type="submit">Send Message</button>
+        </form>
+      </section>
+
+
+
+      <footer>
+        <div class="social-links">
+          <a href="https://github.com/Froillan123" target="_blank"><i class="fab fa-github"></i></a>
+          <a href="https://linkedin.com" target="_blank"><i class="fab fa-linkedin"></i></a>
+          <a href="https://twitter.com" target="_blank"><i class="fab fa-twitter"></i></a>
+          <a href="mailto:example@example.com"><i class="fas fa-envelope"></i></a>
+        </div>
+        <p>&copy; 2025 Froillan Kim. All rights reserved.</p>
+      </footer>
+
+    </div>
+  
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script>
+      // Enhanced Typing Effect
+    const text = "Hi, I'm a Python Developer!";
+    const autoText = document.getElementById('auto-text');
+    let index = 0;
+
+    function typeText() {
+      autoText.textContent = text.slice(0, index);
+      index++;
+      if (index > text.length) {
+        setTimeout(() => {
+          index = 0;
+        }, 2000);
+      }
+      setTimeout(typeText, 100);
+    }
+
+    typeText();
+  
+      // Dynamic Stars Background
+      function createStars() {
+        const starsContainer = document.querySelector('.stars-container');
+        const numberOfStars = 200;
+  
+        for (let i = 0; i < numberOfStars; i++) {
+          const star = document.createElement('div');
+          star.className = 'star';
+          
+          // Random position
+          star.style.left = `${Math.random() * 100}%`;
+          star.style.top = `${Math.random() * 100}%`;
+          
+          // Random size
+          const size = `${Math.random() * 3}px`;
+          star.style.width = size;
+          star.style.height = size;
+          
+          // Random animation duration
+          star.style.setProperty('--duration', `${2 + Math.random() * 3}s`);
+          
+          // Random animation delay
+          star.style.animationDelay = `${Math.random() * 2}s`;
+          
+          starsContainer.appendChild(star);
+        }
+      }
+  
+      createStars();
+  
+      // Swiper Initialization
+      const swiper = new Swiper('.swiper', {
+        slidesPerView: 1,
+        spaceBetween: 20,
+        loop: true,
+        autoplay: {
+          delay: 3000,
+          disableOnInteraction: false,
+        },
+        breakpoints: {
+          768: {
+            slidesPerView: 3,
+          },
+        },
+      });
+  
+      // Sticky Navigation
+      const nav = document.querySelector('nav');
+      const profileSection = document.querySelector('#profile');
+      const profileOffset = profileSection.offsetTop;
+  
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > profileOffset) {
+          nav.classList.add('sticky');
+        } else {
+          nav.classList.remove('sticky');
+        }
+      });
+  
+      // Hamburger Menu
+      const hamburger = document.querySelector('.hamburger');
+      const navList = document.querySelector('nav ul');
+  
+      hamburger.addEventListener('click', () => {
+        navList.classList.toggle('active');
+      });
+    </script>
+  </body>
+  </html>

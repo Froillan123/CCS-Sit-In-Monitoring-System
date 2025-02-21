@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Template</title>
+  <link rel="stylesheet" href="../test/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../adminTemplate/style.css">
+</head>
+<body>
+    <div class="dashboard">
+    <aside class="sidebar">
+        <div class="logo">Admin Module</div>
+        <nav>
+          <ul>
+            <li class="nav-item">
+                <a href="#landing" class="nav-link">
+                  <i class="fas fa-home"></i>
+                  <span>Home</span>
+                </a>
+              </li>
+
+            <li class="nav-item">
+              <a href="#search" class="nav-link">
+                <i class="fas fa-search"></i>
+                <span>Search</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#current-sit-in" class="nav-link">
+                <i class="fas fa-users"></i>
+                <span>Current SIT IN</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#view-sit-in-records" class="nav-link">
+                <i class="fas fa-list"></i>
+                <span>View Sit In Records</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#sit-in-report" class="nav-link">
+                <i class="fas fa-file-alt"></i>
+                <span>Sit In Report</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#create-announcement" class="nav-link">
+                <i class="fas fa-bullhorn"></i>
+                <span>Create Announcement</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#feedback-report" class="nav-link">
+                <i class="fas fa-comments"></i>
+                <span>Feedback Report</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#daily-analytics" class="nav-link">
+                <i class="fas fa-chart-line"></i>
+                <span>Daily Analytics</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#statistics" class="nav-link">
+                <i class="fas fa-chart-pie"></i>
+                <span>Statistics</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#logout" class="nav-link">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+
+
+      <main class="main-content">
+
+
+        <section id="landing">
+            <header class="header">
+              <h1 class="welcome-text">Dashboard Overview</h1>
+            </header>
+            <div class="card-grid">
+              <!-- Card 1: Search -->
+              <div class="card" onclick="navigateToSection('search')">
+                <div class="card-icon">
+                  <i class="fas fa-search"></i>
+                </div>
+                <div class="card-content">
+                  <h3>Search</h3>
+                  <p>Search for students and view their details.</p>
+                </div>
+              </div>
+          
+              <!-- Card 2: Current SIT IN -->
+              <div class="card" onclick="navigateToSection('current-sit-in')">
+                <div class="card-icon">
+                  <i class="fas fa-users"></i>
+                </div>
+                <div class="card-content">
+                  <h3>Current SIT IN</h3>
+                  <p>View students currently sitting in the lab.</p>
+                </div>
+              </div>
+          
+              <!-- Card 3: View Sit In Records -->
+              <div class="card" onclick="navigateToSection('view-sit-in-records')">
+                <div class="card-icon">
+                  <i class="fas fa-list"></i>
+                </div>
+                <div class="card-content">
+                  <h3>View Sit In Records</h3>
+                  <p>Check historical sit-in records.</p>
+                </div>
+              </div>
+          
+              <!-- Card 4: Sit In Report -->
+              <div class="card" onclick="navigateToSection('sit-in-report')">
+                <div class="card-icon">
+                  <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="card-content">
+                  <h3>Sit In Report</h3>
+                  <p>Download sit-in reports in various formats.</p>
+                </div>
+              </div>
+            </div>
+          
+            <!-- Bottom Containers -->
+            <div class="bottom-container">
+              <!-- Student Extension of Session -->
+              <div class="bottom-card left">
+                <div class="bottom-card-header">
+                  <h3>Student Extension of Session</h3>
+                </div>
+                <div class="bottom-card-content">
+                    <table>
+                        <thead>
+                          <tr>
+                            <th>Student Name</th>
+                            <th>Session</th>
+                            <th>Requested Extension</th>
+                            <th>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td>John Doe</td>
+                            <td>Morning</td>
+                            <td>+1 hour</td>
+                            <td>
+                              <button class="btn-approve">Approve</button>
+                              <button class="btn-reject">Reject</button>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td>Jane Smith</td>
+                            <td>Afternoon</td>
+                            <td>+30 minutes</td>
+                            <td>
+                              <button class="btn-approve">Approve</button>
+                              <button class="btn-reject">Reject</button>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td>Michael Johnson</td>
+                            <td>Evening</td>
+                            <td>+2 hours</td>
+                            <td>
+                              <button class="btn-approve">Approve</button>
+                              <button class="btn-reject">Reject</button>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td>Emily Davis</td>
+                            <td>Morning</td>
+                            <td>+45 minutes</td>
+                            <td>
+                              <button class="btn-approve">Approve</button>
+                              <button class="btn-reject">Reject</button>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td>Chris Brown</td>
+                            <td>Afternoon</td>
+                            <td>+1 hour 30 minutes</td>
+                            <td>
+                              <button class="btn-approve">Approve</button>
+                              <button class="btn-reject">Reject</button>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td>Jessica Wilson</td>
+                            <td>Evening</td>
+                            <td>+1 hour</td>
+                            <td>
+                              <button class="btn-approve">Approve</button>
+                              <button class="btn-reject">Reject</button>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td>Daniel Martinez</td>
+                            <td>Morning</td>
+                            <td>+2 hours 15 minutes</td>
+                            <td>
+                              <button class="btn-approve">Approve</button>
+                              <button class="btn-reject">Reject</button>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td>Ashley Taylor</td>
+                            <td>Afternoon</td>
+                            <td>+50 minutes</td>
+                            <td>
+                              <button class="btn-approve">Approve</button>
+                              <button class="btn-reject">Reject</button>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td>Brian White</td>
+                            <td>Evening</td>
+                            <td>+1 hour 10 minutes</td>
+                            <td>
+                              <button class="btn-approve">Approve</button>
+                              <button class="btn-reject">Reject</button>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                      
+                </div>
+              </div>
+          
+              <!-- Reminders -->
+              <div class="bottom-card right">
+                <div class="bottom-card-header">
+                  <h3>Reminders</h3>
+                </div>
+                <div class="bottom-card-content">
+                    <ul>
+                      <li>Review pending session extensions.</li>
+                      <li>Check for upcoming lab maintenance.</li>
+                      <li>Update student records.</li>
+                      <li>Verify lab equipment availability.</li>
+                      <li>Monitor system performance and report issues.</li>
+                      <li>Ensure all users have logged out before closing.</li>
+                      <li>Check for overdue session extensions.</li>
+                      <li>Prepare lab usage reports for the week.</li>
+                      <li>Confirm network stability and internet access.</li>
+                      <li>Notify students of upcoming schedule changes.</li>
+                      <li>Sanitize workstations and shared devices.</li>
+                      <li>Reset login credentials for locked-out users.</li>
+                      <li>Backup important data and logs.</li>
+                    </ul>
+                  </div>
+                  
+              </div>
+            </div>
+          </section>
+
+      <!-- Search Section -->
+            <section id="search" style="display: none;">
+                <header class="header">
+                <h1 class="welcome-text">Search</h1>
+                </header>
+                <div class="search-container">
+                <input type="text" placeholder="Search for students..." class="search-input">
+                <button class="search-button">Search</button>
+                </div>
+            </section>
+            
+            <!-- Current SIT IN Section -->
+            <section id="current-sit-in" style="display: none;">
+                <header class="header">
+                <h1 class="welcome-text">Current SIT IN</h1>
+                </header>
+                <div class="table-container">
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Student Name</th>
+                                <th>ID Number</th>
+                                <th>Time In</th>
+                                <th>Computer No.</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>John Doe</td>
+                                <td>2023001</td>
+                                <td>10:00 AM</td>
+                                <td>PC-01</td>
+                            </tr>
+                            <tr>
+                                <td>Jane Smith</td>
+                                <td>2023002</td>
+                                <td>10:15 AM</td>
+                                <td>PC-02</td>
+                            </tr>
+                            <tr>
+                                <td>Michael Johnson</td>
+                                <td>2023003</td>
+                                <td>10:30 AM</td>
+                                <td>PC-03</td>
+                            </tr>
+                            <tr>
+                                <td>Emily Davis</td>
+                                <td>2023004</td>
+                                <td>10:45 AM</td>
+                                <td>PC-04</td>
+                            </tr>
+                            <tr>
+                                <td>Chris Brown</td>
+                                <td>2023005</td>
+                                <td>11:00 AM</td>
+                                <td>PC-05</td>
+                            </tr>
+                            <tr>
+                                <td>Jessica Wilson</td>
+                                <td>2023006</td>
+                                <td>11:15 AM</td>
+                                <td>PC-06</td>
+                            </tr>
+                            <tr>
+                                <td>Daniel Martinez</td>
+                                <td>2023007</td>
+                                <td>11:30 AM</td>
+                                <td>PC-07</td>
+                            </tr>
+                            <tr>
+                                <td>Olivia Taylor</td>
+                                <td>2023008</td>
+                                <td>11:45 AM</td>
+                                <td>PC-08</td>
+                            </tr>
+                            <tr>
+                                <td>William Anderson</td>
+                                <td>2023009</td>
+                                <td>12:00 PM</td>
+                                <td>PC-09</td>
+                            </tr>
+                            <tr>
+                                <td>Ava Thomas</td>
+                                <td>2023010</td>
+                                <td>12:15 PM</td>
+                                <td>PC-10</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                </div>
+                </div>
+            </section>
+            
+            <!-- View Sit In Records Section -->
+            <section id="view-sit-in-records" style="display: none;">
+                <header class="header">
+                <h1 class="welcome-text">View Sit In Records</h1>
+                </header>
+                <div class="table-container">
+                <div class="table-scroll">
+                    <table>
+                    <thead>
+                        <tr>
+                        <th>Student Name</th>
+                        <th>ID Number</th>
+                        <th>Date</th>
+                        <th>Time In</th>
+                        <th>Time Out</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                        <td>John Doe</td>
+                        <td>2023001</td>
+                        <td>2023-10-01</td>
+                        <td>10:00 AM</td>
+                        <td>12:00 PM</td>
+                        </tr>
+                        <tr>
+                        <td>Jane Smith</td>
+                        <td>2023002</td>
+                        <td>2023-10-01</td>
+                        <td>10:15 AM</td>
+                        <td>11:45 AM</td>
+                        </tr>
+                    </tbody>
+                    </table>
+                </div>
+                </div>
+            </section>
+            
+            <!-- Sit In Report Section -->
+            <section id="sit-in-report" style="display: none;">
+                <header class="header">
+                <h1 class="welcome-text">Sit In Report</h1>
+                </header>
+                <div class="download-buttons">
+                <button onclick="downloadReport('csv')" class="download-btn">Download CSV</button>
+                <button onclick="downloadReport('excel')" class="download-btn">Download Excel</button>
+                <button onclick="downloadReport('pdf')" class="download-btn">Download PDF</button>
+                </div>
+            </section>
+            
+            <!-- Create Announcement Section -->
+            <section id="create-announcement" style="display: none;">
+                <header class="header">
+                <h1 class="welcome-text">Create Announcement</h1>
+                </header>
+                <div class="announcement-container">
+                <textarea placeholder="Write your announcement here..." class="announcement-input"></textarea>
+                <button class="announcement-button">Post Announcement</button>
+                </div>
+            </section>
+            
+            <!-- Feedback Report Section -->
+            <section id="feedback-report" style="display: none;">
+                <header class="header">
+                <h1 class="welcome-text">Feedback Report</h1>
+                </header>
+                <div class="table-container">
+                <div class="table-scroll">
+                    <table>
+                    <thead>
+                        <tr>
+                        <th>Student Name</th>
+                        <th>Feedback</th>
+                        <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                        <td>John Doe</td>
+                        <td>The lab was very clean and organized.</td>
+                        <td>2023-10-01</td>
+                        </tr>
+                        <tr>
+                        <td>Jane Smith</td>
+                        <td>The computers were slow.</td>
+                        <td>2023-10-02</td>
+                        </tr>
+                    </tbody>
+                    </table>
+                </div>
+                </div>
+            </section>
+            
+            <section id="daily-analytics" style="display: none;">
+                <header class="header">
+                  <h1 class="welcome-text">Daily Analytics</h1>
+                </header>
+                <div class="chart-grid">
+                  <!-- Daily Sit-Ins Chart -->
+                  <div class="chart-card">
+                    <div class="chart-header">
+                      <h3 class="chart-title">Daily Sit-Ins</h3>
+                    </div>
+                    <canvas id="dailySitInChart"></canvas>
+                  </div>
+              
+                  <!-- Feedback Ratings Chart -->
+                  <div class="chart-card">
+                    <div class="chart-header">
+                      <h3 class="chart-title">Feedback Ratings</h3>
+                    </div>
+                    <canvas id="feedbackRatingsChart"></canvas>
+                  </div>
+              
+                  <!-- User Engagement Chart -->
+                  <div class="chart-card">
+                    <div class="chart-header">
+                      <h3 class="chart-title">User Engagement</h3>
+                    </div>
+                    <canvas id="userEngagementChart"></canvas>
+                  </div>
+              
+                  <!-- Revenue by Category Chart -->
+                  <div class="chart-card">
+                    <div class="chart-header">
+                      <h3 class="chart-title">Attendance</h3>
+                    </div>
+                    <canvas id="attendanceByGradeChart"></canvas>
+                  </div>
+              </section>
+
+            <!-- Statistics Section -->
+            <section id="statistics" style="display: none;">
+                <header class="header">
+                <h1 class="welcome-text">Statistics</h1>
+                </header>
+                <div class="chart-grid">
+                <!-- Monthly Sit-Ins Chart -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                    <h3 class="chart-title">Monthly Sit-Ins</h3>
+                    </div>
+                    <canvas id="monthlySitInChart"></canvas>
+                </div>
+            
+                <!-- Weekly Sit-Ins Chart -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                    <h3 class="chart-title">Weekly Sit-Ins</h3>
+                    </div>
+                    <canvas id="weeklySitInChart"></canvas>
+                </div>
+            
+                <!-- Computer Usage Chart -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                    <h3 class="chart-title">Computer Usage</h3>
+                    </div>
+                    <canvas id="computerUsageChart"></canvas>
+                </div>
+            
+                <!-- Feedback Ratings Chart -->
+                        <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">Computer Lab Usage Duration</h3>
+                </div>
+                <canvas id="labUsageChart"></canvas>
+                </div>
+
+            </section>
+                    
+            <!-- Logout Section -->
+            <section id="logout" style="display: none;">
+                <header class="header">
+                <h1 class="welcome-text">Logout</h1>
+                </header>
+                <p>Are you sure you want to logout?</p>
+                <button class="logout-button">Logout</button>
+            </section>
+                </main>
+</div>
+
+    <script src="../adminTemplate/script.js"></script>
+    <script>
+        
+    </script>
+</body>
+</html>
