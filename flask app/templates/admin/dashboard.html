@@ -1,430 +1,340 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Sharp" rel="stylesheet">
+    <title>Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href='https://cdn.jsdelivr.net/npm/boxicons@2.0.5/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/3.5.0/remixicon.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <link rel='stylesheet' href="{{ url_for('static', filename='css/dashboard.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='images/dashboard.png') }}" type="image/x-icon">
-    
-    <title>Dashboard</title>
-</head>
-<style>
-    /* Add this CSS to hide all sections by default and show only the active one */
-    .dashboard-section {
-        display: none;
-    }
-
-    .dashboard-section.active {
-        display: block;
-    }
-</style>
-<body>
-    <div class="container">
-        <!-- Sidebar Section -->
-        <aside>
-            <div class="toggle">
-                <div class="logo">
-                    <h2><span class="danger">Administrator</span></h2>
-                </div>
-                <div class="close" id="close-btn">
-                    <span class="material-icons-sharp">close</span>
-                </div>
-            </div>
+    <style>
         
+    </style>
+</head>
+<body>
+
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="w3-container flash-message 
+            {% if category == 'success' %} success
+            {% elif category == 'error' %} error
+            {% elif category == 'info' %} info
+            {% elif category == 'delete-success' %} delete-success
+            {% else %} warning {% endif %}">
+                {% if category == 'success' %} <i class="fa fa-check-circle"></i>
+                {% elif category == 'error' %} <i class="fa fa-times-circle"></i>
+                {% elif category == 'warning' %} <i class="fa fa-exclamation-circle"></i>
+                {% elif category == 'delete-success' %} <i class="fa fa-check-circle"></i>
+                {% elif category == 'info' %} <i class="fa fa-info-circle"></i> {% endif %}
+                <p>{{ message }}</p>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+
+
+
+    <div class="container">
+       <!-- Sidebar -->
+        <aside>
+            <div class="logo">
+                <span class="danger">Administrator</span>
+            </div>
             <div class="sidebar">
-                <a href="#" data-section="dashboard">
-                    <span class="material-icons-sharp">dashboard</span>
-                    <h3>Dashboard</h3>
+                <a href="#" class="active" data-page="dashboard">
+                    <i class="ri-dashboard-line"></i>
+                    Dashboard
                 </a>
-                <a href="#" data-section="users">
-                    <span class="material-icons-sharp">person_outline</span>
-                    <h3>Users</h3>
+                <a href="#" data-page="sit-in">
+                    <i class="ri-user-line"></i>
+                    Current Sit In
                 </a>
-                <a href="#" data-section="history">
-                    <span class="material-icons-sharp">receipt_long</span>
-                    <h3>History</h3>
+                <a href="#" data-page="sit-in-report">
+                    <i class="ri-clipboard-line"></i> <!-- Sit In Report Icon -->
+                    Sit In Report
                 </a>
-                <a href="#" data-section="settings">
-                    <span class="material-icons-sharp">settings</span>
-                    <h3>Settings</h3>
+                <a href="#" data-page="records">
+                    <i class="ri-file-list-line"></i>
+                    Sit In Records
                 </a>
-                <a href="#" data-section="announcement">
-                    <span class="material-icons-sharp">campaign</span>
-                    <h3>Announcement</h3>
+                <a href="#" data-page="announcements">
+                    <i class="ri-megaphone-line"></i>
+                    Announcements
                 </a>
-                <!-- New Student Reservation Link with Cool Icon -->
-                <a href="#" data-section="reservation">
-                    <span class="material-icons-sharp">event_seat</span>
-                    <h3>Student Reservation</h3>
+                <a href="#" data-page="feedback">
+                    <i class="ri-message-2-line"></i>
+                    Feedback
                 </a>
-                <!-- Logout Link (No data-section attribute) -->
+                <a href="#" data-page="reservations">
+                    <i class="ri-calendar-check-line"></i>
+                    Reservations
+                </a>
+                <a href="#" data-page="statistics">
+                    <i class="ri-bar-chart-box-line"></i>
+                    Statistics
+                </a>
+                <a href="#" data-page="daily-analytics">
+                    <i class="ri-bar-chart-line"></i>
+                    Daily Analytics
+                </a>
+            </div>
+
+            <!-- Log Out Button -->
+            <div class="logout">
                 <a href="{{ url_for('adminLogout') }}">
-                    <span class="material-icons-sharp">logout</span>
-                    <h3>Logout</h3>
+                    <i class="ri-logout-box-line"></i> <!-- Logout Icon -->
+                    Log Out
                 </a>
             </div>
         </aside>
-        <!-- End of Sidebar Section -->
+
+        
+        <!-- Bottom Nav (Mobile) -->
+        <div class="bottom-nav">
+            <a href="#" data-page="dashboard" class="active">
+                <i class="ri-dashboard-line"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" data-page="sit-in">
+                <i class="ri-user-line"></i>
+                <span>Sit In</span>
+            </a>
+            <a href="#" data-page="sit-in-report">
+                <i class="ri-clipboard-line"></i> <!-- Sit In Report Icon -->
+                <span>Sit In Report</span>
+            </a>
+            <a href="#" data-page="records">
+                <i class="ri-file-list-line"></i>
+                <span>Records</span>
+            </a>
+            <a href="#" data-page="announcements">
+                <i class="ri-megaphone-line"></i>
+                <span>Announcements</span>
+            </a>
+            <a href="#" data-page="feedback">
+                <i class="ri-message-2-line"></i>
+                <span>Feedback</span>
+            </a>
+            <a href="#" data-page="reservations">
+                <i class="ri-calendar-check-line"></i>
+                <span>Reservations</span>
+            </a>
+            <a href="#" data-page="statistics">
+                <i class="ri-bar-chart-box-line"></i>
+                <span>Statistics</span>
+            </a>
+            <a href="#" data-page="daily-analytics">
+                <i class="ri-bar-chart-line"></i> <!-- Changed icon to bar chart for analytics -->
+                <span>Daily Analytics</span>
+            </a>
+        </div>
+
 
         <!-- Main Content -->
-        <main>
-            <!-- Dashboard Section -->
-            <div id="dashboard" class="dashboard-section">
-                <h1>Analytics</h1>
-                <!-- Analyses -->
-                <div class="analyse">
-                    <div class="all_users">
-                        <div class="status">
-                            <div class="info">
-                                <h3>All Users</h3>
-                                <h1 class="analytics" id=""></h1>
-                            </div>
-                            <div class="progresss">
-                                <svg>
-                                    <circle cx="38" cy="38" r="36"></circle>
-                                </svg>
-                                <div class="percentage"></div>
-                            </div>
-                        </div> 
-                    </div>
+        <main id="main-content">
 
-                    <div class="visits">
-                        <div class="status">
-                            <div class="info">
-                                <h3>Active Users</h3>
-                                <h1 class="analytics" id="active-users-count">{{ active_students_count }}</h1>
+                    <div class="top-nav">
+                        <div class="search-bar">
+                            <i class="ri-search-line"></i> <!-- Search icon -->
+                            <input type="text" placeholder="Search...">
+                        </div>
+                        <div class="profile" id="profile">
+                            <img src="{{ url_for('static', filename='images/profile-1.jpg') }}" alt="Profile">
+                            <span class="admin-prefix">Admin-</span>{{ admin_firstname }}
+                            <div class="dropdown" id="dropdown">
+                                <a href="{{ url_for('admin_settings') }}" class="dropdown-item">Settings</a>
+                                <a href="{{ url_for('adminLogout') }}" class="dropdown-item logout mobile-only">Log Out</a> <!-- Add mobile-only class -->
                             </div>
-                            <div class="progresss"></div>
                         </div>
                     </div>
-
-                    <div class="searches">
-                        <div class="status">
-                            <div class="info">
-                                <h3>All Laboratories</h3>
-                                <h1 class="analytics">{{ laboratories }}</h1>
-                            </div>
-                            <div class="progresss"></div>
+            
+            <!-- Dashboard Content -->
+            <div id="dashboard" class="page-content">
+                    <div class="insights">
+                        <div class="insight-card">
+                            <span class="icon">
+                                <i class="ri-user-line"></i>
+                            </span>
+                            <h3>Active Users</h3>
+                            <p id="active-users-count">
+                                0
+                                <span class="status-circle"></span>
+                            </p>
                         </div>
+                        <div class="insight-card">
+                            <span class="icon">
+                                <i class="ri-team-line"></i>
+                            </span>
+                            <h3>Total Users</h3>
+                            <p class="user-count">Loading...</p>
+                        </div>
+                        <div class="insight-card">
+                            <span class="icon">
+                                <i class="ri-building-line"></i>
+                            </span>
+                            <h3>Total Laboratories</h3>
+                            <p>12</p>
+                        </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="charts">
+                    <div class="bar">
+                        <div class="chart-header">
+                            <h3>Current Sit In</h3>
+                            <div class="date-picker">
+                                <input type="date" id="datePicker" max="{{ today }}" value="{{ today }}">
+                                <i class="ri-calendar-line"></i>
+                            </div>
+                        </div>
+                        <canvas id="sitInChart1"></canvas>
                     </div>
                 </div>
-                <!-- End of Analyses -->
-
-                <!-- New Users Section -->
-                <div class="new-users">
-                    <h2>Student Sit in Monitoring</h2>
-                        <div class="chart-container1">
-                            <canvas id="sitInChart1"></canvas>
-                          </div>
-                </div>
-                <!-- End of New Users Section -->
-
-            
             </div>
 
-            <!-- Users Section -->
-        
-            <div id="users" class="dashboard-section">
-                <h1>All Students</h1>
-                <table class="student-table">
-                    <thead>
-                        <tr>
-                            <th>ID No.</th>
-                            <th>First Name</th>
-                            <th>Last Name</th>
-                            <th>Middle Name</th>
-                            <th>Course</th>
-                            <th>Year Level</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for student in students %}
-                        <tr>
-                            <td data-label="ID No.">{{ student['idno'] }}</td>
-                            <td data-label="First Name">{{ student['firstname'] }}</td>
-                            <td data-label="Last Name">{{ student['lastname'] }}</td>
-                            <td data-label="Middle Name">{{ student['midname'] }}</td>
-                            <td data-label="Course">{{ student['course'] }}</td>
-                            <td data-label="Year Level">{{ student['year_level'] }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            
-                <!-- Pagination Controls -->
-                <div class="pagination">
-                    {% if page > 1 %}
-                        <a href="{{ url_for('dashboard', page=page-1) }}" class="pagination-button">Previous</a>
-                    {% endif %}
-                    
-                    <span class="current-page">Page {{ page }} of {{ total_pages }}</span>
-                    
-                    {% if page < total_pages %}
-                        <a href="{{ url_for('dashboard', page=page+1) }}" class="pagination-button">Next</a>
-                    {% endif %}
-                </div>
+            <!-- Other Pages -->
+            <div id="sit-in" class="page-content" style="display: none;">
+                <h2>Current Sit In</h2>
+                <p>Current Sit-in functionality will be added here.</p>
             </div>
 
-            <!-- History Section -->
-            <div id="history" class="dashboard-section">
-                <h1>History</h1>
-                <p>This is the history section. You can display historical data here.</p>
+               <!-- Other Pages -->
+               <div id="sit-in-report" class="page-content" style="display: none;">
+                <h2>Sit In Report</h2>
+                <p>Sit-in Report functionality will be added here.</p>
             </div>
 
-            <!-- Settings Section -->
-            <div id="settings" class="dashboard-section">
-                <h1>Settings</h1>
-                <p>This is the settings section. You can configure system settings here.</p>
+            <div id="records" class="page-content" style="display: none;">
+                <h2>Sit In Records</h2>
+                <p>Sit In Records functionality will be added here.</p>
             </div>
 
-            <div id="announcement" class="dashboard-section">
-                <h1>Announcements</h1>
+
+            <div id="announcements" class="page-content" style="display: none;">
+                <h2>Announcements</h2>
                 <div class="announcement-container">
-                  <!-- Announcement Creation Form -->
-                  <div class="create-announcement">
-                    <h2>Create New Announcement</h2>
-                    <form id="announcement-form">
-                      <div class="form-group">
-                        <textarea id="announcement-text" name="announcement-text" rows="4" required></textarea>
-                      </div>
-                      <button type="submit">Post Announcement</button>
+                    <!-- Announcement Form -->
+                    <form id="announcement-form" class="announcement-form">
+                        <textarea id="announcement-text" placeholder="Write your announcement here..." required></textarea>
+                        <button type="submit" class="btn-post">Post Announcement</button>
                     </form>
-                  </div>
-              
-                  <!-- Announcements Table -->
-                  <div class="announcements-table">
-                    <h2>Recent Announcements</h2>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Date</th>
-                          <th>Admin</th>
-                          <th>Announcement</th>
-                          <th>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody id="announcements-body">
-                        <!-- Announcements will be dynamically inserted here -->
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-
-
-              <div id="reservation" class="dashboard-section">
-                <h1>Student Reservation</h1>
-                <table id="reservationsTable" class="table">
-                  <thead>
-                    <tr>
-                      <th>Student ID</th>
-                      <th>Student Name</th>
-                      <th>Lab</th>
-                      <th>Purpose</th>
-                      <th>Reservation Date</th>
-                      <th>Time In</th>
-                      <th>Time Out</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for reservation in reservations %}
-                    <tr data-reservation-id="{{ reservation.id }}">
-                      <td data-label="Student ID">{{ reservation.student_idno }}</td>
-                      <td data-label="Student Name">{{ reservation.student_name }}</td>
-                      <td data-label="Lab">{{ reservation.lab_id }}</td>
-                      <td data-label="Purpose">{{ reservation.purpose }}</td>
-                      <td data-label="Reservation Date">{{ reservation.reservation_date }}</td>
-                      <td data-label="Time In">{{ reservation.time_in }}</td>
-                      <td data-label="Time Out">{{ reservation.time_out }}</td>
-                      <td class="status-cell" data-status="{{ reservation.status }}" data-label="Status">
-                        {{ reservation.status }}
-                      </td>
-                      <td data-label="Actions">
-                        <button class="approve-btn" data-reservation-id="{{ reservation.id }}">Approve</button>
-                      </td>
-                    </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-        </main>
-        <!-- End of Main Content -->
-
-        <!-- Right Section -->
-        <div class="right-section">
-            <div class="nav">
-                <button id="menu-btn">
-                    <span class="material-icons-sharp">menu</span>
-                </button>
-                <div class="dark-mode">
-                    <span class="material-icons-sharp active">light_mode</span>
-                    <span class="material-icons-sharp">dark_mode</span>
-                </div>
-
-                <div class="profile">
-                    <div class="info">
-                        <p>Hey, <b>{{ admin_username }}</b></p>
-                        <small class="text-muted">Admin</small>
+            
+                    <!-- Announcements Table -->
+                    <div class="announcements-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Admin</th>
+                                    <th>Announcement</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="announcements-body">
+                                <!-- Announcements will be dynamically inserted here -->
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="profile-photo">
-                        <img src="{{ url_for('static', filename='images/profile-1.jpg') }}" alt="Profile Image">
-                    </div>
-                </div>                
+                </div>
             </div>
-            <!-- End of Nav -->
 
-            <div class="reminders">
-                <div class="header">
-                    <h2>System Notifications</h2>
-                    <span class="material-icons-sharp">notifications_none</span>
+
+            <div id="feedback" class="page-content">
+                <div class="table-container">
+                    <table id="feedbackTable">
+                        <thead>
+                            <tr>
+                                <th>Lab</th>
+                                <th>Student ID</th>  <!-- Changed from Student Name to Student ID -->
+                                <th>Feedback</th>
+                                <th>Rating</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Feedback rows will be dynamically added here -->
+                        </tbody>
+                    </table>
                 </div>
-            
-                <div class="notification">
-                    <div class="icon">
-                        <span class="material-icons-sharp">schedule</span>
-                    </div>
-                    <div class="content">
-                        <div class="info">
-                            <h3>Upcoming Lab Schedule</h3>
-                            <small class="text_muted">Lab 203 - 10:00 AM - 12:00 PM</small>
-                        </div>
-                        <span class="material-icons-sharp">more_vert</span>
-                    </div>
+                <div class="pagination-controls">
+                    <button id="prevPage" disabled>Previous</button>
+                    <span id="pageInfo">Page 1 of 1</span>
+                    <button id="nextPage" disabled>Next</button>
                 </div>
-            
-                <div class="notification">
-                    <div class="icon">
-                        <span class="material-icons-sharp">warning</span>
-                    </div>
-                    <div class="content">
-                        <div class="info">
-                            <h3>Security Alert</h3>
-                            <small class="text_muted">Multiple failed login attempts detected.</small>
-                        </div>
-                        <span class="material-icons-sharp">more_vert</span>
-                    </div>
-                </div>
-            
-                <div class="notification">
-                    <div class="icon">
-                        <span class="material-icons-sharp">error</span>
-                    </div>
-                    <div class="content">
-                        <div class="info">
-                            <h3>System Maintenance</h3>
-                            <small class="text_muted">Scheduled downtime at 11:00 PM for updates.</small>
-                        </div>
-                        <span class="material-icons-sharp">more_vert</span>
-                    </div>
-                </div>
-            
-                <div class="notification">
-                    <div class="icon">
-                        <span class="material-icons-sharp">check_circle</span>
-                    </div>
-                    <div class="content">
-                        <div class="info">
-                            <h3>Task Completed</h3>
-                            <small class="text_muted">System backup was successfully completed.</small>
-                        </div>
-                        <span class="material-icons-sharp">more_vert</span>
-                    </div>
-                </div>
-            
-                <div class="notification add-reminder">
-                    <div>
-                        <span class="material-icons-sharp">add</span>
-                        <h3>Add Notification</h3>
-                    </div>
+            </div>
+
+            <div id="reservations" class="page-content" style="display: none;">
+                <h2>Reservations</h2>
+                <p>Reservations functionality will be added here.</p>
+            </div>
+           <!-- Statistics Section -->
+           <div id="statistics" class="page-content" style="display: none;">
+            <h2>Statistics</h2>
+            <div class="analytics-grid">
+                <!-- Feedback Ratings Card -->
+                <div class="analytics-card">
+                    <h3>Feedback Ratings</h3>
+                    <canvas id="feedbackRatingsChart"></canvas>
+                    <div id="chartLabels" class="chart-labels"></div> <!-- Labels container -->
                 </div>
             </div>
         </div>
-    </div>
 
 
-    <!-- Edit Announcement Modal -->
+            <div id="daily-analytics" class="page-content">
+                <h2>Daily Analytics</h2>
+                <div class="analytics-grid">
+                    <!-- Daily Sit-Ins Card -->
+                    <div class="analytics-card">
+                        <h3>Daily Sit-Ins</h3>
+                        <canvas id="dailySitInsChart"></canvas>
+                    </div>
+            
+                    <!-- Lab Usage Card -->
+                    <div class="analytics-card">
+                        <h3>Daily Lab Usage</h3>
+                        <canvas id="labUsageChart"></canvas>
+                    </div>
+            
+                    <!-- Admin Attendance Card -->
+                    <div class="analytics-card">
+                        <h3>Admin Attendance</h3>
+                        <canvas id="adminAttendanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+
+<!-- Edit Modal -->
 <div id="editModal" class="modal">
     <div class="modal-content">
         <span class="close-modal">&times;</span>
         <h2>Edit Announcement</h2>
         <form id="edit-announcement-form">
-            <input type="hidden" id="edit-announcement-id">
+            <input type="hidden" id="edit-announcement-id" name="announcement_id">
             <div class="form-group">
-                <label for="edit-announcement-text">Announcement:</label>
-                <textarea id="edit-announcement-text" rows="4" required></textarea>
+                <label for="edit-announcement-text">Announcement Text</label>
+                <textarea id="edit-announcement-text" name="announcement_text" required></textarea>
             </div>
-            <button type="submit">Save Changes</button>
+            <button type="submit" class="btn-post">Update Announcement</button>
         </form>
     </div>
 </div>
 
+
+    </div>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
-
-    <!-- Ensure the admin username is injected into the script -->
-<script>
-    const adminUsername = "{{ admin_username }}"; // Admin username passed from Flask
-</script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const links = document.querySelectorAll('.sidebar a[data-section]'); // Only select links with data-section
-    const sections = document.querySelectorAll('.dashboard-section');
-
-    // Function to show the selected section and hide others
-    function showSection(sectionId) {
-        sections.forEach(section => {
-            if (section.id === sectionId) {
-                section.classList.add('active');
-            } else {
-                section.classList.remove('active');
-            }
-        });
-        // Save the active section to localStorage
-        localStorage.setItem('activeSection', sectionId);
-    }
-
-    // Function to set the active link
-    function setActiveLink(sectionId) {
-        links.forEach(link => {
-            if (link.getAttribute('data-section') === sectionId) {
-                link.classList.add('active');
-            } else {
-                link.classList.remove('active');
-            }
-        });
-        // Save the active link to localStorage
-        localStorage.setItem('activeLink', sectionId);
-    }
-
-    // Retrieve the active section and link from localStorage
-    const savedSection = localStorage.getItem('activeSection') || 'dashboard';
-    const savedLink = localStorage.getItem('activeLink') || 'dashboard';
-
-    // Apply the saved section and link
-    showSection(savedSection);
-    setActiveLink(savedLink);
-
-    // Add click event listeners to sidebar links
-    links.forEach(link => {
-        link.addEventListener('click', function (e) {
-            e.preventDefault();
-            const sectionId = this.getAttribute('data-section');
-            showSection(sectionId);
-            setActiveLink(sectionId);
-        });
-    });
-
-});
-
-
-    </script>
 </body>
 </html>

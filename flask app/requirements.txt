@@ -19,3 +19,5 @@ deepai
 fuzzywuzzy
 Levenshtein
 regex
+pycryptodome
+google-genai

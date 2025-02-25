@@ -39,4 +39,44 @@
 
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Input handling (focus/blur events)
+    const inputs = document.querySelectorAll('.form__input');
+    inputs.forEach(input => {
+        input.value = '';
+        let parent = input.parentNode.parentNode;
+        parent.classList.remove("focus");
+    });
+
+    const flashMessages = document.querySelectorAll('.flash-message');
+    flashMessages.forEach(flashMessage => {
+        setTimeout(() => {
+            flashMessage.classList.add('fade-out');
+        }, 2500);
+        flashMessage.addEventListener('animationend', () => {
+            flashMessage.remove();
+        });
+    });
+
+    function addfocus() {
+        let parent = this.parentNode.parentNode;
+        parent.classList.add("focus");
+    }
+
+    function remfocus() {
+        let parent = this.parentNode.parentNode;
+        if (this.value == "") {
+            parent.classList.remove("focus");
+        }
+    }
+
+    inputs.forEach(input => {
+        input.addEventListener("focus", addfocus);
+        input.addEventListener("blur", remfocus);
+    });
+});
+
+</script>
+
 {% endblock %}

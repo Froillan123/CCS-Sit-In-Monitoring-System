@@ -1,12 +1,19 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Input handling (focus/blur events)
-    const inputs = document.querySelectorAll('.form__input');
-    inputs.forEach(input => {
-        input.value = '';
-        let parent = input.parentNode.parentNode;
-        parent.classList.remove("focus");
-    });
+const socketURL =
+window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5000' // Local WebSocket URL
+    : 'https://ccs-sit-in-monitoring-system.onrender.com'; // Render WebSocket URL
 
+const socket = io(socketURL, {
+transports: ['websocket'],
+upgrade: false,
+reconnection: true,
+reconnectionAttempts: 5,
+reconnectionDelay: 1000,
+});
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Flash messages logic
     const flashMessages = document.querySelectorAll('.flash-message');
     flashMessages.forEach(flashMessage => {
         setTimeout(() => {
@@ -17,293 +24,100 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    function addfocus() {
-        let parent = this.parentNode.parentNode;
-        parent.classList.add("focus");
-    }
+    // SPA Behavior
+    const sidebarLinks = document.querySelectorAll('.sidebar a');
+    const bottomNavLinks = document.querySelectorAll('.bottom-nav a');
+    const pageContents = document.querySelectorAll('.page-content');
 
-    function remfocus() {
-        let parent = this.parentNode.parentNode;
-        if (this.value == "") {
-            parent.classList.remove("focus");
-        }
-    }
-
-    inputs.forEach(input => {
-        input.addEventListener("focus", addfocus);
-        input.addEventListener("blur", remfocus);
-    });
-
-    // Sidebar menu toggle functionality
-    const sideMenu = document.querySelector('aside');
-    const menuBtn = document.getElementById('menu-btn');
-    const closeBtn = document.getElementById('close-btn');
-
-    menuBtn.addEventListener('click', () => {
-        sideMenu.style.display = 'block';
-    });
-
-    closeBtn.addEventListener('click', () => {
-        sideMenu.style.display = 'none';
-    });
-
-    // Dark mode functionality
-    const darkMode = document.querySelector('.dark-mode');
-
-    function applyDarkModePreference() {
-        const isDarkMode = localStorage.getItem('darkMode') === 'enabled';
-        if (isDarkMode) {
-            document.body.classList.add('dark-mode-variables');
-            darkMode.querySelector('span:nth-child(1)').classList.remove('active');
-            darkMode.querySelector('span:nth-child(2)').classList.add('active');
-        } else {
-            document.body.classList.remove('dark-mode-variables');
-            darkMode.querySelector('span:nth-child(1)').classList.add('active');
-            darkMode.querySelector('span:nth-child(2)').classList.remove('active');
-        }
-    }
-
-    applyDarkModePreference();
-
-    darkMode.addEventListener('click', () => {
-        const isDarkMode = document.body.classList.toggle('dark-mode-variables');
-        if (isDarkMode) {
-            localStorage.setItem('darkMode', 'enabled');
-            darkMode.querySelector('span:nth-child(1)').classList.remove('active');
-            darkMode.querySelector('span:nth-child(2)').classList.add('active');
-        } else {
-            localStorage.setItem('darkMode', 'disabled');
-            darkMode.querySelector('span:nth-child(1)').classList.add('active');
-            darkMode.querySelector('span:nth-child(2)').classList.remove('active');
-        }
-    });
-
-    // Update user count every second
-    function updateUserCount() {
-        fetch('/get_user_count')
-            .then(response => response.json())
-            .then(data => {
-                document.querySelector('.info h1').textContent = data.student_count;
-            })
-            .catch(error => console.error('Error fetching user count:', error));
-    }
-
-    setInterval(updateUserCount, 1000); // Update every 1 second
-    updateUserCount();
-
-    // Fetch announcements
-const announcementForm = document.getElementById('announcement-form');
-const announcementsBody = document.getElementById('announcements-body');
-
-function fetchAnnouncements() {
-    fetch('/get_announcements')
-        .then(response => response.json())
-        .then(data => {
-            announcementsBody.innerHTML = ''; // Clear existing rows
-
-            data.forEach(announcement => {
-                const row = document.createElement('tr');
-                const announcementDate = new Date(announcement.announcement_date).toLocaleString();
-
-                row.innerHTML = `
-                    <td>${announcementDate}</td>
-                    <td>${announcement.admin_username}</td>
-                    <td>${announcement.announcement_text}</td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="edit-btn" data-id="${announcement.id}">
-                                <i class="bx bx-edit"></i> Edit
-                            </button>
-                            <button class="delete-btn" data-id="${announcement.id}">
-                                <i class="bx bx-trash"></i> Delete
-                            </button>
-                        </div>
-                    </td>
-                `;
-
-                announcementsBody.appendChild(row);
-            });
-
-            // Add event listeners for edit and delete buttons
-            addEditDeleteListeners();
-        })
-        .catch(error => console.error('Error fetching announcements:', error));
-}
-
-// Fetch announcements when the page loads
-fetchAnnouncements();
-
-// Handle announcement form submission
-announcementForm.addEventListener('submit', function (e) {
-    e.preventDefault();
-
-    if (!adminUsername) {
-        Swal.fire('Error', 'Admin username not found. Please log in again.', 'error');
-        return;
-    }
-
-    const announcementText = document.getElementById('announcement-text').value;
-
-    fetch('/create_announcement', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            admin_username: adminUsername,
-            announcement_text: announcementText,
-        }),
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            Swal.fire('Success', 'Announcement posted successfully!', 'success');
-            document.getElementById('announcement-text').value = '';
-            fetchAnnouncements();
-        } else {
-            Swal.fire('Error', 'Failed to post announcement: ' + data.message, 'error');
-        }
-    })
-    .catch(error => console.error('Error posting announcement:', error));
-});
-
-// Add event listeners for edit and delete buttons
-function addEditDeleteListeners() {
-    document.querySelectorAll('.edit-btn').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const announcementId = e.target.getAttribute('data-id');
-            openEditModal(announcementId);
+    // Function to handle page switching
+    function switchPage(page) {
+        // Hide all pages
+        pageContents.forEach(content => {
+            content.style.display = 'none';
         });
-    });
 
-    document.querySelectorAll('.delete-btn').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const announcementId = e.target.getAttribute('data-id');
-            showDeleteConfirmation(announcementId);
-        });
-    });
-}
-
-// Open Edit Modal
-function openEditModal(announcementId) {
-    fetch(`/get_announcement/${announcementId}`)
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('edit-announcement-id').value = announcementId;
-            document.getElementById('edit-announcement-text').value = data.announcement_text;
-            document.getElementById('editModal').style.display = 'flex';
-        })
-        .catch(error => console.error('Error fetching announcement:', error));
-}
-
-// Close Edit Modal
-document.querySelector('.close-modal').addEventListener('click', () => {
-    document.getElementById('editModal').style.display = 'none';
-});
-
-// Handle edit announcement form submission
-document.getElementById('edit-announcement-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-
-    const announcementId = document.getElementById('edit-announcement-id').value;
-    const announcementText = document.getElementById('edit-announcement-text').value;
-
-    fetch(`/update_announcement/${announcementId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ announcement_text: announcementText }),
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            Swal.fire('Success', 'Announcement updated successfully!', 'success');
-            document.getElementById('editModal').style.display = 'none';
-            fetchAnnouncements();
-        } else {
-            Swal.fire('Error', 'Failed to update announcement: ' + data.message, 'error');
+        // Show the selected page
+        const selectedPage = document.getElementById(page);
+        if (selectedPage) {
+            selectedPage.style.display = 'block';
         }
-    })
-    .catch(error => console.error('Error updating announcement:', error));
-});
 
-// Show Delete Confirmation Modal
-function showDeleteConfirmation(announcementId) {
-    Swal.fire({
-        title: 'Are you sure?',
-        text: 'You won\'t be able to revert this!',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            deleteAnnouncement(announcementId);
-        }
-    });
-}
+        // Update the URL hash
+        window.location.hash = page;
 
-// Confirm Delete
-function deleteAnnouncement(announcementId) {
-    fetch(`/delete_announcement/${announcementId}`, {
-        method: 'DELETE',
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            Swal.fire('Deleted!', 'Announcement has been deleted.', 'success');
-            fetchAnnouncements();
-        } else {
-            Swal.fire('Error', 'Failed to delete announcement: ' + data.message, 'error');
-        }
-    })
-    .catch(error => console.error('Error deleting announcement:', error));
-}
-
-
-    // Section toggling functionality
-    const links = document.querySelectorAll('.sidebar a[data-section]'); // Only select links with data-section
-    const sections = document.querySelectorAll('.dashboard-section');
-
-    // Function to show the selected section and hide others
-    function showSection(sectionId) {
-        sections.forEach(section => {
-            if (section.id === sectionId) {
-                section.classList.add('active');
-            } else {
-                section.classList.remove('active');
-            }
-        });
-    }
-
-    // Function to set the active link
-    function setActiveLink(sectionId) {
-        links.forEach(link => {
-            if (link.getAttribute('data-section') === sectionId) {
+        // Update active state for sidebar links
+        sidebarLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('data-page') === page) {
                 link.classList.add('active');
-            } else {
-                link.classList.remove('active');
+            }
+        });
+
+        // Update active state for bottom navigation links
+        bottomNavLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('data-page') === page) {
+                link.classList.add('active');
             }
         });
     }
 
-    // Default to showing the dashboard section
-    showSection('dashboard');
-    setActiveLink('dashboard');
-
-    // Add click event listeners to sidebar links
-    links.forEach(link => {
-        link.addEventListener('click', function (e) {
+    // Add event listeners to sidebar links
+    sidebarLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
             e.preventDefault();
-            const sectionId = this.getAttribute('data-section');
-            showSection(sectionId);
-            setActiveLink(sectionId);
+            const page = link.getAttribute('data-page');
+            switchPage(page);
         });
     });
-});
 
+    // Add event listeners to bottom navigation links
+    bottomNavLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const page = link.getAttribute('data-page');
+            switchPage(page);
+        });
+    });
+
+    // Handle page load and hash changes
+    function loadPageFromHash() {
+        const page = window.location.hash.substring(1); // Remove the '#' from the hash
+        if (page) {
+            switchPage(page);
+        } else {
+            switchPage('dashboard'); // Default to dashboard if no hash is present
+        }
+    }
+
+    // Load the correct page on initial load
+    loadPageFromHash();
+
+    // Listen for hash changes to handle page refreshes
+    window.addEventListener('hashchange', loadPageFromHash);
+
+
+    // Toggle dropdown on profile click
+    const profile = document.getElementById('profile');
+    const dropdown = document.getElementById('dropdown');
+
+    if (profile && dropdown) {
+        profile.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent event from bubbling up
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            profile.classList.toggle('active');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!profile.contains(e.target)) {
+                dropdown.style.display = 'none';
+                profile.classList.remove('active');
+            }
+        });
+    }
+
+  // Data for programs
 const programData = {
     BSIT: [12, 19, 8, 15, 10, 7],
     BSCpE: [5, 14, 10, 8, 12, 9],
@@ -312,200 +126,695 @@ const programData = {
     BSEd: [6, 9, 15, 10, 8, 12], 
     BSHRM: [8, 12, 7, 11, 14, 10],
     BSN: [9, 15, 6, 12, 10, 8],
-    BEEd: [7, 10, 14, 12, 8, 9],
     BCE: [11, 7, 14, 9, 12, 6],
-    BME: [13, 10, 8, 12, 7, 11],
-    BEE: [10, 12, 9, 11, 8, 14],
-    BIE: [7, 14, 10, 8, 12, 9],
-    BNAME: [5, 9, 12, 10, 14, 7],
     BCrim: [8, 11, 13, 6, 9, 15],
-    BCom: [10, 8, 12, 14, 7, 11],
     BAcc: [6, 9, 15, 10, 8, 12],
-    BCSA: [8, 12, 7, 11, 14, 10],
-    BCSec: [9, 15, 6, 12, 10, 8],
-    BIP: [11, 7, 14, 9, 12, 6],
-    ABPS: [13, 10, 8, 12, 7, 11],
-    ABEng: [10, 12, 9, 11, 8, 14],
-    CISCO: [7, 14, 10, 8, 12, 9],
-    ESL: [5, 9, 12, 10, 14, 7],
-    CKor: [8, 11, 13, 6, 9, 15],
-    ESLF: [10, 8, 12, 14, 7, 11],
 };
 
-// Define a consistent color palette
-const colorPalette = [
-    'rgba(255, 99, 132, 0.6)', 'rgba(54, 162, 235, 0.6)', 'rgba(255, 206, 86, 0.6)',
-    'rgba(75, 192, 192, 0.6)', 'rgba(153, 102, 255, 0.6)', 'rgba(255, 159, 64, 0.6)',
-    'rgba(233, 30, 99, 0.6)', 'rgba(66, 133, 244, 0.6)', 'rgba(76, 175, 80, 0.6)',
-    'rgba(103, 58, 183, 0.6)', 'rgba(255, 87, 34, 0.6)', 'rgba(0, 188, 212, 0.6)',
-    'rgba(121, 85, 72, 0.6)', 'rgba(205, 220, 57, 0.6)', 'rgba(158, 158, 158, 0.6)',
-    'rgba(192, 192, 192, 0.6)', 'rgba(0, 150, 136, 0.6)', 'rgba(255, 235, 59, 0.6)',
-    'rgba(255, 193, 7, 0.6)', 'rgba(96, 125, 139, 0.6)', 'rgba(244, 67, 54, 0.6)',
-    'rgba(63, 81, 181, 0.6)', 'rgba(33, 150, 243, 0.6)', 'rgba(255, 87, 34, 0.6)',
-];
+// Violet color scheme
+const backgroundColor = 'rgba(138, 43, 226, 0.2)'; // Violet (light)
+const borderColor = 'rgba(138, 43, 226, 1)'; // Violet (dark)
 
-const backgroundColors = Object.keys(programData).map((_, i) => colorPalette[i % colorPalette.length]);
-const borderColors = backgroundColors.map(color => color.replace('0.6', '1'));
-
+// Calculate total sit-ins for each program
 const programLabels = Object.keys(programData).map(program => {
     const totalSitIn = programData[program].reduce((sum, num) => sum + num, 0);
     return `${program} (${totalSitIn})`;
 });
 
+// Get the chart context
 const ctx = document.getElementById('sitInChart1').getContext('2d');
+const isMobile = window.innerWidth < 600; // Check if the screen is small
+
+// Create the chart
 const sitInChart = new Chart(ctx, {
     type: 'bar',
     data: {
-        labels: programLabels,
+        labels: isMobile ? Array(programLabels.length).fill('') : programLabels, // Hide labels on mobile
         datasets: [{
             label: 'Total Sit-In Count',
             data: Object.values(programData).map(values => values.reduce((sum, num) => sum + num, 0)),
-            backgroundColor: backgroundColors,
-            borderColor: borderColors,
+            backgroundColor: backgroundColor,
+            borderColor: borderColor,
             borderWidth: 1,
+            barThickness: 'flex',
+            categoryPercentage: 0.7,
+            barPercentage: 0.9,
         }]
     },
     options: {
         responsive: true,
         maintainAspectRatio: false,
-        indexAxis: 'x', 
+        indexAxis: 'x',
         scales: {
             y: {
                 beginAtZero: true,
-                title: {
-                    display: true,
-                    text: 'Sit-In Count',
+                title: { 
+                    display: !isMobile, 
+                    text: 'Sit-In Count', 
                     font: { size: 14 },
+                    color: '#ffffff', // White color for y-axis title
                 },
-                ticks: { font: { size: 12 } },
-                grid: { display: false } // Remove background grid lines
+                ticks: { 
+                    display: !isMobile, 
+                    font: { size: 12 },
+                    color: '#ffffff', // White color for y-axis labels
+                },
+                grid: { 
+                    display: false,
+                    color: 'rgba(255, 255, 255, 0.1)', // Light grid lines for better visibility
+                }
             },
             x: {
-                title: {
-                    display: true,
-                    text: 'Programs',
+                title: { 
+                    display: !isMobile, 
+                    text: 'Programs', 
                     font: { size: 14 },
+                    color: '#ffffff', // White color for x-axis title
                 },
                 ticks: {
+                    display: !isMobile, // Hide x-axis labels on mobile
+                    autoSkip: false,
+                    maxRotation: 45,
+                    minRotation: 45,
                     font: { size: 12 },
-                    callback: function (value) {
-                        return this.getLabelForValue(value).substring(0, 10) + '...';
-                    },
+                    color: '#ffffff', // White color for x-axis labels
                 },
-                grid: { display: false } // Remove background grid lines
+                grid: { 
+                    display: false,
+                    color: 'rgba(255, 255, 255, 0.1)', // Light grid lines for better visibility
+                }
             },
         },
         plugins: {
-            legend: {
-                display: true,
-                labels: { font: { size: 12 } },
+            legend: { 
+                display: false, // Hide legend
             },
-            tooltip: {
-                enabled: true,
-                callbacks: {
-                    label: function (context) {
-                        const label = context.dataset.label || '';
-                        const value = context.raw || 0;
-                        return `${label}: ${value}`;
-                    },
-                },
+            tooltip: { 
+                enabled: true, // Keep tooltips enabled
+                backgroundColor: 'rgba(0, 0, 0, 0.8)', // Dark tooltip background
+                titleColor: '#ffffff', // White tooltip title
+                bodyColor: '#ffffff', // White tooltip body text
             },
         },
-        layout: {
+        layout: { 
             padding: { left: 10, right: 10, top: 10, bottom: 10 },
         },
     },
 });
 
-// Enable horizontal scrolling for the chart container
+// Enable horizontal scrolling for mobile
 const chartContainer = document.getElementById('chart-container');
 if (chartContainer) {
     chartContainer.style.overflowX = 'auto';
     chartContainer.style.overflowY = 'hidden';
+    chartContainer.style.whiteSpace = 'nowrap';
 }
+// Date Picker Logic
+const datePicker = document.getElementById('datePicker');
 
+// Set max date to today
+datePicker.max = new Date().toISOString().split('T')[0];
 
+// Add event listener for date change
+datePicker.addEventListener('change', (e) => {
+    const selectedDate = e.target.value;
+    const today = new Date().toISOString().split('T')[0];
 
-const socketURL =
-window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:5000' // Local WebSocket URL
-    : 'https://ccs-sit-in-monitoring-system.onrender.com'; // Render WebSocket URL
+    if (selectedDate > today) {
+        alert('You cannot select a future date.');
+        datePicker.value = today; // Reset to today
+        return;
+    }
 
-const socket = io(socketURL, {
-    transports: ['websocket'],  // Force WebSocket transport
-    upgrade: false,             // Disable fallback to polling
-    reconnection: true,         // Enable reconnection
-    reconnectionAttempts: 5,    // Number of reconnection attempts
-    reconnectionDelay: 1000,    // Delay between reconnection attempts (1 second)
+    // Simulate fetching data based on the selected date
+    const filteredData = filterDataByDate(selectedDate);
+
+    // Update the chart
+    sitInChart.data.datasets[0].data = filteredData;
+    sitInChart.update();
 });
 
-socket.on('update_active_users', function (activeUsers) {
-    const activeUsersCountElement = document.getElementById('active-users-count');
-    if (activeUsersCountElement) {
-        activeUsersCountElement.textContent = activeUsers.length;
+// Simulate filtering data by date (replace with actual backend logic)
+function filterDataByDate(date) {
+    // For now, return random data as a placeholder
+    return Object.values(programData).map(values => {
+        return values[Math.floor(Math.random() * values.length)]; // Random value for demo
+    });
+}
+
+    // Update user count every second
+    function updateUserCount() {
+        fetch('/get_user_count')
+            .then(response => response.json())
+            .then(data => {
+                const userCountElement = document.querySelector('.user-count');
+                if (userCountElement) {
+                    userCountElement.textContent = data.student_count;
+                }
+            })
+            .catch(error => console.error('Error fetching user count:', error));
+    }
+
+    setInterval(updateUserCount, 1000); // Update every 1 second
+    updateUserCount(); // Call once immediately
+
+    // Socket.IO logic (if applicable)
+
+    socket.on('update_active_users', function (activeUsers) {
+        const activeUsersCountElement = document.getElementById('active-users-count');
+        if (activeUsersCountElement) {
+            // Update only the number, leaving the status circle intact
+            activeUsersCountElement.innerHTML = `${activeUsers.length} <span class="status-circle"></span>`;
+        }
+    });
+    
+
+    socket.on('new_announcement', (data) => {
+        console.log('New announcement:', data);
+        fetchAnnouncements(); // Refresh the announcements list
+    });
+
+    socket.on('announcement_updated', (data) => {
+    console.log('Updated announcement:', data);
+    fetchAnnouncements(); // Refresh the announcements list
+    });
+
+    // Listen for deleted announcements
+    socket.on('announcement_deleted', (data) => {
+        console.log('Deleted announcement:', data);
+        fetchAnnouncements(); // Refresh the announcements list
+    });
+
+
+    socket.on('connect', function () {
+        console.log('WebSocket connected to', socketURL);
+    });
+
+    socket.on('disconnect', function () {
+        console.log('WebSocket disconnected');
+    });
+
+    socket.on('connect_error', function (error) {
+        console.error('WebSocket connection error:', error);
+    });
+
+    // Announcements logic (if applicable)
+    const announcementForm = document.getElementById('announcement-form');
+    const announcementsBody = document.getElementById('announcements-body');
+
+    if (announcementForm && announcementsBody) {
+        announcementForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const announcementText = document.getElementById('announcement-text').value;
+
+            fetch('/create_announcement', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    admin_username: 'Admin', // Replace with dynamic admin username
+                    announcement_text: announcementText,
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Success', 'Announcement posted successfully!', 'success');
+                    document.getElementById('announcement-text').value = ''; // Clear the textarea
+                    fetchAnnouncements(); // Refresh the list
+                } else {
+                    Swal.fire('Error', 'Failed to post announcement: ' + data.message, 'error');
+                }
+            })
+            .catch(error => console.error('Error posting announcement:', error));
+        });
+
+        // Fetch announcements when the page loads
+        fetchAnnouncements();
+    }
+
+   // Function to fetch announcements
+function fetchAnnouncements() {
+    fetch('/get_announcements')
+        .then(response => response.json())
+        .then(data => {
+            const announcementsBody = document.getElementById('announcements-body');
+            if (announcementsBody) {
+                announcementsBody.innerHTML = ''; // Clear existing rows
+
+                data.forEach(announcement => {
+                    const row = document.createElement('tr');
+                    const announcementDate = new Date(announcement.announcement_date).toLocaleString();
+
+                    row.innerHTML = `
+                        <td>${announcementDate}</td>
+                        <td>${announcement.admin_username}</td>
+                        <td>${announcement.announcement_text}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="edit-btn" data-id="${announcement.id}">
+                                    <i class="ri-edit-line"></i> Edit
+                                </button>
+                                <button class="delete-btn" data-id="${announcement.id}">
+                                    <i class="ri-delete-bin-line"></i> Delete
+                                </button>
+                            </div>
+                        </td>
+                    `;
+
+                    announcementsBody.appendChild(row);
+                });
+
+                // Add event listeners for edit and delete buttons
+                addEditDeleteListeners();
+            }
+        })
+        .catch(error => console.error('Error fetching announcements:', error));
+}
+    // Add event listeners for edit and delete buttons
+    function addEditDeleteListeners() {
+        document.querySelectorAll('.edit-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const announcementId = e.target.getAttribute('data-id');
+                openEditModal(announcementId);
+            });
+        });
+
+        document.querySelectorAll('.delete-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const announcementId = e.target.getAttribute('data-id');
+                showDeleteConfirmation(announcementId);
+            });
+        });
+    }
+
+    // Open Edit Modal
+    function openEditModal(announcementId) {
+        fetch(`/get_announcement/${announcementId}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('edit-announcement-id').value = announcementId;
+                document.getElementById('edit-announcement-text').value = data.announcement_text;
+                document.getElementById('editModal').style.display = 'flex';
+            })
+            .catch(error => console.error('Error fetching announcement:', error));
+    }
+
+    // Close Edit Modal
+    document.querySelector('.close-modal').addEventListener('click', () => {
+        document.getElementById('editModal').style.display = 'none';
+    });
+
+
+
+    // Handle edit announcement form submission
+    document.getElementById('edit-announcement-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const announcementId = document.getElementById('edit-announcement-id').value;
+        const announcementText = document.getElementById('edit-announcement-text').value;
+
+        fetch(`/update_announcement/${announcementId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ announcement_text: announcementText }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire('Success', 'Announcement updated successfully!', 'success');
+                document.getElementById('editModal').style.display = 'none';
+                // No need to call fetchAnnouncements() here because the Socket.IO event will handle it
+            } else {
+                Swal.fire('Error', 'Failed to update announcement: ' + data.message, 'error');
+            }
+        })
+        .catch(error => console.error('Error updating announcement:', error));
+    });
+    // Show Delete Confirmation Modal
+    function showDeleteConfirmation(announcementId) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'You won\'t be able to revert this!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                deleteAnnouncement(announcementId);
+            }
+        });
+    }
+
+    // Confirm Delete
+function deleteAnnouncement(announcementId) {
+    fetch(`/delete_announcement/${announcementId}`, {
+        method: 'DELETE',
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire('Deleted!', 'Announcement has been deleted.', 'success');
+            // No need to call fetchAnnouncements() here because the Socket.IO event will handle it
+        } else {
+            Swal.fire('Error', 'Failed to delete announcement: ' + data.message, 'error');
+        }
+    })
+    .catch(error => console.error('Error deleting announcement:', error));
+}
+});
+
+
+
+
+
+// Daily Sit-Ins Chart (Bar Chart)
+const dailySitInsCtx = document.getElementById('dailySitInsChart').getContext('2d');
+const dailySitInsChart = new Chart(dailySitInsCtx, {
+    type: 'bar',
+    data: {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [{
+            label: 'Sit-Ins',
+            data: [12, 19, 3, 5, 2, 3, 7],
+            backgroundColor: 'rgba(107, 8, 255, 0.8)', // Brighter color for better contrast
+            borderColor: 'rgba(107, 8, 255, 0.8)', // Set to the same as background color or use another color
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false // Hide legend
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    drawBorder: false,
+                    borderDash: [5, 5],
+                    color: 'rgba(255, 255, 255, 0.1)' // Light grid lines for better contrast
+                }
+            },
+            x: {
+                grid: {
+                    display: false // Hide x-axis grid lines
+                }
+            }
+        },
+        backgroundColor: 'transparent', // Make background transparent
     }
 });
 
-socket.on('connect', function () {
-    console.log('WebSocket connected to', socketURL);
+
+// Lab Usage Bar Chart
+const labUsageCtx = document.getElementById('labUsageChart').getContext('2d');
+const labUsageChart = new Chart(labUsageCtx, {
+    type: 'bar',
+    data: {
+        labels: ['Lab544', 'Lab542', 'Lab530', 'Lab524', 'Lab526', 'Lab525'], // Lab Names
+        datasets: [{
+            label: 'Current Lab Usage',
+            data: [20, 35, 10, 45, 30, 50], // Example data points for lab usage
+            backgroundColor: '#17c1e8', // Brighter blue
+            hoverBackgroundColor: '#0b8e9d',
+            hoverBorderColor: '#0b8e9d'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false // Hide legend
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    drawBorder: false,
+                    borderDash: [5, 5],
+                    color: 'rgba(255, 255, 255, 0.1)' // Light grid lines for better contrast
+                },
+                ticks: {
+                    color: '#ddd' // Light color for Y-axis ticks
+                }
+            },
+            x: {
+                grid: {
+                    display: false // Hide x-axis grid lines
+                },
+                ticks: {
+                    color: '#ddd' // Light color for X-axis ticks
+                }
+            }
+        },
+        backgroundColor: 'transparent', // Make background transparent
+    }
 });
 
-socket.on('disconnect', function () {
-    console.log('WebSocket disconnected');
+
+const adminAttendanceCtx = document.getElementById('adminAttendanceChart').getContext('2d');
+
+// Base color in HSL format (Purple)
+const baseColor = 'hsl(273, 57.30%, 34.90%)';
+
+// Function to generate a lighter or darker shade of the base color
+function adjustColor(color, amount) {
+    const hsl = color.match(/\d+/g); // Extract HSL values
+    let lightness = parseInt(hsl[2]); // Get lightness value
+    lightness = Math.min(100, Math.max(0, lightness + amount)); // Adjust lightness
+    return `hsl(${hsl[0]}, ${hsl[1]}%, ${lightness}%)`; // Return new HSL color
+}
+
+const adminAttendanceChart = new Chart(adminAttendanceCtx, {
+    type: 'line',
+    data: {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [{
+            label: 'Admin Attendance',
+            data: [85, 80, 75, 90, 85, 95, 80],
+            borderColor: adjustColor(baseColor, -10), // Darker purple for the line
+            backgroundColor: adjustColor(baseColor, 20), // Lighter purple for the background
+            fill: true,
+            tension: 0.4,
+            borderWidth: 2,
+            pointRadius: 2, // Smaller dots
+            pointBackgroundColor: '#fff', // White color for points (or use the background color)
+            pointBorderColor: '#fff', // White border for the points
+            pointBorderWidth: 1, // Thinner border for points
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false // Hide legend
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    drawBorder: false,
+                    borderDash: [5, 5],
+                    color: 'rgba(255, 255, 255, 0.2)' // Light grid lines for dark mode
+                },
+                ticks: {
+                    color: '#ddd' // Light color for Y-axis ticks
+                }
+            },
+            x: {
+                grid: {
+                    display: false // Hide x-axis grid lines
+                },
+                ticks: {
+                    color: '#ddd' // Light color for X-axis ticks
+                }
+            }
+        }
+    }
 });
 
-socket.on('connect_error', function (error) {
-    console.error('WebSocket connection error:', error);
-});
 
+let currentPage = 1;
+const rowsPerPage = 10;
+let allFeedbackData = []; // Store all feedback data for pagination
+let feedbackRatingsChart; // Store the chart instance globally
 
-document.querySelectorAll(".approve-btn").forEach(button => {
-    button.addEventListener("click", function () {
-        let reservationId = this.dataset.reservationId;
-        let studentName = this.closest("tr").querySelector("td:nth-child(2)").textContent;
+function displayTableRows(data, page) {
+    const tableBody = document.querySelector('#feedbackTable tbody');
+    tableBody.innerHTML = ''; // Clear existing rows
 
-        Swal.fire({
-            title: 'Are you sure?',
-            text: `Do you want to approve the reservation for ${studentName}?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, approve it!',
-            cancelButtonText: 'No, cancel!',
-        }).then((result) => {
-            if (result.isConfirmed) {
-                fetch(`/approve-reservation/${reservationId}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        Swal.fire({
-                            title: 'Approved!',
-                            text: `Reservation for ${studentName} has been approved.`,
-                            icon: 'success',
-                            confirmButtonText: 'OK',
-                        }).then(() => {
-                            location.reload(); // Refresh the page after confirmation
-                        });
-                    } else {
-                        Swal.fire({
-                            title: 'Error!',
-                            text: 'Failed to approve reservation.',
-                            icon: 'error',
-                            confirmButtonText: 'OK',
-                        });
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    const paginatedData = data.slice(start, end);
+
+    paginatedData.forEach(feedback => {
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+            <td>${feedback.lab}</td>
+            <td>${feedback.student_idno}</td>  <!-- Changed from student_name to student_idno -->
+            <td>${feedback.feedback_text}</td>
+            <td class="star-rating">${'★'.repeat(feedback.rating)}</td>
+        `;
+        tableBody.appendChild(newRow);
+    });
+
+    // Update pagination controls
+    updatePaginationControls(data.length);
+}
+
+// Function to update pagination controls
+function updatePaginationControls(totalRows) {
+    const totalPages = Math.ceil(totalRows / rowsPerPage);
+    document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+    document.getElementById('prevPage').disabled = currentPage === 1;
+    document.getElementById('nextPage').disabled = currentPage === totalPages;
+}
+
+// Function to fetch feedback data
+function fetchFeedback() {
+    fetch('/get-feedback')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Fetched data:', data); // Debug: Log fetched data
+            allFeedbackData = data; // Store all feedback data
+            displayTableRows(allFeedbackData, currentPage); // Display the first page
+            updateChart(data); // Update the chart with the fetched data
+        })
+        .catch(error => console.error('Error fetching feedback:', error));
+}
+
+// Function to update the doughnut chart
+function updateChart(data) {
+    const ratings = data.map(feedback => feedback.rating);
+
+    // Count the ratings in each category
+    const good = ratings.filter(r => r >= 4).length;
+    const neutral = ratings.filter(r => r >= 2 && r < 4).length;
+    const negative = ratings.filter(r => r < 2).length;
+
+    // If no data, show the prompt
+    if (good + neutral + negative === 0) {
+        document.getElementById('noDataPrompt').style.display = 'block';
+        return;
+    }
+
+    // Update the chart data
+    if (feedbackRatingsChart) {
+        feedbackRatingsChart.data.datasets[0].data = [good, neutral, negative];
+        feedbackRatingsChart.update();
+    } else {
+        // Create the chart if it doesn't exist
+        const ctx = document.getElementById('feedbackRatingsChart').getContext('2d');
+        feedbackRatingsChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Good (4-5)', 'Neutral (2-3)', 'Negative (0-1)'],
+                datasets: [{
+                    label: 'Feedback Ratings',
+                    data: [good, neutral, negative],
+                    backgroundColor: [
+                        'rgba(173, 255, 47, 0.8)', // Yellow-Green
+                        'rgba(0, 191, 255, 0.8)', // Light Blue
+                        'rgba(255, 0, 38, 0.8)'  // Light Red
+                    ],
+                    borderColor: [
+                        'rgba(173, 255, 47, 1)', // Yellow-Green border
+                        'rgb(0, 191, 255)', // Light Blue border
+                        'rgb(255, 0, 38)'  // Light Red border
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false, // Allow chart to resize freely
+                cutout: '70%', // Make the doughnut hole larger (smaller chart)
+                plugins: {
+                    legend: {
+                        position: 'bottom', // Position the legend below the chart
+                        labels: {
+                            color: '#fff', // White text for dark theme
+                            font: {
+                                size: 14
+                            },
+                            padding: 20 // Add margin around the labels
+                        }
+                    },
+                    tooltip: {
+                        enabled: true,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)', // Dark tooltip background
+                        titleColor: '#fff', // White tooltip title
+                        bodyColor: '#fff', // White tooltip text
+                        borderColor: '#333', // Dark border for tooltip
+                        borderWidth: 1
                     }
-                })
-                .catch(error => {
-                    Swal.fire({
-                        title: 'Error!',
-                        text: 'An error occurred while approving the reservation.',
-                        icon: 'error',
-                        confirmButtonText: 'OK',
-                    });
-                });
+                }
             }
         });
-    });
+
+        // Adjust canvas size to make the chart smaller
+        const canvas = document.getElementById('feedbackRatingsChart');
+        canvas.style.width = '300px'; // Set width
+        canvas.style.height = '300px'; // Set height
+    }
+}
+
+// Add event listeners for pagination buttons
+document.getElementById('prevPage').addEventListener('click', () => {
+    if (currentPage > 1) {
+        currentPage--;
+        displayTableRows(allFeedbackData, currentPage);
+    }
+});
+
+document.getElementById('nextPage').addEventListener('click', () => {
+    if (currentPage < Math.ceil(allFeedbackData.length / rowsPerPage)) {
+        currentPage++;
+        displayTableRows(allFeedbackData, currentPage);
+    }
+});
+
+// Call fetchFeedback when the page loads
+document.addEventListener('DOMContentLoaded', fetchFeedback);
+
+// Debug: Check WebSocket connection
+socket.on('connect', () => {
+    console.log('Admin: Connected to WebSocket server');
+});
+
+socket.on('disconnect', () => {
+    console.log('Admin: Disconnected from WebSocket server');
+});
+
+// Listen for new feedback events
+socket.on('new_feedback', (data) => {
+    console.log('New feedback received:', data); // Debug: Log received data
+
+    // Add the new feedback to the beginning of the data array
+    allFeedbackData.unshift(data);
+
+    // If the current page is not the first page, stay on the current page
+    // Otherwise, refresh the first page to show the new feedback
+    if (currentPage === 1) {
+        displayTableRows(allFeedbackData, currentPage);
+    }
+
+    // Update the chart with the new data
+    updateChart(allFeedbackData);
+
+    // Update pagination controls
+    updatePaginationControls(allFeedbackData.length);
 });

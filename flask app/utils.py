@@ -5,8 +5,11 @@ from datetime import datetime
 import sqlite3
 import regex 
 from requests.exceptions import RequestException
+from google import genai
 import requests
-API_KEY = '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'
+
+# Replace this with your actual Gemini API key
+API_KEY = 'AIzaSyBTujO-SuZp6tlBICxowjYR7sZPnS3I_Z4'
 
 import json
 
@@ -56,40 +59,18 @@ RESERVATION_STATE = {
 
 def detect_intent(message):
     """
-    Detects the intent of the user's message using fuzzy matching.
+    Detects the intent of the user's message by matching keywords.
     """
     message = message.lower()
-    best_match = {"intent": "unknown", "score": 0}
 
-    # First, check for exact matches
+    # First, check for exact matches from the predefined INTENTS
     for intent, keywords in INTENTS.items():
-        if message in keywords:
-            return intent
+        for keyword in keywords:
+            if keyword.lower() in message:  # Exact match for keywords in message
+                return intent
 
-    # Check for specific keyword phrases first (before fuzzy matching)
-    if "delete history" in message:
-        return "delete_chat_history"
-
-    # Use fuzzy matching if no exact match found
-    for intent, keywords in INTENTS.items():
-        keyword_string = " ".join(keywords)
-        score = fuzz.token_set_ratio(message, keyword_string) + fuzz.partial_ratio(message, keyword_string)
-        print(f"Fuzzy matching score for {intent}: {score}")  # Debugging output for matching score
-        if score > best_match["score"]:
-            best_match["intent"] = intent
-            best_match["score"] = score
-
-    # Adjust fuzzy matching score threshold to better match the correct intent
-    if best_match["score"] < 80:  # Increased threshold to 80 for stronger matches
-        if "make me a program" in message or "hello world" in message:
-            return "program_request"
-        
-        print("No fuzzy match found, returning 'unknown'")  # Debugging
-        return "unknown"
-    
-    print(f"Best fuzzy match found: {best_match['intent']} with score {best_match['score']}")  # Debugging
-    return best_match["intent"]
-
+    # If no match found, return "unknown"
+    return "unknown"
 
 def get_total_session(idno: str) -> dict:
     sql = "SELECT sessions_left FROM students WHERE idno = ?"
@@ -148,9 +129,6 @@ def parse_time(time_str):
         except ValueError:
             continue
     raise ValueError("Invalid time format")
-
-from fuzzywuzzy import process
-from datetime import datetime
 
 def handle_reservation(message, session):
     """
@@ -281,8 +259,6 @@ def handle_reservation(message, session):
     else:
         return RESPONSES["reservation"]["no_details"]
 
-
-
 def get_response(message, session):
     """
     Main function to generate a response based on the detected intent or reservation flow.
@@ -293,14 +269,13 @@ def get_response(message, session):
     if RESERVATION_STATE["step"] is not None:
         return handle_reservation(message, session)
 
-    # Otherwise, detect the intent and respond accordingly
+    # Detect the intent of the message
     intent = detect_intent(message)
     print(f"Detected Intent: {intent}, Message: {message}")  # Debugging output
 
-    # Handle specific intents
     if intent == "session_left":
         sessions_left = get_total_session(session.get('student_idno'))
-        return "You have " + str(sessions_left) + " sessions left."
+        return f"You have {sessions_left['sessions_left']} sessions left."
 
     elif intent == "session_history":
         session_history = get_student_session_history(session.get('student_idno'))
@@ -334,18 +309,19 @@ def get_response(message, session):
     elif intent == "delete_chat_history":
         student_idno = session.get('student_idno')
         if delete_chat_history(student_idno):
-            return RESPONSES["delete_chat_history"]  # Return the success message from the RESPONSES dictionary
+            # Return a special response to indicate deletion success
+            return "__DELETE_SUCCESS__"
         else:
             return "There was an error while trying to delete your chat history. Please try again."
 
     elif intent in RESPONSES:
+        # Handle other predefined intents using the RESPONSES dictionary
         return RESPONSES[intent]
     
     else:
-        # If intent doesn't match, use fallback to external API
+        # If no intent is matched, fall back to the Gemini API
         print("No matching intent found, calling external API...")  # Debugging
         return call_external_api(message)
-    
 
 def ask_for_confirmation_to_reserve():
     """
@@ -377,11 +353,36 @@ def delete_chat_history(student_idno):
         return False  # If there's an error during the deletion process
 
 
-def call_external_api(message):
+def call_external_api(message, max_length=100):
+    """
+    Calls the Gemini API using google-genai to generate a response.
+    Limits the message length to the specified maximum length.
+
+    Args:
+        message (str): The input message to send to the API.
+        max_length (int): The maximum number of characters allowed for the input message.
+
+    Returns:
+        str: The generated response from the API or an error message.
+    """
+    # Check if the message length exceeds the maximum limit
+    if len(message) > max_length:
+        message = message[:max_length]  # Truncate the message to the max length
+        print(f"Message was too long, truncating to {max_length} characters.")
+
+    # Initialize the client with your API key
+    client = genai.Client(api_key=API_KEY)
+
     try:
-        response = requests.post("https://api.openrouter.com/your-endpoint", json={"message": message})
-        response.raise_for_status()  # Raise an exception for bad status codes
-        return response.json()
-    except RequestException as e:
-        print(f"Error calling external API: {e}")
-        return "Sorry, there was an issue connecting to the external API. Please try again later."
+        # Use the Gemini 2.0 model to generate content based on the message
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",  # Use the correct model here
+            contents=message  # Pass the message (prompt)
+        )
+        
+        # Return the generated response from the API
+        return response.text  # Assuming the response contains a `.text` attribute
+
+    except Exception as e:
+        print(f"Error calling Gemini API: {e}")
+        return "I'm sorry, but I couldn't process your request. Please try again later."

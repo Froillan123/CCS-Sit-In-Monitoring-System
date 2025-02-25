@@ -122,9 +122,9 @@ def get_username_admin(admin_username: str) -> list:
     sql = "SELECT * FROM admin_users WHERE admin_username = ?"
     return getprocess(sql, (admin_username,))
 
-def get_firstname_admin(admin_username: str) -> str:
-    sql = "SELECT admin_firstname FROM admin_users WHERE admin_username = ?"
-    result = getprocess(sql, (admin_username,))
+def get_firstname_admin(admin_firstname: str) -> str:
+    sql = "SELECT admin_firstname FROM admin_users WHERE admin_firstname = ?"
+    result = getprocess(sql, (admin_firstname,))
     if result:
         return result[0]['admin_firstname']  # Return the first name
     return None

@@ -288,6 +288,107 @@
     transition: background-color 0.3s ease;
 }
 
+/* Style for code blocks */
+pre {
+    background-color: #f4f4f4;
+    padding: 10px;
+    border-radius: 5px;
+    overflow-x: auto;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    margin: 10px 0;
+    position: relative; /* Allow for positioning the copy button */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle shadow around the code block */
+}
+
+/* Style for the "Copy Snippet" box */
+.copy-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+    background-color: #e0e0e0;
+    color: #333;
+    border: 1px solid #bbb;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.copy-btn:hover {
+    background-color: #ccc;
+    transform: scale(1.05); /* Slight hover effect */
+}
+
+.copy-btn:focus {
+    outline: none; /* Remove focus outline */
+}
+
+/* Adjusting the hover effect of the icon inside the copy button */
+.copy-btn:hover svg {
+    fill: #fff; /* Change icon color on hover */
+}
+
+/* Style for the copy icon inside the button */
+.copy-btn svg {
+    width: 16px;
+    height: 16px;
+    margin-right: 5px;
+}
+
+/* Responsive style for messages */
+.message {
+    padding: 12px 15px;
+    margin-bottom: 15px;
+    border-radius: 15px;
+    max-width: 80%;
+    font-size: 1.3rem;
+    line-height: 1.4;
+    word-wrap: break-word;
+    box-sizing: border-box;
+}
+
+.bot-message, .user-message {
+    max-width: 80%; /* Ensures the message doesn't take the full width */
+    word-wrap: break-word; /* Prevent text from overflowing */
+}
+
+/* Styling for text messages for bot and user */
+.bot-message {
+    background-color: #fff;
+    color: var(--text-color);
+    align-self: flex-start;
+    border: 1px solid #e0e0e0;
+    border-radius: 15px 15px 15px 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 12px 16px;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.user-message {
+    background-color: var(--first-color);
+    color: white;
+    align-self: flex-end;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Fade-in animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
 .chat-icon:hover {
     background-color: var(--second-color);
 }
@@ -335,7 +436,7 @@
                 <a href="#" data-section="lab-rules"><i class="fas fa-clipboard-list"></i><span>Lab Rules</span></a>
                 <a href="#" data-section="history"><i class="fas fa-history"></i><span>History</span></a>
                 <a href="#" data-section="reservations"><i class="fas fa-calendar-alt"></i><span>Reservations</span></a>
-                <a href="#" data-section="laboratories"><i class="fas fa-desktop"></i><span>Laboratories</span></a>
+                <a href="#" data-section="feedback-report"><i class="fas fa-comments"></i><span>Feedback Report</span></a>
                 <a href="#" data-section="sessions"><i class="fas fa-eye"></i><span>View Session</span></a>
               </div>
 
@@ -367,9 +468,12 @@
         
             <!-- Buttons on the Right -->
             <div class="notification-calendar">
-              <button class="notification-button">
-                <i class="fas fa-bell"></i> Notifications
-              </button>
+
+                  <button class="notification-button">
+                    <i class="fas fa-bell"></i> Notifications
+                  </button>
+
+
               <button class="calendar-button" id="openCalendar">
                 <i class="fas fa-calendar-alt"></i> Calendar
             </button>
@@ -534,9 +638,9 @@
       <div id="announcements" class="dashboard-section" style="display: block;">
         <h1>Announcements</h1>
         <div id="announcements-list" class="announcements-container">
-          <!-- Announcements will be dynamically inserted here -->
+            <!-- Announcements will be dynamically inserted here -->
         </div>
-      </div>
+    </div>
     
 
         <!-- Lab Rules Section -->
@@ -743,25 +847,50 @@
            
           </div>
 
-
-        <div id="laboratories" class="dashboard-section">
-          <h1>Laboratories</h1>
-
-              <!-- Bottom Section: Laboratories -->
-        <div class="laboratories-section">
-          <h2>Laboratories</h2>
-          <div class="laboratory-grid">
-              {% for lab in labs %}
-              <a href="#" class="laboratory-card">
-                  <div class="lab-icon">
-                      <i class="fas fa-laptop-code"></i> <!-- Computer Lab Icon -->
+        <!-- Feedback Report Section -->
+      <div id="feedback-report" class="dashboard-section">
+            <h1>Feedback Report</h1>
+            <form id="feedbackForm">
+              <!-- Lab Selection Dropdown -->
+              <div class="form-group">
+                  <label for="labSelection"><i class="fas fa-flask"></i> Select Lab</label>
+                  <select id="labSelection" required>
+                      <option value="" disabled selected>Select a lab</option>
+                      <option value="Lab544">Lab 544</option>
+                      <option value="Lab542">Lab 542</option>
+                      <option value="Lab530">Lab 530</option>
+                      <option value="Lab524">Lab 524</option>
+                      <option value="Lab526">Lab 526</option>
+                      <option value="Lab525">Lab 525</option>
+                  </select>
+              </div>
+          
+              <!-- Feedback Text -->
+              <div class="form-group">
+                  <label for="feedbackText"><i class="fas fa-comment-dots"></i> Your Feedback</label>
+                  <textarea id="feedbackText" placeholder="Write your feedback here..." required></textarea>
+              </div>
+          
+              <!-- Rating -->
+              <div class="form-group">
+                  <label> Rating</label>
+                  <div class="star-rating">
+                      <span class="star" data-value="1">&#9733;</span>
+                      <span class="star" data-value="2">&#9733;</span>
+                      <span class="star" data-value="3">&#9733;</span>
+                      <span class="star" data-value="4">&#9733;</span>
+                      <span class="star" data-value="5">&#9733;</span>
                   </div>
-                  <h3>{{ lab.lab_name }}</h3> <!-- Directly display lab name -->
-              </a>
-              {% endfor %}
-          </div>
-      </div>
-        </div>
+              </div>
+          
+              <!-- Hidden input for student_idno -->
+              <input type="hidden" id="student_idno" value="{{ session.student_idno }}">
+          
+              <!-- Submit Button -->
+              <button type="submit" class="submit-btn"><i class="fas fa-paper-plane"></i> Submit Feedback</button>
+          </form>
+          
+      </div>  
 
         <div id="sessions" class="dashboard-section" style="display: none;">
           <h1>Sessions</h1>
@@ -833,11 +962,27 @@
             </div>
         </div>
     </div>
-
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
 <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+
+
+const socketURL =
+        window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:5000' // Local WebSocket URL
+            : 'https://ccs-sit-in-monitoring-system.onrender.com'; // Render WebSocket URL
+
+    const socket = io(socketURL, {
+        transports: ['websocket'],
+        upgrade: false,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+    });
+    
   document.addEventListener('DOMContentLoaded', function () {
    // Section Toggling Logic
    const links = document.querySelectorAll('.sidebar-links a');
@@ -946,11 +1091,6 @@
     });
   }
 
-  // Fetch announcements
-  const announcementsList = document.getElementById('announcements-list');
-  if (announcementsList) {
-    fetchAnnouncements();
-  }
 
   // Fetch labs for dropdown
   fetchLabs();
@@ -1003,37 +1143,11 @@ function saveProfileChanges() {
       alert('An error occurred while updating the profile.');
     });
 }
-// Function to fetch announcements
-function fetchAnnouncements() {
-  fetch('/get_announcements')
-    .then(response => response.json())
-    .then(data => {
-      const announcementsList = document.getElementById('announcements-list');
-      if (announcementsList) {
-        announcementsList.innerHTML = ''; // Clear existing announcements
 
-        data.forEach(announcement => {
-          const announcementDate = new Date(announcement.announcement_date).toLocaleString();
 
-          const announcementBox = document.createElement('div');
-          announcementBox.className = 'announcement-box';
 
-          announcementBox.innerHTML = `
-            <div class="announcement-header">
-              <span class="announcement-date">${announcementDate}</span>
-              <span class="announcement-admin">Posted by: ${announcement.admin_username}</span>
-            </div>
-            <div class="announcement-content">
-              <p>${announcement.announcement_text}</p>
-            </div>
-          `;
 
-          announcementsList.appendChild(announcementBox);
-        });
-      }
-    })
-    .catch(error => console.error('Error fetching announcements:', error));
-}
+
 
 function fetchLabs() {
   fetch('/get_labs')
@@ -1715,15 +1829,23 @@ async function sendMessage() {
             });
 
             const data = await response.json();
-            // Add bot's reply to the chat window
-            addMessage('bot', data.reply);
+
+            // Check if the bot's response is the special delete success message
+            if (data.reply === "__DELETE_SUCCESS__") {
+                // Auto-refresh the page after a short delay (e.g., 1 second)
+                setTimeout(() => {
+                    location.reload();
+                }, 1000); // 1000ms = 1 second
+            } else {
+                // Add bot's reply to the chat window
+                addMessage('bot', data.reply);
+            }
         } catch (error) {
             console.error("Failed to send message:", error);
         }
     }
 }
 
-// Add a message to the chat window
 function addMessage(sender, message) {
     const chatMessages = document.getElementById('chatMessages');
     const messageDiv = document.createElement('div');
@@ -1736,10 +1858,21 @@ function addMessage(sender, message) {
 
     const messageContent = document.createElement('div');
     messageContent.classList.add('message-content');
-    
-    // Ensure that message is correctly inserted as HTML to display the emoji
+
+    // Check if the message contains a code block
+    if (message.includes('```')) {
+        // Extract the code block
+        const codeBlock = message.match(/```([\s\S]*?)```/)[1];
+        const formattedCode = `<pre><code>${codeBlock}</code></pre>`;
+
+        // Replace the code block in the message with the formatted code
+        message = message.replace(/```[\s\S]*?```/, formattedCode);
+    }
+
+    // Insert the message content with proper formatting
     messageContent.innerHTML = `<strong>${senderName}:</strong> ${message}`;
 
+    // Append the message content to the message div
     messageDiv.appendChild(messageContent);
 
     // If sender is bot, apply the 'bot-message' class to style it
@@ -1747,9 +1880,147 @@ function addMessage(sender, message) {
         messageDiv.classList.add('bot-message');
     }
 
+    // Append the message to the chat window
     chatMessages.appendChild(messageDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll to the latest message
+
+    // Auto-scroll to the latest message
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
+
+
+
+    socket.on('connect', function () {
+        console.log('WebSocket connected to', socketURL);
+    });
+
+    socket.on('disconnect', function () {
+        console.log('WebSocket disconnected');
+    });
+
+    socket.on('connect_error', function (error) {
+        console.error('WebSocket connection error:', error);
+    });
+
+  // Function to fetch announcements
+function fetchAnnouncements() {
+    fetch('/get_announcements')
+        .then(response => response.json())
+        .then(data => {
+            const announcementsList = document.getElementById('announcements-list');
+            if (announcementsList) {
+                announcementsList.innerHTML = ''; // Clear existing announcements
+
+                data.forEach(announcement => {
+                    const announcementDate = new Date(announcement.announcement_date).toLocaleString();
+
+                    const announcementBox = document.createElement('div');
+                    announcementBox.className = 'announcement-box';
+
+                    announcementBox.innerHTML = `
+                        <div class="announcement-header">
+                            <span class="announcement-date">${announcementDate}</span>
+                            <span class="announcement-admin">Posted by: ${announcement.admin_username}</span>
+                        </div>
+                        <div class="announcement-content">
+                            <p>${announcement.announcement_text}</p>
+                        </div>
+                    `;
+
+                    announcementsList.appendChild(announcementBox);
+                });
+            }
+        })
+        .catch(error => console.error('Error fetching announcements:', error));
+}
+
+
+// Fetch announcements when the page loads
+fetchAnnouncements();
+    socket.on('announcement_updated', (data) => {
+    console.log('Updated announcement:', data);
+    fetchAnnouncements(); // Refresh the announcements list
+    });
+
+    // Listen for deleted announcements
+    socket.on('announcement_deleted', (data) => {
+        console.log('Deleted announcement:', data);
+        fetchAnnouncements(); // Refresh the announcements list
+    });
+
+
+    // Listen for new announcements
+    socket.on('new_announcement', (data) => {
+        console.log('New announcement:', data);
+        // Add the new announcement to the list
+        const announcementsList = document.getElementById('announcements-list');
+        if (announcementsList) {
+            const announcementDate = new Date(data.announcement_date).toLocaleString();
+
+            const announcementBox = document.createElement('div');
+            announcementBox.className = 'announcement-box';
+
+            announcementBox.innerHTML = `
+                <div class="announcement-header">
+                    <span class="announcement-date">${announcementDate}</span>
+                    <span class="announcement-admin">Posted by: ${data.admin_username}</span>
+                </div>
+                <div class="announcement-content">
+                    <p>${data.announcement_text}</p>
+                </div>
+            `;
+
+            announcementsList.prepend(announcementBox); // Add to the top of the list
+        }
+    });
+
+  // Star Rating Interaction
+const stars = document.querySelectorAll('.star-rating .star');
+stars.forEach(star => {
+  star.addEventListener('click', function () {
+    const value = this.getAttribute('data-value');
+    stars.forEach(s => {
+      s.classList.toggle('active', s.getAttribute('data-value') <= value); // This will highlight all stars up to the clicked one
+    });
+  });
+});
+
+document.getElementById('feedbackForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+
+    const lab = document.getElementById('labSelection').value;
+    const feedbackText = document.getElementById('feedbackText').value;
+
+    // Get the highest rating by checking all active stars
+    const rating = Array.from(document.querySelectorAll('.star-rating .star.active'))
+                        .map(star => star.getAttribute('data-value'))
+                        .reduce((max, current) => Math.max(max, current), 0) || 0; // Get the highest value or 0 if no star is selected
+
+    // Retrieve student_idno from the session or a hidden input field
+    const student_idno = document.getElementById('student_idno').value;
+
+    // Send feedback data to the server using socket
+    socket.emit('submit_feedback', {
+        lab: lab,
+        feedback_text: feedbackText,
+        rating: rating,
+        student_idno: student_idno
+    });
+
+    // Reset the form after submission
+    document.getElementById('feedbackForm').reset();
+    document.querySelectorAll('.star-rating .star').forEach(star => star.classList.remove('active'));
+
+    // Display SweetAlert for feedback submission with custom size
+    Swal.fire({
+        icon: 'success',
+        title: 'Feedback Submitted!',
+        text: 'Thank you for your feedback.',
+        customClass: {
+            popup: 'swal-default-size'
+        }
+    });
+});
+
 
 </script>
 {% endblock %}

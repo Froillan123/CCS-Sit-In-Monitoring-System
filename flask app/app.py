@@ -11,6 +11,26 @@ import json
 import openai
 from threading import Thread
 from prompts import get_response 
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad, unpad
+from Crypto.Random import get_random_bytes
+import base64
+
+
+KEY_IV_FILE = "key_iv.dat"
+
+# Check if the key and IV exist in the file, otherwise generate and store them
+if not os.path.exists(KEY_IV_FILE):
+    AES_KEY = get_random_bytes(32)  # 256-bit key
+    AES_IV = get_random_bytes(16)   # 16-byte IV
+    with open(KEY_IV_FILE, "wb") as f:
+        f.write(base64.b64encode(AES_KEY) + b'\n')
+        f.write(base64.b64encode(AES_IV) + b'\n')
+else:
+    # Load the key and IV from the file
+    with open(KEY_IV_FILE, "rb") as f:
+        AES_KEY = base64.b64decode(f.readline().strip())
+        AES_IV = base64.b64decode(f.readline().strip())
 
 app = Flask(__name__)
 CORS(app)
@@ -31,37 +51,86 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+def encrypt_message(message):
+    cipher = AES.new(AES_KEY, AES.MODE_CBC, AES_IV)
+    padded_message = pad(message.encode('utf-8'), AES.block_size)
+    encrypted_message = cipher.encrypt(padded_message)
+    return base64.b64encode(encrypted_message).decode('utf-8')
+
+def decrypt_message(encrypted_message):
+    try:
+        encrypted_message = base64.b64decode(encrypted_message)
+        cipher = AES.new(AES_KEY, AES.MODE_CBC, AES_IV)
+        decrypted_message = unpad(cipher.decrypt(encrypted_message), AES.block_size)
+        return decrypted_message.decode('utf-8')
+    except (ValueError, KeyError) as e:
+        print(f"Decryption error: {e}")
+        return "[Unable to decrypt message]"
+
 @app.route('/chat', methods=['POST'])
 def chat():
     data = request.json
     message = data['message']
     student_idno = data['student_idno']
 
-    # Save user message to the database
+    # Encrypt the user's message before saving to the database
+    encrypted_message = encrypt_message(message)
+
+    # Save encrypted user message to the database
     conn = get_db_connection()
     conn.execute('INSERT INTO chat_history (student_idno, message, sender) VALUES (?, ?, ?)',
-                 (student_idno, message, 'user'))
+                 (student_idno, encrypted_message, 'user'))
     conn.commit()
 
     # Get custom chatbot response
     reply = get_response(message, session)  # Pass session to get_response
 
-    # Save bot message to the database
+    # Encrypt the bot's reply before saving to the database
+    encrypted_reply = encrypt_message(reply)
+
+    # Save encrypted bot message to the database
     conn.execute('INSERT INTO chat_history (student_idno, message, sender) VALUES (?, ?, ?)',
-                 (student_idno, reply, 'bot'))
+                 (student_idno, encrypted_reply, 'bot'))
     conn.commit()
     conn.close()
 
+    # Return the decrypted bot reply to the frontend
     return jsonify({'reply': reply})
-
 
 @app.route('/chat/history', methods=['GET'])
 def get_chat_history():
     student_idno = request.args.get('student_idno')
     conn = get_db_connection()
+    
+    # Fetch encrypted chat history from the database
     history = conn.execute('SELECT * FROM chat_history WHERE student_idno = ? ORDER BY timestamp', (student_idno,)).fetchall()
     conn.close()
-    return jsonify([dict(row) for row in history])
+
+    # Decrypt messages before returning them
+    decrypted_history = []
+    for row in history:
+        try:
+            # Decrypt the message
+            decrypted_message = decrypt_message(row['message'])
+            decrypted_history.append({
+                'id': row['id'],
+                'student_idno': row['student_idno'],
+                'message': decrypted_message,  # Decrypted message
+                'sender': row['sender'],
+                'timestamp': row['timestamp']
+            })
+        except Exception as e:
+            # Handle decryption errors (e.g., corrupted data)
+            print(f"Error decrypting message (ID: {row['id']}): {e}")
+            decrypted_history.append({
+                'id': row['id'],
+                'student_idno': row['student_idno'],
+                'message': "[Unable to decrypt message]",  # Fallback message
+                'sender': row['sender'],
+                'timestamp': row['timestamp']
+            })
+
+    return jsonify(decrypted_history)
 
 active_users_dict = {}
 announcements = []
@@ -238,6 +307,59 @@ def student_dashboard():
         reservations=reservations 
     )
 
+
+@socketio.on('submit_feedback')
+def handle_feedback(data):
+    print('Received feedback:', data)  # Debug: Log received feedback
+    lab = data['lab']
+    feedback_text = data['feedback_text']
+    rating = data['rating']
+    student_idno = data['student_idno']  # Get student_idno from the data
+
+    # Save feedback to the database
+    conn = get_db_connection()
+    conn.execute(
+        'INSERT INTO feedback (lab, student_idno, feedback_text, rating) VALUES (?, ?, ?, ?)',
+        (lab, student_idno, feedback_text, rating)
+    )
+    conn.commit()
+    conn.close()
+
+    # Broadcast the new feedback to all connected admin clients
+    emit('new_feedback', {
+        'lab': lab,
+        'student_idno': student_idno,  # Use idno instead of student_name
+        'feedback_text': feedback_text,
+        'rating': rating
+    }, broadcast=True)
+    print('Broadcasted feedback to admin clients')  # Debug: Log broadcast
+
+
+
+@app.route('/get-feedback', methods=['GET'])
+def get_feedback():
+    conn = get_db_connection()
+    feedback_data = conn.execute('SELECT * FROM feedback ORDER BY timestamp DESC').fetchall()
+    conn.close()
+
+    # Convert the feedback data to a list of dictionaries
+    feedback_list = []
+    for row in feedback_data:
+        feedback_list.append({
+            'id': row['id'],
+            'lab': row['lab'],
+            'student_idno': row['student_idno'],
+            'feedback_text': row['feedback_text'],
+            'rating': row['rating'],
+            'timestamp': row['timestamp']
+        })
+
+    return jsonify(feedback_list)
+
+
+
+
+
 @app.route('/cancel-reservation/<int:reservation_id>', methods=['POST'])
 def cancel_reservation(reservation_id):
     try:
@@ -379,6 +501,8 @@ def load_section(section_id):
         return render_template('client/sections/laboratories.html')
     else:
         return "Section not found", 404
+
+
     
 @app.route('/logout', methods=['GET', 'POST'])
 def logout():
@@ -461,11 +585,12 @@ def dashboard():
     page = request.args.get('page', 1, type=int)
     per_page = 10
     offset = (page - 1) * per_page
-
+    admin_firstname = session.get('admin_firstname')
     students = get_paginated_students(offset, per_page)
     total_students = get_count_students()
     total_pages = (total_students + per_page - 1) // per_page
     reservations = get_all_reservations()
+    today = datetime.now().strftime('%Y-%m-%d')
 
     return render_template('admin/dashboard.html',
                            student_count=student_count,
@@ -477,9 +602,12 @@ def dashboard():
                            students=students,
                            page=page,
                            total_pages=total_pages,
-                           reservations=reservations) 
+                           reservations=reservations,
+                           today=today,
+                           admin_firstname=admin_firstname
+                           )
 
-@app.route('/admin', methods=['GET', 'POST'])  
+@app.route('/admin', methods=['GET', 'POST'])
 def admin_login():
     pagetitle = 'Administrator Login'
     if request.method == 'POST':
@@ -493,9 +621,12 @@ def admin_login():
         admin = get_admin_user_by_credentials(username, password)
 
         if admin:
-            session['admin_username'] = username  
+            # Set session variables
+            session['admin_username'] = username
+            session['admin_firstname'] = admin['admin_firstname']  # Store the first name in the session
+            session.permanent = True  # Make the session persistent
             flash("Login successful!", 'success')
-            return redirect(url_for('dashboard'))  
+            return redirect(url_for('dashboard'))
         else:
             flash("Invalid username or password", 'error')
             return redirect(url_for('admin_login'))
@@ -511,7 +642,6 @@ def admin_register():
         email = request.form.get('email')
         name = request.form.get('name')
 
-        # Validate secret key
         if secret_key != "kimperor123":
             flash("Unauthorized access!", 'error')
             return render_template('admin/adminregister.html')
@@ -549,6 +679,12 @@ def adminLogout():
         flash("Admin has been logged out.", 'info')
     return redirect(url_for('admin_login'))
 
+
+
+@app.route('/admin/settings')
+def admin_settings():
+    return render_template('admin/admin_settings.html')
+
 @app.route('/create_announcement', methods=['POST'])
 def create_announcement():
     data = request.get_json()
@@ -570,6 +706,12 @@ def create_announcement():
         )
 
         if success:
+            # Emit a Socket.IO event to notify all clients
+            socketio.emit('new_announcement', {
+                'admin_username': admin_username,
+                'announcement_text': announcement_text,
+                'announcement_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            })
             return jsonify({"success": True})
         else:
             return jsonify({"success": False, "message": "Failed to add announcement"})
@@ -610,6 +752,13 @@ def update_announcement(announcement_id):
         )
 
         if success:
+            # Emit the updated announcement to all clients
+            socketio.emit('announcement_updated', {
+                'id': announcement_id,
+                'announcement_text': announcement_text,
+                'announcement_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'admin_username': 'Admin'  # Replace with actual admin username
+            })
             return jsonify({"success": True})
         else:
             return jsonify({"success": False, "message": "Failed to update announcement"})
@@ -617,11 +766,14 @@ def update_announcement(announcement_id):
         return jsonify({"success": False, "message": str(e)})
 
 
+# Delete Announcement
 @app.route('/delete_announcement/<int:announcement_id>', methods=['DELETE'])
 def delete_announcement(announcement_id):
     try:
-        success = delete_record(table="announcements", id=announcement_id)  # Ensure this function exists
+        success = delete_record(table="announcements", id=announcement_id)
         if success:
+            # Emit a Socket.IO event to notify all clients
+            socketio.emit('announcement_deleted', {'id': announcement_id})
             return jsonify({"success": True})
         else:
             return jsonify({"success": False, "message": "Failed to delete announcement"})
@@ -652,9 +804,10 @@ def handle_disconnect():
 
 @app.route('/get_user_count')
 def get_user_count():
-    active_students = list(active_users_dict.keys())
-    active_students_count = len(active_students)
+    active_students = list(active_users_dict.keys())  # Get list of active students
+    active_students_count = len(active_students)  # Count active students
     return jsonify(student_count=get_count_students(), active_students_count=active_students_count)
+
 
 def emit_active_users():
     """ Helper function to emit the active users count """
