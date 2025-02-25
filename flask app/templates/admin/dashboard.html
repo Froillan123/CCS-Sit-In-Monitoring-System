@@ -238,7 +238,23 @@
                                 </tr>
                             </thead>
                             <tbody id="announcements-body">
-                                <!-- Announcements will be dynamically inserted here -->
+                                <!-- Example Row -->
+                                <tr>
+                                    <td data-label="Date">2023-10-01</td>
+                                    <td data-label="Admin">John Doe</td>
+                                    <td data-label="Announcement">This is a sample announcement.</td>
+                                    <td data-label="Actions">
+                                        <div class="action-buttons">
+                                            <button class="edit-btn" data-id="1">
+                                                <i class="ri-edit-line"></i> Edit
+                                            </button>
+                                            <button class="delete-btn" data-id="1">
+                                                <i class="ri-delete-bin-line"></i> Delete
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <!-- More rows will be dynamically inserted here -->
                             </tbody>
                         </table>
                     </div>
@@ -252,13 +268,20 @@
                         <thead>
                             <tr>
                                 <th>Lab</th>
-                                <th>Student ID</th>  <!-- Changed from Student Name to Student ID -->
+                                <th>Student ID</th>
                                 <th>Feedback</th>
                                 <th>Rating</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Feedback rows will be dynamically added here -->
+                            <!-- Example row -->
+                            <tr>
+                                <td data-label="Lab">Lab 1</td>
+                                <td data-label="Student ID">12345</td>
+                                <td data-label="Feedback">Great work!</td>
+                                <td data-label="Rating" class="star-rating">★★★★☆</td>
+                            </tr>
+                            <!-- More rows will be dynamically added here -->
                         </tbody>
                     </table>
                 </div>

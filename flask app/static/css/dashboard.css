@@ -772,7 +772,12 @@ margin-right: 0.5rem;
 /* Media Queries for Mobile Devices */
 @media (max-width: 768px) {
 .announcement-container {
-    padding: 1rem; /* Reduce padding for smaller screens */
+    width: 100%;
+    margin-bottom: 5rem;
+}
+.charts .bar
+{
+    margin-bottom: 5rem;
 }
 
 .announcement-form textarea {
@@ -809,9 +814,6 @@ margin-right: 0.5rem;
 }
 
 @media (max-width: 480px) {
-.announcement-container {
-    margin: 0.5rem; /* Further reduce margin for very small screens */
-}
 
 .announcement-form textarea {
     min-height: 80px; /* Further reduce minimum height */
@@ -827,6 +829,56 @@ margin-right: 0.5rem;
     font-size: 0.8rem; /* Further reduce button font size */
     padding: 0.5rem; /* Further adjust button padding */
 }
+}
+
+
+/* Responsive Table for Mobile Devices */
+@media (max-width: 480px) {
+    .announcements-table table {
+        display: block;
+        width: 100%;
+    }
+
+    .announcements-table thead {
+        display: none; /* Hide the table header on mobile */
+    }
+
+    .announcements-table tbody {
+        display: block;
+        width: 100%;
+    }
+
+    .announcements-table tr {
+        display: block;
+        margin-bottom: 1rem;
+        border-bottom: 2px solid var(--sidebar-hover);
+    }
+
+    .announcements-table td {
+        display: block;
+        text-align: right;
+        padding: 0.5rem;
+        font-size: 0.8rem;
+        border-bottom: 1px solid var(--sidebar-hover);
+    }
+
+    .announcements-table td::before {
+        content: attr(data-label); /* Display the data-label as a pseudo-element */
+        float: left;
+        font-weight: 600;
+        color: var(--sidebar-text);
+    }
+
+    .action-buttons {
+        justify-content: flex-end; /* Align buttons to the right */
+    }
+
+    .edit-btn,
+    .delete-btn {
+        width: auto; /* Reset width for buttons */
+        padding: 0.25rem 0.5rem; /* Adjust button padding */
+        font-size: 0.8rem; /* Reduce button font size */
+    }
 }
 @media (max-width: 1268px) {
     .insights {
@@ -866,54 +918,59 @@ margin-right: 0.5rem;
 
 /* Table Container */
 .table-container {
-    overflow-x: auto; /* Enable horizontal scrolling for small screens */
+    overflow-x: auto;
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
-    background-color: var(--sidebar-bg); /* Use sidebar background */
+    background-color: var(--sidebar-bg);
     margin: 1rem 0;
-    padding: 1rem; /* Add some padding */
+    padding: 1rem;
 }
 
 /* Table Styling */
 #feedbackTable {
     width: 100%;
     border-collapse: collapse;
-    background-color: var(--sidebar-bg); /* Use sidebar background */
-    color: var(--sidebar-text); /* Use sidebar text color */
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-text);
 }
 
 #feedbackTable thead {
-    color: var(--white-color);
-}
-
-#feedbackTable th,
-#feedbackTable td {
-    padding: 1rem;
-    text-align: left;
-}
-
-#feedbackTable th {
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05rem;
-    position: sticky;
-    top: 0; /* Make header sticky */
-    z-index: 1; /* Ensure header stays above rows */
+    display: none; /* Hide the header on small screens */
 }
 
 #feedbackTable tbody tr {
-    border-bottom: 1px solid var(--sidebar-hover); /* Use sidebar hover color */
-    transition: all 0.3s ease;
+    display: block;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--sidebar-hover);
+    padding: 1rem;
+    background-color: var(--sidebar-bg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
 }
 
+#feedbackTable td {
+    display: block;
+    text-align: right;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--sidebar-hover);
+}
 
-#feedbackTable tbody tr:last-child {
+#feedbackTable td:last-child {
     border-bottom: none;
+}
+
+#feedbackTable td::before {
+    content: attr(data-label); /* Display the data-label */
+    float: left;
+    font-weight: 500;
+    text-transform: uppercase;
+    color: var(--first-color); /* Use --first-color for the label */
+    margin-right: 0.5rem; /* Add spacing between label and content */
 }
 
 /* Star Rating */
 .star-rating {
-    color: var(--first-color); /* Use first color for stars */
+    color: var(--first-color);
     font-size: 1.2rem;
 }
 
@@ -930,43 +987,55 @@ margin-right: 0.5rem;
     padding: 0.5rem 1rem;
     border: none;
     border-radius: var(--border-radius);
-    background-color: var(--first-color); /* Use first color for buttons */
+    background-color: var(--first-color);
     color: var(--white-color);
     cursor: pointer;
     transition: all 0.3s ease;
+    margin-bottom: 5rem;
 }
 
 .pagination-controls button:hover {
-    background-color: var(--second-color); /* Use second color on hover */
-    transform: translateY(-2px); /* Slight lift on hover */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Add shadow on hover */
+    background-color: var(--second-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .pagination-controls button:disabled {
-    background-color: var(--light-color); /* Use light color for disabled state */
+    background-color: var(--light-color);
     cursor: not-allowed;
-    transform: none; /* Disable hover effects */
+    transform: none;
     box-shadow: none;
 }
 
 .pagination-controls #pageInfo {
     font-size: 0.9rem;
-    color: var(--sidebar-text); /* Use sidebar text color */
+    color: var(--sidebar-text);
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
-    #feedbackTable th,
+@media (min-width: 768px) {
+    #feedbackTable thead {
+        display: table-header-group; /* Show the header on larger screens */
+    }
+
+    #feedbackTable tbody tr {
+        display: table-row;
+        margin-bottom: 0;
+        padding: 0;
+        background-color: transparent;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
     #feedbackTable td {
-        padding: 0.75rem;
+        display: table-cell;
+        text-align: left;
+        padding: 1rem;
+        border-bottom: 1px solid var(--sidebar-hover);
+        font-size: 1rem;
     }
 
-    .pagination-controls {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .table-container {
-        padding: 0.5rem; /* Reduce padding on mobile */
+    #feedbackTable td::before {
+        display: none; /* Hide the data-label on larger screens */
     }
 }

@@ -354,44 +354,43 @@ function filterDataByDate(date) {
         fetchAnnouncements();
     }
 
-   // Function to fetch announcements
-function fetchAnnouncements() {
-    fetch('/get_announcements')
-        .then(response => response.json())
-        .then(data => {
-            const announcementsBody = document.getElementById('announcements-body');
-            if (announcementsBody) {
-                announcementsBody.innerHTML = ''; // Clear existing rows
-
-                data.forEach(announcement => {
-                    const row = document.createElement('tr');
-                    const announcementDate = new Date(announcement.announcement_date).toLocaleString();
-
-                    row.innerHTML = `
-                        <td>${announcementDate}</td>
-                        <td>${announcement.admin_username}</td>
-                        <td>${announcement.announcement_text}</td>
-                        <td>
-                            <div class="action-buttons">
-                                <button class="edit-btn" data-id="${announcement.id}">
-                                    <i class="ri-edit-line"></i> Edit
-                                </button>
-                                <button class="delete-btn" data-id="${announcement.id}">
-                                    <i class="ri-delete-bin-line"></i> Delete
-                                </button>
-                            </div>
-                        </td>
-                    `;
-
-                    announcementsBody.appendChild(row);
-                });
-
-                // Add event listeners for edit and delete buttons
-                addEditDeleteListeners();
-            }
-        })
-        .catch(error => console.error('Error fetching announcements:', error));
-}
+    function fetchAnnouncements() {
+        fetch('/get_announcements')
+            .then(response => response.json())
+            .then(data => {
+                const announcementsBody = document.getElementById('announcements-body');
+                if (announcementsBody) {
+                    announcementsBody.innerHTML = ''; // Clear existing rows
+    
+                    data.forEach(announcement => {
+                        const row = document.createElement('tr');
+                        const announcementDate = new Date(announcement.announcement_date).toLocaleString();
+    
+                        row.innerHTML = `
+                            <td data-label="Date">${announcementDate}</td>
+                            <td data-label="Admin">${announcement.admin_username}</td>
+                            <td data-label="Announcement">${announcement.announcement_text}</td>
+                            <td data-label="Actions">
+                                <div class="action-buttons">
+                                    <button class="edit-btn" data-id="${announcement.id}">
+                                        <i class="ri-edit-line"></i> Edit
+                                    </button>
+                                    <button class="delete-btn" data-id="${announcement.id}">
+                                        <i class="ri-delete-bin-line"></i> Delete
+                                    </button>
+                                </div>
+                            </td>
+                        `;
+    
+                        announcementsBody.appendChild(row);
+                    });
+    
+                    // Add event listeners for edit and delete buttons
+                    addEditDeleteListeners();
+                }
+            })
+            .catch(error => console.error('Error fetching announcements:', error));
+    }
     // Add event listeners for edit and delete buttons
     function addEditDeleteListeners() {
         document.querySelectorAll('.edit-btn').forEach(button => {
@@ -648,10 +647,30 @@ const adminAttendanceChart = new Chart(adminAttendanceCtx, {
 
 
 let currentPage = 1;
-const rowsPerPage = 10;
+let rowsPerPage = 10; // Default rows per page
 let allFeedbackData = []; // Store all feedback data for pagination
 let feedbackRatingsChart; // Store the chart instance globally
 
+
+// Debug: Check WebSocket connection
+socket.on('connect', () => {
+    console.log('Admin: Connected to WebSocket server');
+});
+
+socket.on('disconnect', () => {
+    console.log('Admin: Disconnected from WebSocket server');
+});
+
+// Function to adjust rowsPerPage based on screen width
+function adjustRowsPerPage() {
+    if (window.innerWidth <= 768) {
+        rowsPerPage = 5; // Set rows per page to 5 for screens <= 768px
+    } else {
+        rowsPerPage = 10; // Default rows per page for larger screens
+    }
+}
+
+// Function to display table rows
 function displayTableRows(data, page) {
     const tableBody = document.querySelector('#feedbackTable tbody');
     tableBody.innerHTML = ''; // Clear existing rows
@@ -662,12 +681,11 @@ function displayTableRows(data, page) {
 
     paginatedData.forEach(feedback => {
         const newRow = document.createElement('tr');
-        newRow.innerHTML = `
-            <td>${feedback.lab}</td>
-            <td>${feedback.student_idno}</td>  <!-- Changed from student_name to student_idno -->
-            <td>${feedback.feedback_text}</td>
-            <td class="star-rating">${'★'.repeat(feedback.rating)}</td>
-        `;
+        newRow.innerHTML = 
+            `<td data-label="Lab">${feedback.lab}</td>
+             <td data-label="Student ID">${feedback.student_idno}</td>
+             <td data-label="Feedback">${feedback.feedback_text}</td>
+             <td data-label="Rating" class="star-rating">${'★'.repeat(feedback.rating)}</td>`;
         tableBody.appendChild(newRow);
     });
 
@@ -787,16 +805,11 @@ document.getElementById('nextPage').addEventListener('click', () => {
     }
 });
 
-// Call fetchFeedback when the page loads
-document.addEventListener('DOMContentLoaded', fetchFeedback);
-
-// Debug: Check WebSocket connection
-socket.on('connect', () => {
-    console.log('Admin: Connected to WebSocket server');
-});
-
-socket.on('disconnect', () => {
-    console.log('Admin: Disconnected from WebSocket server');
+// Call adjustRowsPerPage on page load and window resize
+window.addEventListener('resize', adjustRowsPerPage);
+document.addEventListener('DOMContentLoaded', () => {
+    adjustRowsPerPage();
+    fetchFeedback(); // Fetch feedback data after adjusting rowsPerPage
 });
 
 // Listen for new feedback events
