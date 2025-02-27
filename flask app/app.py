@@ -607,6 +607,23 @@ def dashboard():
                            admin_firstname=admin_firstname
                            )
 
+@app.route('/get_students')
+def get_students():
+    if 'admin_username' not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    students = get_all_students()  # Replace with your function to fetch students
+    student_list = []
+    for student in students:
+        student_list.append({
+            "idno": student['idno'],  # Access dictionary keys
+            "lastname": student['lastname'],
+            "firstname": student['firstname'],
+            "course": student['course'],
+            "year_level": student['year_level'],
+            "sessions_left": student['sessions_left']
+        })
+    return jsonify({"success": True, "data": student_list})
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_login():
     pagetitle = 'Administrator Login'
@@ -698,24 +715,45 @@ def create_announcement():
         return jsonify({"success": False, "message": "Missing announcement text"})
 
     try:
-        success = add_record(
-            table="announcements",
-            admin_username=admin_username,
-            announcement_text=announcement_text,
-            announcement_date=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        )
+        # Add the announcement to the database
+        query = """
+            INSERT INTO announcements (admin_username, announcement_text, announcement_date)
+            VALUES (?, ?, ?);
+        """
+        announcement_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(query, (admin_username, announcement_text, announcement_date))
+        announcement_id = cursor.lastrowid  # Get the ID of the newly inserted announcement
 
-        if success:
-            # Emit a Socket.IO event to notify all clients
-            socketio.emit('new_announcement', {
-                'admin_username': admin_username,
-                'announcement_text': announcement_text,
-                'announcement_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            })
-            return jsonify({"success": True})
-        else:
-            return jsonify({"success": False, "message": "Failed to add announcement"})
+        # Fetch all student IDs to create notifications
+        student_query = "SELECT id FROM students;"
+        cursor.execute(student_query)
+        students = cursor.fetchall()
+
+        # Insert a notification for each student
+        for student in students:
+            notification_query = """
+                INSERT INTO notifications (student_id, announcement_id, is_read)
+                VALUES (?, ?, ?);
+            """
+            cursor.execute(notification_query, (student['id'], announcement_id, False))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        # Emit a Socket.IO event to notify all clients
+        socketio.emit('new_announcement', {
+            'id': announcement_id,
+            'admin_username': admin_username,
+            'announcement_text': announcement_text,
+            'announcement_date': announcement_date,
+            'is_read': False  # Mark as unread by default
+        })
+        return jsonify({"success": True})
     except Exception as e:
+        print(f"Error creating announcement: {e}")
         return jsonify({"success": False, "message": str(e)})
 
 @app.route('/get_announcement/<int:announcement_id>', methods=['GET'])
@@ -778,6 +816,73 @@ def delete_announcement(announcement_id):
         else:
             return jsonify({"success": False, "message": "Failed to delete announcement"})
     except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+    
+
+def execute_query(query, params=None):
+    try:
+        # Connect to the SQLite database (replace with your actual database file)
+        conn = sqlite3.connect('student.db')
+        cursor = conn.cursor()
+
+        # Execute the query
+        if params:
+            cursor.execute(query, params)
+        else:
+            cursor.execute(query)
+
+        conn.commit()  # Commit the transaction
+
+        # Close the cursor and connection
+        cursor.close()
+        conn.close()
+
+        return True  # Query executed successfully
+    except Exception as e:
+        print(f"Error executing query: {e}")
+        return False  # Query failed
+
+@app.route('/mark_notification_as_read', methods=['POST'])
+def mark_notification_as_read():
+    data = request.get_json()
+    notification_id = data.get('notification_id')
+    if not notification_id:
+        return jsonify({"success": False, "message": "Notification ID is required"})
+
+    try:
+        query = """
+            UPDATE notifications
+            SET is_read = TRUE
+            WHERE id = ?;
+        """
+        success = execute_query(query, (notification_id,))
+
+        if success:
+            return jsonify({"success": True})
+        else:
+            return jsonify({"success": False, "message": "Failed to mark notification as read"})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+
+
+@app.route('/get_unread_notifications', methods=['GET'])
+def get_unread_notifications():
+    student_id = session.get('student_id')  # Ensure the student is logged in and their ID is stored in the session
+    if not student_id:
+        return jsonify({"success": False, "message": "Student not logged in"})
+
+    try:
+        query = """
+            SELECT n.id, a.admin_username, a.announcement_text, a.announcement_date, n.is_read
+            FROM notifications n
+            JOIN announcements a ON n.announcement_id = a.id
+            WHERE n.student_id = ? AND n.is_read = FALSE
+            ORDER BY a.announcement_date DESC;
+        """
+        unread_notifications = getprocess(query, (student_id,))
+        return jsonify({"success": True, "data": unread_notifications})  # Return as an array
+    except Exception as e:
+        print(f"Error fetching unread notifications: {e}")
         return jsonify({"success": False, "message": str(e)})
     
 

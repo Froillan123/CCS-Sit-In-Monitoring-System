@@ -1039,3 +1039,97 @@ margin-right: 0.5rem;
         display: none; /* Hide the data-label on larger screens */
     }
 }
+
+
+
+/* Ensure the dashboard is visible by default */
+#dashboard {
+    display: block; /* or flex/grid depending on your layout */
+}
+
+/* Table Container */
+.table-container1 {
+    display: none;
+}
+
+#studentsTable {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-text);
+}
+
+/* Table Header */
+#studentsTable thead {
+    background-color: var(--first-color);
+    color: var(--white-color);
+}
+
+#studentsTable th {
+    padding: 0.8rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+/* Table Body */
+#studentsTable tbody tr {
+    border-bottom: 1px solid var(--sidebar-hover);
+    padding: 1rem;
+    background-color: var(--sidebar-bg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+#studentsTable td {
+    text-align: left; /* Align text to the left in table cells */
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--sidebar-hover);
+}
+
+/* Remove bottom border for the last cell */
+#studentsTable td:last-child {
+    border-bottom: none;
+}
+
+/* Data label for smaller screens (mobile view) */
+#studentsTable td::before {
+    content: attr(data-label);
+    float: left;
+    font-weight: 500;
+    text-transform: uppercase;
+    color: var(--first-color);
+    margin-right: 0.5rem;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+    #studentsTable thead {
+        display: none; /* Hide the header on small screens */
+    }
+
+    #studentsTable tbody tr {
+        display: block; /* Display rows as blocks for better mobile view */
+        margin-bottom: 1rem;
+    }
+
+    #studentsTable td {
+        display: block; /* Display cells as blocks */
+        text-align: right;
+        padding: 1rem;
+        border-bottom: 1px solid var(--sidebar-hover);
+    }
+
+    #studentsTable td:last-child {
+        border-bottom: none;
+    }
+
+    #studentsTable td::before {
+        content: attr(data-label);
+        float: left;
+        font-weight: 500;
+        text-transform: uppercase;
+        color: var(--first-color);
+        margin-right: 0.5rem;
+    }
+}

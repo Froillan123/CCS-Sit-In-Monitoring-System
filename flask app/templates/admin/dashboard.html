@@ -139,21 +139,38 @@
 
         <!-- Main Content -->
         <main id="main-content">
-
-                    <div class="top-nav">
-                        <div class="search-bar">
-                            <i class="ri-search-line"></i> <!-- Search icon -->
-                            <input type="text" placeholder="Search...">
-                        </div>
-                        <div class="profile" id="profile">
-                            <img src="{{ url_for('static', filename='images/profile-1.jpg') }}" alt="Profile">
-                            <span class="admin-prefix">Admin-</span>{{ admin_firstname }}
-                            <div class="dropdown" id="dropdown">
-                                <a href="{{ url_for('admin_settings') }}" class="dropdown-item">Settings</a>
-                                <a href="{{ url_for('adminLogout') }}" class="dropdown-item logout mobile-only">Log Out</a> <!-- Add mobile-only class -->
-                            </div>
-                        </div>
+            <div class="top-nav">
+                <div class="search-bar">
+                    <i class="ri-search-line"></i>
+                    <input type="text" id="searchInput" placeholder="Search students...">
+                </div>
+                <div class="profile" id="profile">
+                    <img src="{{ url_for('static', filename='images/profile-1.jpg') }}" alt="Profile">
+                    <span class="admin-prefix">Admin-</span>{{ admin_firstname }}
+                    <div class="dropdown" id="dropdown">
+                        <a href="{{ url_for('admin_settings') }}" class="dropdown-item">Settings</a>
+                        <a href="{{ url_for('adminLogout') }}" class="dropdown-item logout mobile-only">Log Out</a>
                     </div>
+                </div>
+            </div>
+            
+            <div class="table-container1">
+                <table id="studentsTable">
+                    <thead>
+                        <tr>
+                            <th>ID No</th>
+                            <th>Last Name</th>
+                            <th>First Name</th>
+                            <th>Course</th>
+                            <th>Year Level</th>
+                            <th>Sessions Left</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentsBody">
+                        <!-- Student rows will be dynamically inserted here -->
+                    </tbody>
+                </table>
+            </div>
             
             <!-- Dashboard Content -->
             <div id="dashboard" class="page-content">

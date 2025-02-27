@@ -13,7 +13,7 @@ reconnectionDelay: 1000,
 
 
 document.addEventListener('DOMContentLoaded', function () {
-    // Flash messages logic
+          // Flash messages logic
     const flashMessages = document.querySelectorAll('.flash-message');
     flashMessages.forEach(flashMessage => {
         setTimeout(() => {
@@ -40,6 +40,19 @@ document.addEventListener('DOMContentLoaded', function () {
         const selectedPage = document.getElementById(page);
         if (selectedPage) {
             selectedPage.style.display = 'block';
+        }
+
+        // Reset visibility of dashboard and table
+        const dashboardSection = document.getElementById('dashboard');
+        const tableContainer = document.querySelector('.table-container1');  // Changed here
+
+        if (page === 'dashboard') {
+            // If navigating to the dashboard, ensure it's visible and the table is hidden
+            dashboardSection.style.display = 'block';
+            tableContainer.style.display = 'none'; // Changed here
+        } else {
+            // If navigating to any other page, ensure the table is hidden
+            tableContainer.style.display = 'none'; // Changed here
         }
 
         // Update the URL hash
@@ -88,6 +101,10 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             switchPage('dashboard'); // Default to dashboard if no hash is present
         }
+
+        // Ensure the table is hidden on initial load
+        const tableContainer = document.querySelector('.table-container1'); // Changed here
+        tableContainer.style.display = 'none'; // Changed here
     }
 
     // Load the correct page on initial load
@@ -95,6 +112,86 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Listen for hash changes to handle page refreshes
     window.addEventListener('hashchange', loadPageFromHash);
+
+    // Search Input Logic
+    const searchInput = document.getElementById('searchInput');
+    const studentsBody = document.getElementById('studentsBody');
+    const tableContainer = document.querySelector('.table-container1'); // Changed here
+    const dashboardSection = document.getElementById('dashboard');
+    let allStudents = []; // Store all students for filtering
+
+    // Fetch student data from the backend or use data passed to the template
+    function fetchStudents() {
+        fetch('/get_students') // Replace with your actual endpoint
+            .then(response => response.json())
+            .then(data => {
+                console.log('Fetched Data:', data); // Debug: Log fetched data
+                if (data.success && Array.isArray(data.data)) {
+                    allStudents = data.data; // Store all students
+                    displayStudents(allStudents); // Display all students initially
+                } else {
+                    console.error('Invalid response format:', data);
+                }
+            })
+            .catch(error => console.error('Error fetching students:', error));
+    }
+
+    // Display students in the table
+    function displayStudents(students) {
+        console.log('Displaying Students:', students); // Debug: Log students being displayed
+        studentsBody.innerHTML = ''; // Clear existing rows
+
+        students.forEach(student => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${student.idno}</td>
+                <td>${student.lastname}</td>
+                <td>${student.firstname}</td>
+                <td>${student.course}</td>
+                <td>${student.year_level}</td>
+                <td>${student.sessions_left}</td>
+            `;
+            studentsBody.appendChild(row);
+        });
+    }
+
+    // Filter students based on search input
+    function filterStudents(searchTerm) {
+        console.log('Filtering Students with Term:', searchTerm); // Debug: Log search term
+        const filteredStudents = allStudents.filter(student => {
+            return (
+                student.idno.toLowerCase().includes(searchTerm) ||
+                student.lastname.toLowerCase().includes(searchTerm) ||
+                student.firstname.toLowerCase().includes(searchTerm) ||
+                student.course.toLowerCase().includes(searchTerm) ||
+                student.year_level.toString().includes(searchTerm) ||
+                student.sessions_left.toString().includes(searchTerm)
+            );
+        });
+        console.log('Filtered Students:', filteredStudents); // Debug: Log filtered students
+        displayStudents(filteredStudents); // Display filtered students
+    }
+
+    // Add event listener for search input
+    searchInput.addEventListener('input', function (e) {
+        const searchTerm = e.target.value.toLowerCase();
+        console.log('Search Term:', searchTerm); // Debug: Log search term
+
+        if (searchTerm) {
+            // If there's a search term, show the table container and hide the dashboard
+            tableContainer.style.display = 'block'; // Changed here
+            dashboardSection.style.display = 'none';
+            filterStudents(searchTerm); // Filter and display students
+        } else {
+            // If the search term is empty, hide the table container and show the dashboard
+            tableContainer.style.display = 'none'; // Changed here
+            dashboardSection.style.display = 'block';
+            displayStudents(allStudents); // Show all students when search is cleared
+        }
+    });
+
+    // Fetch students on page load
+    fetchStudents();
 
 
     // Toggle dropdown on profile click
@@ -831,3 +928,5 @@ socket.on('new_feedback', (data) => {
     // Update pagination controls
     updatePaginationControls(allFeedbackData.length);
 });
+
+

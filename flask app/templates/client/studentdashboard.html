@@ -466,18 +466,48 @@ pre {
               <p>We're glad to have you back on your student dashboard.</p>
             </div>
         
-            <!-- Buttons on the Right -->
+                        <!-- Buttons on the Right -->
             <div class="notification-calendar">
+              <!-- Notification Button -->
+              <button class="notification-button" id="notificationBtn">
+                <i class="fas fa-bell"></i> Notifications
+                <span class="notification-badge" id="notificationBadge">0</span>
+              </button>
 
-                  <button class="notification-button">
-                    <i class="fas fa-bell"></i> Notifications
-                  </button>
+              <!-- Notification Dropdown -->
+              <div class="dropdown-menu" id="notificationDropdown">
+                <div class="dropdown-header">
+                  <span>Notifications</span>
+                  <span class="mark-read" id="markAllRead">Mark all as read</span>
+                </div>
 
+                <!-- Notification Items will be dynamically inserted here -->
+                <div id="notificationItems">
+                  <!-- Example of a single notification item -->
+                  <!--
+                  <div class="notification-item unread">
+                    <div class="notification-icon">
+                      <i class="fas fa-bell"></i>
+                    </div>
+                    <div class="notification-content">
+                      <div class="notification-title">New Announcement</div>
+                      <div class="notification-text">This is a sample notification.</div>
+                      <div class="notification-time">Just now</div>
+                    </div>
+                  </div>
+                  -->
+                </div>
 
+                <!-- Notification Footer -->
+                <div class="notification-footer">
+                  View All Notifications
+                </div>
+              </div>
+
+              <!-- Calendar Button -->
               <button class="calendar-button" id="openCalendar">
                 <i class="fas fa-calendar-alt"></i> Calendar
-            </button>
-            
+              </button>
             </div>
           </div>
         
@@ -2021,6 +2051,150 @@ document.getElementById('feedbackForm').addEventListener('submit', function (eve
     });
 });
 
+socket.on('new_announcement', (data) => {
+    const notificationDropdown = document.getElementById('notificationDropdown');
+    const notificationItem = document.createElement('div');
+    notificationItem.classList.add('notification-item');
+    if (!data.is_read) notificationItem.classList.add('unread');
 
+    notificationItem.innerHTML = `
+        <div class="notification-icon">
+            <i class="fas fa-bell"></i>
+        </div>
+        <div class="notification-content">
+            <div class="notification-title">New Announcement</div>
+            <div class="notification-text">${data.announcement_text}</div>
+            <div class="notification-time">Just now</div>
+        </div>
+    `;
+
+    // Add click event to mark as read
+    notificationItem.addEventListener('click', () => {
+        markNotificationAsRead(data.id);
+    });
+
+    notificationDropdown.insertBefore(notificationItem, notificationDropdown.firstChild);
+    updateNotificationCount();
+});
+
+
+// Mark all as read
+function markNotificationAsRead(notificationId) {
+    fetch('/mark_notification_as_read', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ notification_id: notificationId }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove the 'unread' class from the notification item
+            const notificationItem = document.querySelector(`.notification-item[data-id="${notificationId}"]`);
+            if (notificationItem) {
+                notificationItem.classList.remove('unread');
+                updateNotificationCount();
+            }
+        }
+    })
+    .catch(error => console.error('Error marking notification as read:', error));
+}
+ 
+document.addEventListener('DOMContentLoaded', () => {
+    fetch('/get_unread_notifications')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && Array.isArray(data.data)) {
+                const notificationDropdown = document.getElementById('notificationDropdown');
+                notificationDropdown.innerHTML = ''; // Clear existing notifications
+
+                data.data.forEach(notification => {
+                    const notificationItem = document.createElement('div');
+                    notificationItem.classList.add('notification-item');
+                    if (!notification.is_read) notificationItem.classList.add('unread');
+
+                    notificationItem.innerHTML = `
+                        <div class="notification-icon">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title">New Announcement</div>
+                            <div class="notification-text">${notification.announcement_text}</div>
+                            <div class="notification-time">${notification.announcement_date}</div>
+                        </div>
+                    `;
+
+                    // Add click event to mark as read
+                    notificationItem.addEventListener('click', () => {
+                        markNotificationAsRead(notification.id);
+                    });
+
+                    notificationDropdown.appendChild(notificationItem);
+                });
+
+                updateNotificationCount(); // Update the notification badge count
+            } else {
+                console.error('Invalid response format:', data);
+            }
+        })
+        .catch(error => console.error('Error fetching unread notifications:', error));
+});
+
+function updateNotificationCount() {
+    const unreadCount = document.querySelectorAll('.notification-item.unread').length;
+    const notificationBadge = document.getElementById('notificationBadge');
+    if (unreadCount > 0) {
+        notificationBadge.textContent = unreadCount;
+        notificationBadge.style.display = 'flex';
+    } else {
+        notificationBadge.style.display = 'none';
+    }
+}
+
+const notificationBtn = document.getElementById('notificationBtn');
+    const notificationDropdown = document.getElementById('notificationDropdown');
+    const markAllReadBtn = document.getElementById('markAllRead');
+    const unreadItems = document.querySelectorAll('.unread');
+    const notificationBadge = document.getElementById('notificationBadge');
+    
+    // Count unread notifications
+    function updateNotificationCount() {
+      const unreadCount = document.querySelectorAll('.unread').length;
+      if (unreadCount > 0) {
+        notificationBadge.textContent = unreadCount;
+        notificationBadge.style.display = 'flex';
+      } else {
+        notificationBadge.style.display = 'none';
+      }
+    }
+    
+    // Initialize notification count
+    updateNotificationCount();
+
+    // Toggle dropdown
+    notificationBtn.addEventListener('click', function() {
+      notificationDropdown.classList.toggle('show');
+    });
+
+    // Close dropdown when clicking outside
+    window.addEventListener('click', function(event) {
+      if (!event.target.matches('.notification-button') && 
+          !event.target.matches('.fa-bell') &&
+          !notificationDropdown.contains(event.target)) {
+        if (notificationDropdown.classList.contains('show')) {
+          notificationDropdown.classList.remove('show');
+        }
+      }
+    });
+
+    // Mark all as read functionality
+    markAllReadBtn.addEventListener('click', function() {
+      const unreadItems = document.querySelectorAll('.unread');
+      unreadItems.forEach(item => {
+        item.classList.remove('unread');
+      });
+      updateNotificationCount();
+    });
 </script>
 {% endblock %}

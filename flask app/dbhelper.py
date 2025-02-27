@@ -36,6 +36,10 @@ def getall_records(table: str) -> list:
     sql = f"SELECT * FROM {table}"
     return getprocess(sql)
 
+def get_all_students() -> list:
+    sql = "SELECT * FROM students"
+    return getprocess(sql)  # Ensure this returns a list of dictionaries
+
 def get_paginated_students(offset, per_page):
     sql = """
         SELECT 
@@ -346,3 +350,16 @@ def get_chat_history(student_idno):
     sql = 'SELECT * FROM chat_history WHERE student_idno = ? ORDER BY timestamp'
     params = (student_idno,)
     return getprocess(sql, params)
+
+
+def get_unread_notifications_from_db(user_id):
+    # Fetch unread notifications for the given user
+    query = """
+        SELECT n.id, a.admin_username, a.announcement_text, a.announcement_date, n.is_read
+        FROM notifications n
+        JOIN announcements a ON n.announcement_id = a.id
+        WHERE n.user_id = %s AND n.is_read = FALSE
+        ORDER BY a.announcement_date DESC;
+    """
+    result = getprocess(query, (user_id,))
+    return result
