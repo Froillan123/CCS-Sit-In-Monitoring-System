@@ -141,8 +141,10 @@
         <main id="main-content">
             <div class="top-nav">
                 <div class="search-bar">
-                    <i class="ri-search-line"></i>
-                    <input type="text" id="searchInput" placeholder="Search students...">
+                    <form id="searchForm">
+                        <i class="ri-search-line" id="searchIcon"></i>
+                        <input type="text" id="searchInput" placeholder="Search reservations by ID No...">
+                    </form>
                 </div>
                 <div class="profile" id="profile">
                     <img src="{{ url_for('static', filename='images/profile-1.jpg') }}" alt="Profile">
@@ -155,19 +157,23 @@
             </div>
             
             <div class="table-container1">
-                <table id="studentsTable">
+                <table id="reservationsTable">
                     <thead>
                         <tr>
-                            <th>ID No</th>
-                            <th>Last Name</th>
-                            <th>First Name</th>
-                            <th>Course</th>
-                            <th>Year Level</th>
-                            <th>Sessions Left</th>
+                            <th>ID</th>
+                            <th>Student ID No</th>
+                            <th>Student Name</th>
+                            <th>Lab ID</th>
+                            <th>Purpose</th>
+                            <th>Reservation Date</th>
+                            <th>Time In</th>
+                            <th>Time Out</th>
+                            <th>Status</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="studentsBody">
-                        <!-- Student rows will be dynamically inserted here -->
+                    <tbody id="reservationsBody">
+                        <!-- Reservation rows will be dynamically inserted here -->
                     </tbody>
                 </table>
             </div>

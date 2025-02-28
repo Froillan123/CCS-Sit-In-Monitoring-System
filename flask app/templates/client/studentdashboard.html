@@ -1770,6 +1770,38 @@ cancelButtons.forEach((button) => {
 });
 
 
+ // Listen for new reservation updates
+ socket.on('new_reservation', function (data) {
+        // If the reservation belongs to the current student, update the UI
+        if (data.student_idno === session.student_idno) {
+            const reservationsBody = document.getElementById('reservationsBody');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${data.student_idno}</td>
+                <td>${data.student_name}</td>
+                <td>${data.lab_id}</td>
+                <td>${data.purpose}</td>
+                <td>${data.reservation_date}</td>
+                <td>${data.time_in}</td>
+                <td>${data.time_out}</td>
+                <td>${data.status}</td>
+            `;
+            reservationsBody.appendChild(row);
+        }
+    });
+
+    // Listen for reservation status updates
+    socket.on('reservation_updated', function (data) {
+        const { reservation_id, status } = data;
+
+        // Find the reservation row and update its status
+        const row = document.querySelector(`tr[data-reservation-id="${reservation_id}"]`);
+        if (row) {
+            const statusCell = row.querySelector('td:nth-child(8)');
+            statusCell.textContent = status;
+        }
+    });
+
   document.addEventListener("DOMContentLoaded", function () {
     let tableBody = document.getElementById("reservationsBody");
     let rows = Array.from(tableBody.querySelectorAll("tr"));

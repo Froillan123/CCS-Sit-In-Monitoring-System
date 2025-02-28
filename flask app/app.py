@@ -164,7 +164,6 @@ def login():
                 flash("You have no sessions left. Please request an extension.", 'warning')
                 return redirect(url_for('no_sessions_left'))
 
-            session['user_username'] = username
             session['student_idno'] = user['idno']
             session['student_firstname'] = user['firstname']
             session['student_lastname'] = user['lastname']
@@ -241,9 +240,7 @@ def reservations():
     time_in = request.form.get('time_in', '').strip()
     time_out = request.form.get('time_out', '').strip()
 
-
     if not all([student_idno, student_name, lab_id, purpose, reservation_date, time_in, time_out]):
-        print("Error: Missing required fields")
         return jsonify({'status': 'error', 'message': 'All fields are required'}), 400
 
     try:
@@ -260,22 +257,79 @@ def reservations():
         time_in=time_in,
         time_out=time_out
     ):
-        print("Reservation inserted successfully")
+        # Emit a Socket.IO event to notify both admin and student
+        socketio.emit('new_reservation', {
+            'student_idno': student_idno,
+            'student_name': student_name,
+            'lab_id': lab_id,
+            'purpose': purpose,
+            'reservation_date': reservation_date,
+            'time_in': time_in,
+            'time_out': time_out,
+            'status': 'Pending'
+        })
         return jsonify({'status': 'success', 'message': 'Reservation created successfully'}), 200
     else:
-        print("Error: Failed to create reservation")
         return jsonify({'status': 'error', 'message': 'Failed to create reservation'}), 500
-
-
 
 @app.route('/approve-reservation/<int:reservation_id>', methods=['POST'])
 def approve_reservation(reservation_id):
     try:
         if update_reservation_status(reservation_id, 'Approved'):
+            # Emit a Socket.IO event to notify both admin and student
+            socketio.emit('reservation_updated', {
+                'reservation_id': reservation_id,
+                'status': 'Approved'
+            })
             return jsonify({'success': True, 'message': 'Reservation approved successfully'})
         return jsonify({'success': False, 'message': 'Reservation not found'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/close-reservation/<int:reservation_id>', methods=['POST'])
+def close_reservation(reservation_id):
+    try:
+        if update_reservation_status(reservation_id, 'Closed'):
+            # Emit a Socket.IO event to notify both admin and student
+            socketio.emit('reservation_updated', {
+                'reservation_id': reservation_id,
+                'status': 'Closed'
+            })
+            return jsonify({'success': True, 'message': 'Reservation closed successfully'})
+        return jsonify({'success': False, 'message': 'Reservation not found'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/get_reservations')
+def get_reservations():
+    if 'admin_username' not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    search_term = request.args.get('search', '').strip()
+    reservations = get_all_reservations(search_term)  # Replace with your function to fetch reservations
+    reservation_list = []
+    for reservation in reservations:
+        reservation_list.append({
+            "id": reservation['id'],
+            "student_idno": reservation['student_idno'],
+            "student_name": reservation['student_name'],
+            "lab_id": reservation['lab_id'],
+            "purpose": reservation['purpose'],
+            "reservation_date": reservation['reservation_date'],
+            "time_in": reservation['time_in'],
+            "time_out": reservation['time_out'],
+            "status": reservation['status']
+        })
+    return jsonify({"success": True, "data": reservation_list})
+
+def get_all_reservations(search_term='') -> list:
+    if search_term:
+        sql = "SELECT * FROM reservations WHERE student_idno LIKE ?"
+        return getprocess(sql, (f"%{search_term}%",))
+    else:
+        sql = "SELECT * FROM reservations"
+        return getprocess(sql)
 
 
 
@@ -624,6 +678,7 @@ def get_students():
             "sessions_left": student['sessions_left']
         })
     return jsonify({"success": True, "data": student_list})
+    
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_login():
     pagetitle = 'Administrator Login'

@@ -13,185 +13,240 @@ reconnectionDelay: 1000,
 
 
 document.addEventListener('DOMContentLoaded', function () {
-          // Flash messages logic
-    const flashMessages = document.querySelectorAll('.flash-message');
-    flashMessages.forEach(flashMessage => {
-        setTimeout(() => {
-            flashMessage.classList.add('fade-out');
-        }, 2500);
-        flashMessage.addEventListener('animationend', () => {
-            flashMessage.remove();
-        });
-    });
+ // Flash messages logic (unchanged)
+ const flashMessages = document.querySelectorAll('.flash-message');
+ flashMessages.forEach(flashMessage => {
+     setTimeout(() => {
+         flashMessage.classList.add('fade-out');
+     }, 2500);
+     flashMessage.addEventListener('animationend', () => {
+         flashMessage.remove();
+     });
+ });
 
-    // SPA Behavior
-    const sidebarLinks = document.querySelectorAll('.sidebar a');
-    const bottomNavLinks = document.querySelectorAll('.bottom-nav a');
-    const pageContents = document.querySelectorAll('.page-content');
+ // SPA Behavior (unchanged)
+ const sidebarLinks = document.querySelectorAll('.sidebar a');
+ const bottomNavLinks = document.querySelectorAll('.bottom-nav a');
+ const pageContents = document.querySelectorAll('.page-content');
 
-    // Function to handle page switching
-    function switchPage(page) {
-        // Hide all pages
-        pageContents.forEach(content => {
-            content.style.display = 'none';
-        });
+ // Function to handle page switching (unchanged)
+ function switchPage(page) {
+     // Hide all pages
+     pageContents.forEach(content => {
+         content.style.display = 'none';
+     });
 
-        // Show the selected page
-        const selectedPage = document.getElementById(page);
-        if (selectedPage) {
-            selectedPage.style.display = 'block';
-        }
+     // Show the selected page
+     const selectedPage = document.getElementById(page);
+     if (selectedPage) {
+         selectedPage.style.display = 'block';
+     }
 
-        // Reset visibility of dashboard and table
-        const dashboardSection = document.getElementById('dashboard');
-        const tableContainer = document.querySelector('.table-container1');  // Changed here
+     // Reset visibility of dashboard and table
+     const dashboardSection = document.getElementById('dashboard');
+     const tableContainer = document.querySelector('.table-container1');
 
-        if (page === 'dashboard') {
-            // If navigating to the dashboard, ensure it's visible and the table is hidden
-            dashboardSection.style.display = 'block';
-            tableContainer.style.display = 'none'; // Changed here
-        } else {
-            // If navigating to any other page, ensure the table is hidden
-            tableContainer.style.display = 'none'; // Changed here
-        }
+     if (page === 'dashboard') {
+         dashboardSection.style.display = 'block';
+         tableContainer.style.display = 'none';
+     } else {
+         tableContainer.style.display = 'none';
+     }
 
-        // Update the URL hash
-        window.location.hash = page;
+     // Update the URL hash
+     window.location.hash = page;
 
-        // Update active state for sidebar links
-        sidebarLinks.forEach(link => {
-            link.classList.remove('active');
-            if (link.getAttribute('data-page') === page) {
-                link.classList.add('active');
-            }
-        });
+     // Update active state for sidebar links
+     sidebarLinks.forEach(link => {
+         link.classList.remove('active');
+         if (link.getAttribute('data-page') === page) {
+             link.classList.add('active');
+         }
+     });
 
-        // Update active state for bottom navigation links
-        bottomNavLinks.forEach(link => {
-            link.classList.remove('active');
-            if (link.getAttribute('data-page') === page) {
-                link.classList.add('active');
-            }
-        });
-    }
+     // Update active state for bottom navigation links
+     bottomNavLinks.forEach(link => {
+         link.classList.remove('active');
+         if (link.getAttribute('data-page') === page) {
+             link.classList.add('active');
+         }
+     });
+ }
 
-    // Add event listeners to sidebar links
-    sidebarLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const page = link.getAttribute('data-page');
-            switchPage(page);
-        });
-    });
+ // Add event listeners to sidebar links (unchanged)
+ sidebarLinks.forEach(link => {
+     link.addEventListener('click', (e) => {
+         e.preventDefault();
+         const page = link.getAttribute('data-page');
+         switchPage(page);
+     });
+ });
 
-    // Add event listeners to bottom navigation links
-    bottomNavLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const page = link.getAttribute('data-page');
-            switchPage(page);
-        });
-    });
+ // Add event listeners to bottom navigation links (unchanged)
+ bottomNavLinks.forEach(link => {
+     link.addEventListener('click', (e) => {
+         e.preventDefault();
+         const page = link.getAttribute('data-page');
+         switchPage(page);
+     });
+ });
 
-    // Handle page load and hash changes
-    function loadPageFromHash() {
-        const page = window.location.hash.substring(1); // Remove the '#' from the hash
-        if (page) {
-            switchPage(page);
-        } else {
-            switchPage('dashboard'); // Default to dashboard if no hash is present
-        }
+ // Handle page load and hash changes (unchanged)
+ function loadPageFromHash() {
+     const page = window.location.hash.substring(1);
+     if (page) {
+         switchPage(page);
+     } else {
+         switchPage('dashboard');
+     }
 
-        // Ensure the table is hidden on initial load
-        const tableContainer = document.querySelector('.table-container1'); // Changed here
-        tableContainer.style.display = 'none'; // Changed here
-    }
+     const tableContainer = document.querySelector('.table-container1');
+     tableContainer.style.display = 'none';
+ }
 
-    // Load the correct page on initial load
-    loadPageFromHash();
+ // Load the correct page on initial load (unchanged)
+ loadPageFromHash();
 
-    // Listen for hash changes to handle page refreshes
-    window.addEventListener('hashchange', loadPageFromHash);
+ // Listen for hash changes to handle page refreshes (unchanged)
+ window.addEventListener('hashchange', loadPageFromHash);
 
-    // Search Input Logic
-    const searchInput = document.getElementById('searchInput');
-    const studentsBody = document.getElementById('studentsBody');
-    const tableContainer = document.querySelector('.table-container1'); // Changed here
-    const dashboardSection = document.getElementById('dashboard');
-    let allStudents = []; // Store all students for filtering
+ // Search Input Logic
+ const searchForm = document.getElementById('searchForm');
+ const searchInput = document.getElementById('searchInput');
+ const reservationsBody = document.getElementById('reservationsBody');
+ const tableContainer = document.querySelector('.table-container1');
+ const dashboardSection = document.getElementById('dashboard');
 
-    // Fetch student data from the backend or use data passed to the template
-    function fetchStudents() {
-        fetch('/get_students') // Replace with your actual endpoint
-            .then(response => response.json())
-            .then(data => {
-                console.log('Fetched Data:', data); // Debug: Log fetched data
-                if (data.success && Array.isArray(data.data)) {
-                    allStudents = data.data; // Store all students
-                    displayStudents(allStudents); // Display all students initially
-                } else {
-                    console.error('Invalid response format:', data);
-                }
-            })
-            .catch(error => console.error('Error fetching students:', error));
-    }
+ // Function to display reservations in the table
+ function displayReservations(reservations) {
+     reservationsBody.innerHTML = ''; // Clear existing rows
 
-    // Display students in the table
-    function displayStudents(students) {
-        console.log('Displaying Students:', students); // Debug: Log students being displayed
-        studentsBody.innerHTML = ''; // Clear existing rows
+     reservations.forEach(reservation => {
+         const row = document.createElement('tr');
+         row.innerHTML = `
+             <td>${reservation.id}</td>
+             <td>${reservation.student_idno}</td>
+             <td>${reservation.student_name}</td>
+             <td>${reservation.lab_id}</td>
+             <td>${reservation.purpose}</td>
+             <td>${reservation.reservation_date}</td>
+             <td>${reservation.time_in}</td>
+             <td>${reservation.time_out}</td>
+             <td>${reservation.status}</td>
+             <td>
+                 <button class="approve-btn" data-reservation-id="${reservation.id}">Approve</button>
+                 <button class="close-btn" data-reservation-id="${reservation.id}">Close</button>
+             </td>
+         `;
+         reservationsBody.appendChild(row);
+     });
+ }
 
-        students.forEach(student => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${student.idno}</td>
-                <td>${student.lastname}</td>
-                <td>${student.firstname}</td>
-                <td>${student.course}</td>
-                <td>${student.year_level}</td>
-                <td>${student.sessions_left}</td>
-            `;
-            studentsBody.appendChild(row);
-        });
-    }
+ // Fetch reservations based on search term
+ function fetchReservations(searchTerm = '') {
+     fetch(`/get_reservations?search=${searchTerm}`)
+         .then(response => response.json())
+         .then(data => {
+             if (data.success && Array.isArray(data.data)) {
+                 displayReservations(data.data); // Display reservations
+             } else {
+                 console.error('Invalid response format:', data);
+             }
+         })
+         .catch(error => console.error('Error fetching reservations:', error));
+ }
 
-    // Filter students based on search input
-    function filterStudents(searchTerm) {
-        console.log('Filtering Students with Term:', searchTerm); // Debug: Log search term
-        const filteredStudents = allStudents.filter(student => {
-            return (
-                student.idno.toLowerCase().includes(searchTerm) ||
-                student.lastname.toLowerCase().includes(searchTerm) ||
-                student.firstname.toLowerCase().includes(searchTerm) ||
-                student.course.toLowerCase().includes(searchTerm) ||
-                student.year_level.toString().includes(searchTerm) ||
-                student.sessions_left.toString().includes(searchTerm)
-            );
-        });
-        console.log('Filtered Students:', filteredStudents); // Debug: Log filtered students
-        displayStudents(filteredStudents); // Display filtered students
-    }
+ // Listen for new reservations
+ socket.on('new_reservation', function (data) {
+     const reservationsBody = document.getElementById('reservationsBody');
+     const row = document.createElement('tr');
+     row.innerHTML = `
+         <td>${data.student_idno}</td>
+         <td>${data.student_name}</td>
+         <td>${data.lab_id}</td>
+         <td>${data.purpose}</td>
+         <td>${data.reservation_date}</td>
+         <td>${data.time_in}</td>
+         <td>${data.time_out}</td>
+         <td>${data.status}</td>
+         <td>
+             <button class="approve-btn" data-reservation-id="${data.reservation_id}">Approve</button>
+             <button class="close-btn" data-reservation-id="${data.reservation_id}">Close</button>
+         </td>
+     `;
+     reservationsBody.appendChild(row);
+ });
 
-    // Add event listener for search input
-    searchInput.addEventListener('input', function (e) {
-        const searchTerm = e.target.value.toLowerCase();
-        console.log('Search Term:', searchTerm); // Debug: Log search term
+ // Listen for reservation status updates
+ socket.on('reservation_updated', function (data) {
+     const { reservation_id, status } = data;
 
-        if (searchTerm) {
-            // If there's a search term, show the table container and hide the dashboard
-            tableContainer.style.display = 'block'; // Changed here
-            dashboardSection.style.display = 'none';
-            filterStudents(searchTerm); // Filter and display students
-        } else {
-            // If the search term is empty, hide the table container and show the dashboard
-            tableContainer.style.display = 'none'; // Changed here
-            dashboardSection.style.display = 'block';
-            displayStudents(allStudents); // Show all students when search is cleared
-        }
-    });
+     // Find the reservation row and update its status
+     const row = document.querySelector(`tr[data-reservation-id="${reservation_id}"]`);
+     if (row) {
+         const statusCell = row.querySelector('td:nth-child(9)'); // Update the correct column index
+         statusCell.textContent = status;
 
-    // Fetch students on page load
-    fetchStudents();
+         // Disable buttons after approval or closing
+         const buttons = row.querySelectorAll('button');
+         buttons.forEach(button => {
+             button.disabled = true;
+         });
+     }
+ });
+
+ // Handle form submission
+ searchForm.addEventListener('submit', function (e) {
+     e.preventDefault();
+     const searchTerm = searchInput.value.trim();
+     if (searchTerm) {
+         tableContainer.style.display = 'block';
+         dashboardSection.style.display = 'none';
+         fetchReservations(searchTerm);
+     } else {
+         tableContainer.style.display = 'none';
+         dashboardSection.style.display = 'block';
+         fetchReservations(); // Fetch all reservations if search term is empty
+     }
+ });
+
+ // Fetch all reservations on page load
+ fetchReservations();
+});
+
+// Functions to handle approval and closing of reservations
+function approveReservation(reservationId) {
+ fetch(`/approve-reservation/${reservationId}`, {
+     method: 'POST',
+ })
+ .then(response => response.json())
+ .then(data => {
+     if (data.success) {
+         alert('Reservation approved successfully');
+         fetchReservations(); // Refresh the reservations list
+     } else {
+         alert('Failed to approve reservation');
+     }
+ })
+ .catch(error => console.error('Error:', error));
+}
+
+function closeReservation(reservationId) {
+ fetch(`/close-reservation/${reservationId}`, {
+     method: 'POST',
+ })
+ .then(response => response.json())
+ .then(data => {
+     if (data.success) {
+         alert('Reservation closed successfully');
+         fetchReservations(); // Refresh the reservations list
+     } else {
+         alert('Failed to close reservation');
+     }
+ })
+ .catch(error => console.error('Error:', error));
+}
+
 
 
     // Toggle dropdown on profile click
@@ -583,9 +638,6 @@ function deleteAnnouncement(announcementId) {
     })
     .catch(error => console.error('Error deleting announcement:', error));
 }
-});
-
-
 
 
 
