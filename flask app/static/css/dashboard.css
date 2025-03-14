@@ -936,6 +936,7 @@ margin-right: 0.5rem;
 
 #feedbackTable thead {
     display: none; /* Hide the header on small screens */
+    text-align: center !important;
 }
 
 #feedbackTable tbody tr {
@@ -950,7 +951,7 @@ margin-right: 0.5rem;
 
 #feedbackTable td {
     display: block;
-    text-align: right;
+    text-align: left !important;
     padding: 0.5rem 1rem;
     border-bottom: 1px solid var(--sidebar-hover);
 }
@@ -1052,7 +1053,7 @@ margin-right: 0.5rem;
     display: none;
 }
 
-#studentsTable {
+#reservationsTable {
     width: 100%;
     border-collapse: collapse;
     background-color: var(--sidebar-bg);
@@ -1060,12 +1061,12 @@ margin-right: 0.5rem;
 }
 
 /* Table Header */
-#studentsTable thead {
+#reservationsTable thead {
     background-color: var(--first-color);
     color: var(--white-color);
 }
 
-#studentsTable th {
+#reservationsTable th {
     padding: 0.8rem 1rem;
     text-align: left;
     font-weight: 600;
@@ -1073,7 +1074,7 @@ margin-right: 0.5rem;
 }
 
 /* Table Body */
-#studentsTable tbody tr {
+#reservationsTable tbody tr {
     border-bottom: 1px solid var(--sidebar-hover);
     padding: 1rem;
     background-color: var(--sidebar-bg);
@@ -1081,19 +1082,19 @@ margin-right: 0.5rem;
     box-shadow: var(--box-shadow);
 }
 
-#studentsTable td {
+#reservationsTable td {
     text-align: left; /* Align text to the left in table cells */
     padding: 0.8rem 1rem;
     border-bottom: 1px solid var(--sidebar-hover);
 }
 
 /* Remove bottom border for the last cell */
-#studentsTable td:last-child {
+#reservationsTable td:last-child {
     border-bottom: none;
 }
 
 /* Data label for smaller screens (mobile view) */
-#studentsTable td::before {
+#reservationsTable td::before {
     content: attr(data-label);
     float: left;
     font-weight: 500;
@@ -1104,27 +1105,27 @@ margin-right: 0.5rem;
 
 /* Responsive design for smaller screens */
 @media (max-width: 768px) {
-    #studentsTable thead {
+    #reservationsTable thead {
         display: none; /* Hide the header on small screens */
     }
 
-    #studentsTable tbody tr {
+    #reservationsTable tbody tr {
         display: block; /* Display rows as blocks for better mobile view */
         margin-bottom: 1rem;
     }
 
-    #studentsTable td {
+    #reservationsTable td {
         display: block; /* Display cells as blocks */
         text-align: right;
         padding: 1rem;
         border-bottom: 1px solid var(--sidebar-hover);
     }
 
-    #studentsTable td:last-child {
+    #reservationsTable td:last-child {
         border-bottom: none;
     }
 
-    #studentsTable td::before {
+    #reservationsTable td::before {
         content: attr(data-label);
         float: left;
         font-weight: 500;
