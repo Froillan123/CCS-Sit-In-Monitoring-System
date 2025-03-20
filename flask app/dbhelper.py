@@ -1,7 +1,8 @@
 from sqlite3 import connect, Row
-from datetime import datetime
+from datetime import datetime, timedelta
 import sqlite3
 import time
+import threading
 database = "student.db"
 
 # Function to execute queries that modify data (INSERT, UPDATE, DELETE)
@@ -62,7 +63,7 @@ def get_reservations_by_student_id(student_id):
     cursor = conn.cursor()
 
     query = """
-    SELECT r.id, r.student_name, r.purpose, l.lab_name, r.reservation_date, r.time_in, r.time_out, r.status
+    SELECT r.id, r.student_name, r.purpose, l.lab_name, r.reservation_date, r.status
     FROM reservations r
     JOIN laboratories l ON r.lab_id = l.id
     WHERE r.student_idno = ?
@@ -72,6 +73,32 @@ def get_reservations_by_student_id(student_id):
 
     conn.close()
     return reservations
+
+def delete_reservation(reservation_id):
+    sql = "DELETE FROM reservations WHERE id = ?"
+    return postprocess(sql, (reservation_id,))
+
+def delete_old_reservations():
+    while True:
+        # Fetch reservations older than 2 hours
+        sql = """
+        DELETE FROM reservations
+        WHERE status = 'Pending' AND login_time < ?
+        """
+        two_hours_ago = (datetime.now() - timedelta(hours=2)).strftime('%Y-%m-%d %H:%M:%S')
+        postprocess(sql, (two_hours_ago,))
+        
+        # Sleep for 1 hour before checking again
+        time.sleep(3600)
+
+
+def has_pending_reservation(student_idno: str) -> bool:
+    sql = """
+        SELECT id FROM reservations 
+        WHERE student_idno = ? AND status = 'Pending'
+    """
+    result = getprocess(sql, (student_idno,))
+    return len(result) > 0  # Returns True if there is at least one pending reservation
 
 # Retrieve a student by ID number
 def get_student_by_id(idno: str) -> dict:
@@ -259,36 +286,42 @@ def insert_extension_request(student_idno, request_time):
     return postprocess(sql, (student_idno, request_time))
 
 
-def get_all_reservations():
-    try:
-        db = sqlite3.connect('student.db')
-        db.row_factory = sqlite3.Row  # Enables dictionary-like access
-        cursor = db.cursor()
 
-        # Fetch only reservations that are pending
-        cursor.execute("SELECT * FROM reservations WHERE status = 'Pending'")
-        reservations = cursor.fetchall()
+def get_reservation_by_id(reservation_id):
+    sql = "SELECT * FROM reservations WHERE id = ?"
+    # Assuming getprocess returns a list of results, we select the first one
+    result = getprocess(sql, (reservation_id,))
+    if result:
+        return result[0]  # Return the first result if there are any rows
+    return None  # If no result, return None
 
-        return [dict(row) for row in reservations]  # Convert rows to dictionaries
 
-    except sqlite3.Error as e:
-        print(f"Database error: {e}")
-        return []
+def update_reservation_status(reservation_id, status):
+    sql = "UPDATE reservations SET status = ? WHERE id = ?"
+    return postprocess(sql, (status, reservation_id))
 
-    finally:
-        db.close()
+def update_reservation_logout(reservation_id, logout_time, status):
+    sql = "UPDATE reservations SET logout_time = ?, status = ? WHERE id = ?"
+    return postprocess(sql, (logout_time, status, reservation_id))
 
+def insert_session_history(student_idno, login_time, logout_time):
+    sql = "INSERT INTO session_history (student_idno, login_time, logout_time) VALUES (?, ?, ?)"
+    return postprocess(sql, (student_idno, login_time, logout_time))
+
+def update_student_sessions(student_idno, sessions_left):
+    sql = "UPDATE students SET sessions_left = ? WHERE idno = ?"
+    return postprocess(sql, (sessions_left, student_idno))
 
 def create_reservation(student_idno: str, student_name: str, lab_id: str, 
-                      purpose: str, reservation_date: str, time_in: str, 
-                      time_out: str, status: str = "Pending") -> bool:
+                      purpose: str, reservation_date: str, login_time: str, 
+                      status: str = "Pending") -> bool:
     sql = """
         INSERT INTO reservations 
-        (student_idno, student_name, lab_id, purpose, reservation_date, time_in, time_out, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        (student_idno, student_name, lab_id, purpose, reservation_date, login_time, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     """
-    return postprocess(sql, (student_idno, student_name, lab_id, purpose, 
-                           reservation_date, time_in, time_out, status))
+    return postprocess(sql, (student_idno, student_name, lab_id, purpose, reservation_date, login_time, status))
+
 
 
 def get_student_session_history(student_idno: str, limit: int = 30) -> list:

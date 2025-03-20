@@ -13,240 +13,214 @@ reconnectionDelay: 1000,
 
 
 document.addEventListener('DOMContentLoaded', function () {
- // Flash messages logic (unchanged)
- const flashMessages = document.querySelectorAll('.flash-message');
- flashMessages.forEach(flashMessage => {
-     setTimeout(() => {
-         flashMessage.classList.add('fade-out');
-     }, 2500);
-     flashMessage.addEventListener('animationend', () => {
-         flashMessage.remove();
-     });
- });
+    // Flash messages logic (unchanged)
+    const flashMessages = document.querySelectorAll('.flash-message');
+    flashMessages.forEach(flashMessage => {
+        setTimeout(() => {
+            flashMessage.classList.add('fade-out');
+        }, 2500);
+        flashMessage.addEventListener('animationend', () => {
+            flashMessage.remove();
+        });
+    });
 
- // SPA Behavior (unchanged)
- const sidebarLinks = document.querySelectorAll('.sidebar a');
- const bottomNavLinks = document.querySelectorAll('.bottom-nav a');
- const pageContents = document.querySelectorAll('.page-content');
+    // SPA Behavior (unchanged)
+    const sidebarLinks = document.querySelectorAll('.sidebar a');
+    const bottomNavLinks = document.querySelectorAll('.bottom-nav a');
+    const pageContents = document.querySelectorAll('.page-content');
 
- // Function to handle page switching (unchanged)
- function switchPage(page) {
-     // Hide all pages
-     pageContents.forEach(content => {
-         content.style.display = 'none';
-     });
+    // Function to handle page switching (unchanged)
+    function switchPage(page) {
+        // Hide all pages
+        pageContents.forEach(content => {
+            content.style.display = 'none';
+        });
 
-     // Show the selected page
-     const selectedPage = document.getElementById(page);
-     if (selectedPage) {
-         selectedPage.style.display = 'block';
-     }
+        // Show the selected page
+        const selectedPage = document.getElementById(page);
+        if (selectedPage) {
+            selectedPage.style.display = 'block';
+        }
 
-     // Reset visibility of dashboard and table
-     const dashboardSection = document.getElementById('dashboard');
-     const tableContainer = document.querySelector('.table-container1');
+        // Update the URL hash
+        window.location.hash = page;
 
-     if (page === 'dashboard') {
-         dashboardSection.style.display = 'block';
-         tableContainer.style.display = 'none';
-     } else {
-         tableContainer.style.display = 'none';
-     }
+        // Update active state for sidebar links
+        sidebarLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('data-page') === page) {
+                link.classList.add('active');
+            }
+        });
 
-     // Update the URL hash
-     window.location.hash = page;
+        // Update active state for bottom navigation links
+        bottomNavLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('data-page') === page) {
+                link.classList.add('active');
+            }
+        });
+    }
 
-     // Update active state for sidebar links
-     sidebarLinks.forEach(link => {
-         link.classList.remove('active');
-         if (link.getAttribute('data-page') === page) {
-             link.classList.add('active');
-         }
-     });
+    // Add event listeners to sidebar links (unchanged)
+    sidebarLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const page = link.getAttribute('data-page');
+            switchPage(page);
+        });
+    });
 
-     // Update active state for bottom navigation links
-     bottomNavLinks.forEach(link => {
-         link.classList.remove('active');
-         if (link.getAttribute('data-page') === page) {
-             link.classList.add('active');
-         }
-     });
- }
+    // Add event listeners to bottom navigation links (unchanged)
+    bottomNavLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const page = link.getAttribute('data-page');
+            switchPage(page);
+        });
+    });
 
- // Add event listeners to sidebar links (unchanged)
- sidebarLinks.forEach(link => {
-     link.addEventListener('click', (e) => {
-         e.preventDefault();
-         const page = link.getAttribute('data-page');
-         switchPage(page);
-     });
- });
+    // Handle page load and hash changes (unchanged)
+    function loadPageFromHash() {
+        const page = window.location.hash.substring(1);
+        if (page) {
+            switchPage(page);
+        } else {
+            switchPage('dashboard');
+        }
+    }
 
- // Add event listeners to bottom navigation links (unchanged)
- bottomNavLinks.forEach(link => {
-     link.addEventListener('click', (e) => {
-         e.preventDefault();
-         const page = link.getAttribute('data-page');
-         switchPage(page);
-     });
- });
+    // Load the correct page on initial load (unchanged)
+    loadPageFromHash();
 
- // Handle page load and hash changes (unchanged)
- function loadPageFromHash() {
-     const page = window.location.hash.substring(1);
-     if (page) {
-         switchPage(page);
-     } else {
-         switchPage('dashboard');
-     }
+    // Listen for hash changes to handle page refreshes (unchanged)
+    window.addEventListener('hashchange', loadPageFromHash);
 
-     const tableContainer = document.querySelector('.table-container1');
-     tableContainer.style.display = 'none';
- }
+    // Search Input Logic
+    const searchForm = document.getElementById('searchForm');
+    const searchInput = document.getElementById('searchInput');
+    const modal = document.getElementById('searchModal');
+    const modalReservationsBody = document.getElementById('modalReservationsBody');
+    const closeModalBtn = document.querySelector('.close-modal');
 
- // Load the correct page on initial load (unchanged)
- loadPageFromHash();
+    function displayReservations(reservations) {
+        modalReservationsBody.innerHTML = ''; // Clear existing content
+    
+        if (reservations.length === 0) {
+            modalReservationsBody.innerHTML = '<p>No records found.</p>';
+        } else {
+            reservations.forEach(reservation => {
+                const reservationItem = document.createElement('div');
+                reservationItem.classList.add('reservation-item');
+                reservationItem.innerHTML = `
+                    <h3>${reservation.student_name}</h3>
+                    <p>ID: ${reservation.student_idno}</p>
+                    <p>Lab: ${reservation.lab_name}</p> <!-- Use lab_name instead of lab_id -->
+                    <p>Purpose: ${reservation.purpose}</p>
+                    <p>Date: ${reservation.reservation_date}</p>
+                    <p>Status: ${reservation.status}</p>
+                    <p>Sessions Left: ${reservation.sessions_left}</p> <!-- Display sessions_left -->
+                    <div class="reservation-actions">
+                        <button class="sit-in-btn" data-reservation-id="${reservation.id}">Sit In</button>
+                        <button class="close-btn" data-reservation-id="${reservation.id}">Close</button>
+                    </div>
+                `;
+                modalReservationsBody.appendChild(reservationItem);
+            });
+        }
+    
+        // Show the modal
+        modal.style.display = 'block';
+    }
+    
 
- // Listen for hash changes to handle page refreshes (unchanged)
- window.addEventListener('hashchange', loadPageFromHash);
+    // Fetch reservations based on search term
+    function fetchReservations(searchTerm = '') {
+        fetch(`/get_reservations?search=${searchTerm}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && Array.isArray(data.data)) {
+                    displayReservations(data.data); // Display reservations in modal
+                } else {
+                    console.error('Invalid response format:', data);
+                    modalReservationsBody.innerHTML = '<p>No records found.</p>';
+                    modal.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching reservations:', error);
+                modalReservationsBody.innerHTML = '<p>Error fetching records.</p>';
+                modal.style.display = 'block';
+            });
+    }
 
- // Search Input Logic
- const searchForm = document.getElementById('searchForm');
- const searchInput = document.getElementById('searchInput');
- const reservationsBody = document.getElementById('reservationsBody');
- const tableContainer = document.querySelector('.table-container1');
- const dashboardSection = document.getElementById('dashboard');
+    // Handle form submission (search)
+    searchForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const searchTerm = searchInput.value.trim();
+        if (searchTerm) {
+            fetchReservations(searchTerm);
+        } else {
+            modalReservationsBody.innerHTML = '<p>Please enter a search term.</p>';
+            modal.style.display = 'block';
+        }
+    });
 
- // Function to display reservations in the table
- function displayReservations(reservations) {
-     reservationsBody.innerHTML = ''; // Clear existing rows
+    // Close modal when the close button is clicked
+    closeModalBtn.addEventListener('click', () => {
+        modal.style.display = 'none';
+    });
 
-     reservations.forEach(reservation => {
-         const row = document.createElement('tr');
-         row.innerHTML = `
-             <td>${reservation.id}</td>
-             <td>${reservation.student_idno}</td>
-             <td>${reservation.student_name}</td>
-             <td>${reservation.lab_id}</td>
-             <td>${reservation.purpose}</td>
-             <td>${reservation.reservation_date}</td>
-             <td>${reservation.time_in}</td>
-             <td>${reservation.time_out}</td>
-             <td>${reservation.status}</td>
-             <td>
-                 <button class="approve-btn" data-reservation-id="${reservation.id}">Approve</button>
-                 <button class="close-btn" data-reservation-id="${reservation.id}">Close</button>
-             </td>
-         `;
-         reservationsBody.appendChild(row);
-     });
- }
+    // Close modal when clicking outside of it
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
 
- // Fetch reservations based on search term
- function fetchReservations(searchTerm = '') {
-     fetch(`/get_reservations?search=${searchTerm}`)
-         .then(response => response.json())
-         .then(data => {
-             if (data.success && Array.isArray(data.data)) {
-                 displayReservations(data.data); // Display reservations
-             } else {
-                 console.error('Invalid response format:', data);
-             }
-         })
-         .catch(error => console.error('Error fetching reservations:', error));
- }
+    // Handle Sit In and Close actions
+    modalReservationsBody.addEventListener('click', (e) => {
+        if (e.target.classList.contains('sit-in-btn')) {
+            const reservationId = e.target.getAttribute('data-reservation-id');
+            sitInReservation(reservationId);
+        } else if (e.target.classList.contains('close-btn')) {
+            const reservationId = e.target.getAttribute('data-reservation-id');
+            closeReservation(reservationId);
+        }
+    });
 
- // Listen for new reservations
- socket.on('new_reservation', function (data) {
-     const reservationsBody = document.getElementById('reservationsBody');
-     const row = document.createElement('tr');
-     row.innerHTML = `
-         <td>${data.student_idno}</td>
-         <td>${data.student_name}</td>
-         <td>${data.lab_id}</td>
-         <td>${data.purpose}</td>
-         <td>${data.reservation_date}</td>
-         <td>${data.time_in}</td>
-         <td>${data.time_out}</td>
-         <td>${data.status}</td>
-         <td>
-             <button class="approve-btn" data-reservation-id="${data.reservation_id}">Approve</button>
-             <button class="close-btn" data-reservation-id="${data.reservation_id}">Close</button>
-         </td>
-     `;
-     reservationsBody.appendChild(row);
- });
+    function sitInReservation(reservationId) {
+        fetch(`/sit-in-reservation/${reservationId}`, {
+            method: 'POST',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Reservation approved successfully');
+                fetchReservations(searchInput.value.trim()); // Refresh the modal content
+            } else {
+                alert('Failed to approve reservation');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
 
- // Listen for reservation status updates
- socket.on('reservation_updated', function (data) {
-     const { reservation_id, status } = data;
-
-     // Find the reservation row and update its status
-     const row = document.querySelector(`tr[data-reservation-id="${reservation_id}"]`);
-     if (row) {
-         const statusCell = row.querySelector('td:nth-child(9)'); // Update the correct column index
-         statusCell.textContent = status;
-
-         // Disable buttons after approval or closing
-         const buttons = row.querySelectorAll('button');
-         buttons.forEach(button => {
-             button.disabled = true;
-         });
-     }
- });
-
- // Handle form submission
- searchForm.addEventListener('submit', function (e) {
-     e.preventDefault();
-     const searchTerm = searchInput.value.trim();
-     if (searchTerm) {
-         tableContainer.style.display = 'block';
-         dashboardSection.style.display = 'none';
-         fetchReservations(searchTerm);
-     } else {
-         tableContainer.style.display = 'none';
-         dashboardSection.style.display = 'block';
-         fetchReservations(); // Fetch all reservations if search term is empty
-     }
- });
-
- // Fetch all reservations on page load
- fetchReservations();
+    function closeReservation(reservationId) {
+        fetch(`/close-reservation/${reservationId}`, {
+            method: 'POST',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message); // Show success message
+                fetchReservations(searchInput.value.trim()); // Refresh the modal content
+            } else {
+                alert('Failed to close reservation');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
 });
-
-// Functions to handle approval and closing of reservations
-function approveReservation(reservationId) {
- fetch(`/approve-reservation/${reservationId}`, {
-     method: 'POST',
- })
- .then(response => response.json())
- .then(data => {
-     if (data.success) {
-         alert('Reservation approved successfully');
-         fetchReservations(); // Refresh the reservations list
-     } else {
-         alert('Failed to approve reservation');
-     }
- })
- .catch(error => console.error('Error:', error));
-}
-
-function closeReservation(reservationId) {
- fetch(`/close-reservation/${reservationId}`, {
-     method: 'POST',
- })
- .then(response => response.json())
- .then(data => {
-     if (data.success) {
-         alert('Reservation closed successfully');
-         fetchReservations(); // Refresh the reservations list
-     } else {
-         alert('Failed to close reservation');
-     }
- })
- .catch(error => console.error('Error:', error));
-}
-
 
 
     // Toggle dropdown on profile click

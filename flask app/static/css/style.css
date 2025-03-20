@@ -2988,3 +2988,8 @@ button:hover {
     max-width: 100px;
   }
 }
+
+#feedbackModal {
+  display: none; /* Hide the modal by default */
+  /* Other modal styles (position, z-index, etc.) */
+}

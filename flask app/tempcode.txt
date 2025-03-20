@@ -1,126 +1,2152 @@
-.notification-calendar {
-  display: flex;
-  gap: 10px;
-  position: relative;
-  margin-right: 5rem;
+{% extends 'client/clientbase.html' %}
+
+{% block content %}
+
+<meta charset="UTF-8">
+
+<style>
+  :root
+  {
+    --text-color: #333;
+  }
+
+  .sidebar.zoomed {
+  max-height: 100vh; /* Applied when zoom level is high */
+  min-height: auto; /* Override min-height */
 }
 
-.notification-button, .calendar-button {
-  padding: 10px 15px;
-  background-color: var(--first-color);
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 14px;
+.swal-default-size {
+    font-size: 1.6rem !important; /* Reset font size */
+    width: auto !important; /* Default width */
+    max-width: 400px !important; /* Prevent excessive scaling */
 }
 
-.notification-button:hover, .calendar-button:hover {
-  background-color: #e0e0e0;
+.bot-name {
+    font-weight: bold;
+    font-size: 1.4rem; /* Slightly larger font */
+    color: var(--first-color); /* Ensure visibility */
+    text-transform: uppercase; /* Make it stand out */
+    margin-right: 0.5rem;
+  }
+
+
+/* Smaller screens (e.g., mobile devices) */
+@media (max-width: 480px) {
+    .swal-default-size {
+        font-size: 1.2rem !important;  /* Reduce font size */
+        max-width: 300px !important;   /* Reduce width */
+    }
 }
 
-.dropdown-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  width: 300px;
-  background-color: white;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  display: none;
-  z-index: 100;
-  margin-top: 5px;
-  overflow: hidden;
+/* Very small screens (e.g., extra small mobile) */
+@media (max-width: 320px) {
+    .swal-default-size {
+        font-size: 1rem !important;  /* Further reduce font size */
+        max-width: 250px !important; /* Further reduce width */
+      }
 }
 
-.dropdown-header {
-  padding: 10px 15px;
-  background-color: #f5f5f5;
-  border-bottom: 1px solid #ddd;
-  font-weight: bold;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+
+.bot-icon {
+      margin-right: 5px;
+    }
+/* Chat Modal */
+.chat-modal {
+    position: fixed;
+    bottom: 20px;
+    right: -400px; /* Hidden by default */
+    width: 350px;
+    height: 500px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    transition: right 0.3s ease;
+    z-index: 1000;
 }
 
-.dropdown-header .mark-read {
-  color: #3498db;
-  font-size: 12px;
-  cursor: pointer;
+.chat-modal.active {
+    right: 20px; /* Slide in when active */
 }
 
-.notification-item {
-  padding: 12px 15px;
-  border-bottom: 1px solid #eee;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
+.chat-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: var(--first-color);
+    color: white;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
 }
 
-.notification-item:last-child {
-  border-bottom: none;
+.chat-modal-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 500;
 }
 
-.notification-item:hover {
-  background-color: #f9f9f9;
+.close-btn {
+    font-size: 1.6rem;
+    cursor: pointer;
+    transition: color 0.3s ease;
 }
 
-.notification-icon {
-  color: #3498db;
-  font-size: 16px;
-  margin-top: 2px;
+.close-btn:hover {
+    color: var(--second-color);
 }
 
-.notification-content {
-  flex: 1;
+.chat-modal-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    background-color: var(--background-color);
+    overflow: hidden;
 }
 
-.notification-title {
-  font-weight: bold;
-  margin-bottom: 3px;
+.chat-messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column; /* Changed from column-reverse to column */
 }
 
-.notification-text {
-  font-size: 13px;
-  color: #666;
-  line-height: 1.4;
+.message {
+    padding: 12px 15px;
+    margin-bottom: 15px;
+    border-radius: 15px;
+    max-width: 80%;
+    font-size: 1.3rem;
+    line-height: 1.4;
+    word-wrap: break-word;
+    box-sizing: border-box;
 }
 
-.notification-time {
-  font-size: 11px;
-  color: #999;
-  margin-top: 5px;
+.bot-message {
+    background-color: #fff; /* White background */
+    color: var(--text-color); /* Use your theme's text color */
+    align-self: flex-start; /* Align to the left */
+    border: 1px solid #e0e0e0; /* Light border */
+    border-radius: 15px 15px 15px 4px; /* Rounded corners, left side more rounded */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    padding: 12px 16px; /* Comfortable padding */
+    max-width: 80%; /* Limit width for better readability */
+    margin: 8px 0; /* Spacing between messages */
+    position: relative; /* For pseudo-elements */
+    animation: fadeIn 0.3s ease-in-out; /* Fade-in animation */
+    word-wrap: break-word; /* Ensure long words don't overflow */
 }
 
-.notification-footer {
-  padding: 10px 15px;
-  text-align: center;
-  background-color: #f5f5f5;
-  border-top: 1px solid #ddd;
-  font-size: 13px;
-  color: #3498db;
-  cursor: pointer;
+/* Add a small arrow/triangle to the bot message */
+.bot-message::before {
+    content: '';
+    position: absolute;
+    left: -10px; /* Position the arrow */
+    top: 10px; /* Adjust vertical position */
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 10px solid #fff; /* Match the background color */
+    z-index: 1;
 }
 
-.show {
-  display: block;
+.bot-message::after {
+    content: '';
+    position: absolute;
+    left: -11px; /* Position the border arrow */
+    top: 10px; /* Adjust vertical position */
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 10px solid #e0e0e0; /* Match the border color */
+    z-index: 0;
 }
 
-.unread {
-  position: relative;
+/* Fade-in animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-.unread::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  right: 15px;
-  width: 8px;
-  height: 8px;
-  background-color: #3498db;
-  border-radius: 50%;
-  transform: translateY(-50%);
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+    .bot-message {
+        max-width: 90%; /* Wider on smaller screens */
+        padding: 10px 14px; /* Slightly smaller padding */
+        font-size: 14px; /* Smaller font size */
+    }
+
+    .bot-message::before,
+    .bot-message::after {
+        left: -8px; /* Adjust arrow position for smaller screens */
+        top: 8px;
+    }
 }
+
+.user-message {
+    background-color: var(--first-color);
+    color: white;
+    align-self: flex-end;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.chat-input {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    background-color: #f1f1f1;
+    border-radius: 25px;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.chat-input input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    outline: none;
+}
+
+.chat-input button {
+    padding: 10px 15px;
+    background-color: var(--first-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.chat-input button:hover {
+    background-color: var(--second-color);
+}
+
+/* Responsive Design for Smaller Screens */
+@media (max-width: 424px) {
+    .chat-modal {
+        width: 100%; /* Full width on small screens */
+        height: 100%; /* Full height on small screens */
+        bottom: 0;
+        right: -100%; /* Hide off-screen */
+        border-radius: 0; /* Remove rounded corners */
+    }
+
+    .chat-modal.active {
+        right: 0; /* Slide in from the right */
+    }
+
+    .chat-modal-header {
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+    }
+
+    .chat-messages {
+        max-height: calc(100vh - 150px); /* Adjust height for smaller screens */
+    }
+
+    .chat-input {
+        flex-direction: column; /* Stack input and button vertically */
+    }
+
+    .chat-input input {
+        width: 100%; /* Full width input */
+    }
+
+    .chat-input button {
+        width: 100%; /* Full width button */
+    }
+}
+:root
+{
+  --second-color: hsl(273, 100%, 51%);
+}
+.chat-icon {
+    position: fixed;
+    bottom: 50px;
+    right: 20px;
+    width: 10rem;
+    height: 10rem;
+    background-color: var(--first-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+/* Style for code blocks */
+pre {
+    background-color: #f4f4f4;
+    padding: 10px;
+    border-radius: 5px;
+    overflow-x: auto;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    margin: 10px 0;
+    position: relative; /* Allow for positioning the copy button */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle shadow around the code block */
+}
+
+/* Style for the "Copy Snippet" box */
+.copy-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+    background-color: #e0e0e0;
+    color: #333;
+    border: 1px solid #bbb;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.copy-btn:hover {
+    background-color: #ccc;
+    transform: scale(1.05); /* Slight hover effect */
+}
+
+.copy-btn:focus {
+    outline: none; /* Remove focus outline */
+}
+
+/* Adjusting the hover effect of the icon inside the copy button */
+.copy-btn:hover svg {
+    fill: #fff; /* Change icon color on hover */
+}
+
+/* Style for the copy icon inside the button */
+.copy-btn svg {
+    width: 16px;
+    height: 16px;
+    margin-right: 5px;
+}
+
+/* Responsive style for messages */
+.message {
+    padding: 12px 15px;
+    margin-bottom: 15px;
+    border-radius: 15px;
+    max-width: 80%;
+    font-size: 1.3rem;
+    line-height: 1.4;
+    word-wrap: break-word;
+    box-sizing: border-box;
+}
+
+.bot-message, .user-message {
+    max-width: 80%; /* Ensures the message doesn't take the full width */
+    word-wrap: break-word; /* Prevent text from overflowing */
+}
+
+/* Styling for text messages for bot and user */
+.bot-message {
+    background-color: #fff;
+    color: var(--text-color);
+    align-self: flex-start;
+    border: 1px solid #e0e0e0;
+    border-radius: 15px 15px 15px 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 12px 16px;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.user-message {
+    background-color: var(--first-color);
+    color: white;
+    align-self: flex-end;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Fade-in animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+.chat-icon:hover {
+    background-color: var(--second-color);
+}
+
+.chat-icon svg {
+    width: 4rem;
+    height: 4rem;
+}
+
+/* Media query for small screens */
+@media (max-width: 600px) {
+    .chat-icon {
+        width: 6rem;
+        height: 6rem;
+        bottom: 50px; /* Optionally move the icon up */
+    }
+
+    .chat-icon svg {
+        width: 2rem;
+        height: 2rem;
+    }
+}
+</style>
+      <!-- Dashboard Container -->
+          <div class="dashboard-wrapper">
+            <!-- Sidebar -->
+            <div class="sidebar">
+             
+
+              <!-- Profile Section -->
+              <div class="profile-section">
+                <div class="profile-image">
+                  <img src="{{ url_for('static', filename='images/' + student.profile_picture if student.profile_picture else 'default.png') }}" alt="Profile Picture" />
+                </div>
+                <div class="profile-info">
+                  <h3>{{ student.firstname }} {{ student.midname }} {{ student.lastname }}</h3>
+                </div>
+              </div>
+
+              <!-- Sidebar Links -->
+              <div class="sidebar-links">
+                <a href="#" data-section="dashboard"><i class="fas fa-home"></i><span>Dashboard</span></a>
+                <a href="#" data-section="profile"><i class="fas fa-user"></i><span>Profile</span></a>
+                <a href="#" data-section="announcements"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+                <a href="#" data-section="lab-rules"><i class="fas fa-clipboard-list"></i><span>Lab Rules</span></a>
+                <a href="#" data-section="history"><i class="fas fa-history"></i><span>History</span></a>
+                <a href="#" data-section="reservations"><i class="fas fa-calendar-alt"></i><span>Reservations</span></a>
+                <a href="#" data-section="feedback-report"><i class="fas fa-comments"></i><span>Feedback Report</span></a>
+                <a href="#" data-section="sessions"><i class="fas fa-eye"></i><span>View Session</span></a>
+              </div>
+
+              <div class="log-out-small-size">
+                <a href="{{ url_for('logout') }}" id="logout-link"><i class="fas fa-sign-out-alt"></i><span></span></a>
+              </div>
+
+              <!-- Logout Button -->
+              <div class="button-container">
+                <a href="{{ url_for('logout') }}" id="logout-link">
+                  <button type="button" class="btn btn-danger">
+                    <i class="fas fa-sign-out-alt"></i> <span class="logout-text">Log Out</span>
+                  </button>
+                </a>
+              </div>              
+            </div>
+
+  <!-- Main Content -->
+      <div class="dashboard-container">
+        
+        <div id="dashboard" class="dashboard-section">
+          <!-- Top Section: Welcome, Notifications, Calendar -->
+          <div class="top-section">
+            <!-- Welcome Message on the Left -->
+            <div class="welcome-message">
+              <h1>Welcome, {{ student.firstname }}!</h1>
+              <p>We're glad to have you back on your student dashboard.</p>
+            </div>
+        
+                        <!-- Buttons on the Right -->
+            <div class="notification-calendar">
+              <!-- Notification Button -->
+              <button class="notification-button" id="notificationBtn">
+                <i class="fas fa-bell"></i> Notifications
+                <span class="notification-badge" id="notificationBadge">0</span>
+              </button>
+
+              <!-- Notification Dropdown -->
+              <div class="dropdown-menu" id="notificationDropdown">
+                <div class="dropdown-header">
+                  <span>Notifications</span>
+                  <span class="mark-read" id="markAllRead">Mark all as read</span>
+                </div>
+
+                <!-- Notification Items will be dynamically inserted here -->
+                <div id="notificationItems">
+                  <!-- Example of a single notification item -->
+                  <!--
+                  <div class="notification-item unread">
+                    <div class="notification-icon">
+                      <i class="fas fa-bell"></i>
+                    </div>
+                    <div class="notification-content">
+                      <div class="notification-title">New Announcement</div>
+                      <div class="notification-text">This is a sample notification.</div>
+                      <div class="notification-time">Just now</div>
+                    </div>
+                  </div>
+                  -->
+                </div>
+
+                <!-- Notification Footer -->
+                <div class="notification-footer">
+                  View All Notifications
+                </div>
+              </div>
+
+              <!-- Calendar Button -->
+              <button class="calendar-button" id="openCalendar">
+                <i class="fas fa-calendar-alt"></i> Calendar
+              </button>
+            </div>
+          </div>
+        
+          <!-- Middle Section: Sit-In Rules and Chart -->
+          <div class="middle-section">
+            <!-- Sit-In Rules Box -->
+            <div class="rules-box">
+              <h3>Sit-In Laboratory Rules</h3>
+              <ul class="rules-list">
+                <li>
+                  <i class="fas fa-ban"></i> No games, personal devices, or inappropriate content.
+                </li>
+                <li>
+                  <i class="fas fa-cog"></i> Do not alter computer settings or delete files.
+                </li>
+                <li>
+                  <i class="fas fa-chair"></i> Follow seating arrangements and deposit bags at the counter.
+                </li>
+                <li>
+                  <i class="fas fa-utensils"></i> No food, drinks, or smoking in the lab.
+                </li>
+                <li>
+                  <i class="fas fa-exclamation-triangle"></i> Disturbances may lead to removal or security intervention.
+                </li>
+                <li>
+                  <i class="fas fa-tools"></i> Handle equipment with care – Report any damages or issues immediately to the instructor.
+                </li>
+                <li>
+                  <i class="fas fa-headphones"></i> Use headphones for audio – Keep noise levels low to avoid disturbing others.
+                </li>
+                <li>
+                  <i class="fas fa-sign-out-alt"></i> Log out after use – Ensure you log out from all accounts and close applications before leaving.
+                </li>
+              </ul>
+            </div>
+        
+            <!-- Chart Box -->
+            <div class="chart-box">
+              <h3>Lab Usage Chart</h3>
+              <canvas id="labUsageChart"></canvas> <!-- Chart will be rendered here -->
+            </div>
+          </div>
+          
+          <div class="stats-section">
+            <!-- Total Sessions Left Box -->
+            <div class="stats-box">
+                <div class="circular-progress" data-progress="{{ current_session['sessions_left'] if current_session else 0 }}" data-max="30">
+                    <svg viewBox="0 0 100 100">
+                        <circle class="progress-background" cx="50" cy="50" r="45"></circle>
+                        <circle class="progress-bar" cx="50" cy="50" r="45"></circle>
+                    </svg>
+                    <div class="progress-text">
+                        <span class="progress-value">{{ current_session['sessions_left'] if current_session else 0 }}</span>
+                        <span class="progress-max">/30</span>
+                    </div>
+                </div>
+                <h3>Total Sessions Left</h3>
+            </div>
+        
+            <!-- Available Laboratories Box -->
+            <div class="stats-box">
+                <div class="circular-progress" data-progress="6" data-max="6">
+                    <svg viewBox="0 0 100 100">
+                        <circle class="progress-background" cx="50" cy="50" r="45"></circle>
+                        <circle class="progress-bar" cx="50" cy="50" r="45"></circle>
+                    </svg>
+                    <div class="progress-text">
+                        <span class="progress-value">6</span>
+                        <span class="progress-max">/6</span>
+                    </div>
+                </div>
+                <h3>Available Laboratories</h3>
+            </div>
+        </div>
+
+          <div class="bottom-section">
+            
+            <div class="chart-container">
+              <h3>Activity Breakdown Chart</h3>
+              <div id="noDataPrompt" style="display: none; color: red; font-weight: bold;">
+                  No data available to display.
+              </div>
+              <canvas id="activityBreakdownChart"></canvas>
+          </div>
+          
+
+            <div class="chart-container">
+              <h3>Weekly Usage Chart</h3>
+              <canvas id="weeklyUsageChart"></canvas>
+            </div>
+          </div>
+          
+        </div>
+
+
+
+    <div id="profile" class="dashboard-section" style="display: none;">
+      <div class="profile-container">
+        <div class="profile-card">
+          <!-- Profile Picture -->
+          <div class="profile-header">
+            <div class="profile-picture" onclick="document.getElementById('profile-picture-upload').click()">
+              <img id="profile-picture" src="{{ url_for('static', filename='images/' + student.profile_picture if student.profile_picture else 'default.png') }}" alt="Profile Picture" />
+              <input type="file" id="profile-picture-upload" style="display: none;" />
+              <div class="edit-overlay"><i class="fas fa-camera"></i></div>
+            </div>
+          </div>
+          <!-- Student Details -->
+          <div class="profile-details">
+            <div class="detail-item">
+              <label for="editable-idno"><i class="fas fa-id-card"></i> ID Number:</label>
+              <input type="text" id="editable-idno" value="{{ student.idno }}" readonly />
+            </div>
+            <div class="detail-row">
+              <div class="detail-item">
+                <label for="editable-firstname"><i class="fas fa-user"></i> First Name:</label>
+                <input type="text" id="editable-firstname" value="{{ student.firstname }}" />
+              </div>
+              <div class="detail-item">
+                <label for="editable-lastname"><i class="fas fa-user"></i> Last Name:</label>
+                <input type="text" id="editable-lastname" value="{{ student.lastname }}" />
+              </div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-item">
+                <label for="editable-midname"><i class="fas fa-user"></i> Middle Name:</label>
+                <input type="text" id="editable-midname" value="{{ student.midname }}" />
+              </div>
+              <div class="detail-item">
+                <label for="editable-course"><i class="fas fa-graduation-cap"></i> Course:</label>
+                <input type="text" id="editable-course" value="{{ student.course }}" readonly/>
+              </div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-item">
+                <label for="editable-year-level"><i class="fas fa-calendar-alt"></i> Year Level:</label>
+                <input type="text" id="editable-year-level" value="{{ student.year_level }}" />
+              </div>
+              <div class="detail-item">
+                <label for="editable-email"><i class="fas fa-envelope"></i> Email:</label>
+                <input type="email" id="editable-email" value="{{ student.email }}" />
+              </div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-item">
+                <label for="editable-username"><i class="fas fa-user-circle"></i> Username:</label>
+                <input type="text" id="editable-username" value="{{ student.username }}" readonly/>
+              </div>
+            </div>
+          </div>
+          <!-- Save Button -->
+          <button class="save-button" onclick="saveProfileChanges()"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+      </div>
+    </div>
+
+      <!-- Announcements Section -->
+      <div id="announcements" class="dashboard-section" style="display: block;">
+        <h1>Announcements</h1>
+        <div id="announcements-list" class="announcements-container">
+            <!-- Announcements will be dynamically inserted here -->
+        </div>
+    </div>
+    
+
+        <!-- Lab Rules Section -->
+        <div id="lab-rules" class="dashboard-section" style="display: none;">
+          <h1>Lab Rules and Regulations</h1>
+          <div class="lab-rules-container">
+            <div class="lab-rules-header">
+              <h2>University of Cebu</h2>
+              <h3>COLLEGE OF INFORMATION & COMPUTER STUDIES</h3>
+            </div>
+            <div class="lab-rules-content">
+              <p>To avoid embarrassment and maintain camaraderie with your friends and superiors at our laboratories, please observe the following:</p>
+              <ol class="lab-rules-list">
+                <li>
+                  <i class="fas fa-volume-mute"></i>
+                  <span>Maintain silence, proper decorum, and discipline inside the laboratory. Mobile phones, walkmans, and other personal pieces of equipment must be switched off.</span>
+                </li>
+                <li>
+                  <i class="fas fa-gamepad"></i>
+                  <span>Games are not allowed inside the lab. This includes computer-related games, card games, and other games that may disturb the operation of the lab.</span>
+                </li>
+                <li>
+                  <i class="fas fa-wifi"></i>
+                  <span>Surfing the Internet is allowed only with the permission of the instructor. Downloading and installing of software are strictly prohibited.</span>
+                </li>
+                <li>
+                  <i class="fas fa-ban"></i>
+                  <span>Getting access to other websites not related to the course (especially pornographic and illicit sites) is strictly prohibited.</span>
+                </li>
+                <li>
+                  <i class="fas fa-trash"></i>
+                  <span>Deleting computer files and changing the set-up of the computer is a major offense.</span>
+                </li>
+                <li>
+                  <i class="fas fa-clock"></i>
+                  <span>Observe computer time usage carefully. A fifteen-minute allowance is given for each use. Otherwise, the unit will be given to those who wish to "sit-in".</span>
+                </li>
+                <li>
+                  <i class="fas fa-clipboard-list"></i>
+                    <span>Observe proper decorum while inside the laboratory:
+                      <ul>
+                        <li>Do not get inside the lab unless the instructor is present.</li>
+                        <li>All bags, knapsacks, and the likes must be deposited at the counter.</li>
+                        <li>Follow the seating arrangement of your instructor.</li>
+                        <li>At the end of class, all software programs must be closed.</li>
+                        <li>Return all chairs to their proper places after using.</li>
+                      </ul>
+                    </span>
+
+                </li>
+                <li>
+                  <i class="fas fa-utensils"></i>
+                  <span>Chewing gum, eating, drinking, smoking, and other forms of vandalism are prohibited inside the lab.</span>
+                </li>
+                <li>
+                  <i class="fas fa-exclamation-triangle"></i>
+                  <span>Anyone causing a continual disturbance will be asked to leave the lab. Acts or gestures offensive to the members of the community, including public display of physical intimacy, are not tolerated.</span>
+                </li>
+                <li>
+                  <i class="fas fa-angry"></i>
+                  <span>Persons exhibiting hostile or threatening behavior such as yelling, swearing, or disregarding requests made by lab personnel will be asked to leave the lab.</span>
+                </li>
+                <li>
+                  <i class="fas fa-shield-alt"></i>
+                  <span>For serious offenses, the lab personnel may call the Civil Security Office (CSU) for assistance.</span>
+                </li>
+                <li>
+                  <i class="fas fa-tools"></i>
+                  <span>Any technical problem or difficulty must be addressed to the laboratory supervisor, student assistant, or instructor immediately.</span>
+                </li>
+              </ol>
+              <div class="lab-rules-disciplinary-action">
+                <h3><i class="fas fa-gavel"></i> DISCIPLINARY ACTION</h3>
+                <p><strong>First Offense:</strong> The Head or the Dean or OIC recommends to the Guidance Center for a suspension from classes for each offender.</p>
+                <p><strong>Second and Subsequent Offenses:</strong> A recommendation for a heavier sanction will be endorsed to the Guidance Center.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+          <!-- History Section -->
+        <div id="history" class="dashboard-section" style="display: none;">
+          <h1>History</h1>
+          <div class="filter-container">
+              <label for="historyFilter">Filter by Status:</label>
+              <select id="historyFilter">
+                  <option value="closed">Closed</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="all">All</option>
+              </select>
+          </div>
+
+          <!-- History Table -->
+          <table class="history-table">
+              <thead>
+                  <tr>
+                      <th>Student Name</th>
+                      <th>Purpose</th>
+                      <th>Lab Name</th>
+                      <th>Reservation Date</th>
+                      <th>Status</th>
+                  </tr>
+              </thead>
+              <tbody id="historyBody">
+                  <!-- History rows will be dynamically populated here -->
+              </tbody>
+          </table>
+        </div>
+
+     <!-- Reservation Section -->
+    <div id="reservations" class="dashboard-section">
+
+      <div id="reservationsForm">
+          <h1>Reservation Form</h1>
+          <form id="reservationForm" action="/reservations" method="POST">
+              <div class="form-group">
+                  <label for="lab_id">Lab:</label>
+                  <select id="lab_id" name="lab_id" required>
+                      <option value="" disabled selected>Select Lab</option>
+                      {% for lab in labs %}
+                      <option value="{{ lab.id }}">{{ lab.lab_name }}</option>
+                      {% endfor %}
+                  </select>
+              </div>
+          
+              <div class="form-group">
+                  <label for="purpose">Purpose:</label>
+                  <select id="purpose_select" name="purpose_select" required>
+                      <option value="" disabled selected>Select Purpose</option>
+                      <option value="Research">Research</option>
+                      <option value="Meeting">Meeting</option>
+                      <option value="Coding">Coding</option>
+                      <option value="Assignment Work">Assignment Work</option>
+                      <option value="Project Development">Project Development</option>
+                  </select>
+              </div>
+          
+              <div class="form-group">
+                  <label for="reservation_date">Reservation Date:</label>
+                  <input type="date" id="reservation_date" name="reservation_date" required pattern="\d{4}-\d{2}-\d{2}" min="{{ current_date }}" />
+                  <small id="dateError" class="error-message" style="color: red; display: none;">You cannot select a past date.</small>
+              </div>
+
+              <div class="form-group">
+                <label for="sessions_left">Sessions Left:</label>
+                <!-- Visible read-only field -->
+                <input type="text" id="sessions_left_display" value="{{ current_session['sessions_left'] if current_session else 'No session found' }}" readonly />
+                <!-- Hidden field for form submission -->
+                <input type="hidden" id="sessions_left" name="sessions_left" value="{{ current_session['sessions_left'] if current_session else '0' }}" />
+            </div>
+          
+              <button type="submit">
+                  <i class="fas fa-calendar-check"></i> Submit Reservation
+              </button>
+          </form>
+      </div>
+    </div>
+
+
+        <!-- Feedback Report Section -->
+      <div id="feedback-report" class="dashboard-section">
+            <h1>Feedback Report</h1>
+            <form id="feedbackForm">
+              <!-- Lab Selection Dropdown -->
+              <div class="form-group">
+                  <label for="labSelection"><i class="fas fa-flask"></i> Select Lab</label>
+                  <select id="labSelection" required>
+                      <option value="" disabled selected>Select a lab</option>
+                      <option value="Lab544">Lab 544</option>
+                      <option value="Lab542">Lab 542</option>
+                      <option value="Lab530">Lab 530</option>
+                      <option value="Lab524">Lab 524</option>
+                      <option value="Lab526">Lab 526</option>
+                      <option value="Lab525">Lab 525</option>
+                  </select>
+              </div>
+          
+              <!-- Feedback Text -->
+              <div class="form-group">
+                  <label for="feedbackText"><i class="fas fa-comment-dots"></i> Your Feedback</label>
+                  <textarea id="feedbackText" placeholder="Write your feedback here..." required></textarea>
+              </div>
+          
+              <!-- Rating -->
+              <div class="form-group">
+                  <label> Rating</label>
+                  <div class="star-rating">
+                      <span class="star" data-value="1">&#9733;</span>
+                      <span class="star" data-value="2">&#9733;</span>
+                      <span class="star" data-value="3">&#9733;</span>
+                      <span class="star" data-value="4">&#9733;</span>
+                      <span class="star" data-value="5">&#9733;</span>
+                  </div>
+              </div>
+          
+              <!-- Hidden input for student_idno -->
+              <input type="hidden" id="student_idno" value="{{ session.student_idno }}">
+          
+              <!-- Submit Button -->
+              <button type="submit" class="submit-btn"><i class="fas fa-paper-plane"></i> Submit Feedback</button>
+          </form>
+          
+      </div>  
+
+        <div id="sessions" class="dashboard-section" style="display: none;">
+          <h1>Sessions</h1>
+        
+          <!-- Current Session Status -->
+          <div id="current-session">
+            <h2>Current Session</h2>
+            <h3>{{ current_session['sessions_left'] if current_session else 'No session found' }}</h3>
+          </div>
+        
+          <!-- Session Duration Graph -->
+          <div id="session-graph">
+            <h2>Session Duration</h2>
+            <div class="chart-container">
+              <canvas id="sessionChart"></canvas>
+            </div>
+          </div>
+        
+          <!-- Session History -->
+          <div id="session-history">
+            <h2>Session History</h2>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Session ID</th>
+                    <th>Login Time</th>
+                    <th>Logout Time</th>
+                    <th>Duration</th>
+                  </tr>
+                </thead>
+                <tbody id="session-history-body">
+                  <!-- Session history rows will be dynamically inserted here -->
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination-controls">
+              <button id="prev-page" disabled>Previous</button>
+              <span id="page-info">Page 1 of 1</span>
+              <button id="next-page" disabled>Next</button>
+            </div>
+          </div>
+
+
+
+        </div>
+
+        <div class="chat-icon" onclick="toggleChat()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="24" height="24">
+              <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+          </svg>
+      </div>
+
+
+      <div class="chat-modal" id="chatModal">
+        <div class="chat-modal-header">
+          <h3><i class="fas fa-robot bot-icon"></i>CCS BOT</h3>
+            <span class="close-btn" onclick="toggleChat()">
+              <i class="fas fa-times" style="font-size: 2rem;"></i>
+            </span>
+        </div>
+        <div class="chat-modal-body">
+            <div class="chat-messages" id="chatMessages">
+                <!-- Chat messages will appear here -->
+            </div>
+            <div class="chat-input">
+                <input type="text" placeholder="Type a message..." id="chatInput" onkeypress="handleKeyPress(event)">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+<script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+
+
+const socketURL =
+        window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:5000' // Local WebSocket URL
+            : 'https://ccs-sit-in-monitoring-system.onrender.com'; // Render WebSocket URL
+
+    const socket = io(socketURL, {
+        transports: ['websocket'],
+        upgrade: false,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+    });
+    
+    document.addEventListener('DOMContentLoaded', function () {
+  // Section Toggling Logic
+  const links = document.querySelectorAll('.sidebar-links a');
+  const sections = document.querySelectorAll('.dashboard-section');
+
+  // Function to show the selected section and hide others
+  function showSection(sectionId) {
+    sections.forEach(section => {
+      section.style.display = section.id === sectionId ? 'block' : 'none';
+    });
+    localStorage.setItem('activeDashboardSection', sectionId); // Save the active section
+  }
+
+  // Function to set the active link
+  function setActiveLink(sectionId) {
+    links.forEach(link => {
+      link.classList.toggle('active', link.getAttribute('data-section') === sectionId);
+    });
+  }
+
+  // Load the active section from localStorage
+  const activeSection = localStorage.getItem('activeDashboardSection') || 'dashboard';
+  showSection(activeSection);
+  setActiveLink(activeSection);
+
+  // Add click event listeners to sidebar links
+  links.forEach(link => {
+    link.addEventListener('click', function (e) {
+      e.preventDefault();
+      const sectionId = this.getAttribute('data-section');
+      showSection(sectionId);
+      setActiveLink(sectionId);
+
+      // If the Reservations section is active, load the correct view (form or table)
+      if (sectionId === 'reservations') {
+        const currentView = localStorage.getItem('reservationsCurrentView') || 'form';
+        if (currentView === 'table') {
+          showReservationsTable();
+        } else {
+          showReservationForm();
+        }
+      }
+    });
+  });
+
+  // Clear localStorage on logout
+  const logoutLink = document.getElementById('logout-link');
+  if (logoutLink) {
+    logoutLink.addEventListener('click', function () {
+      localStorage.removeItem('activeDashboardSection');
+      localStorage.removeItem('reservationsCurrentView');
+    });
+  }
+
+  // Reservation View Toggling Logic
+  function showReservationsTable() {
+    document.getElementById('reservations').style.display = 'none';
+    document.getElementById('reservationsTable').style.display = 'block';
+    localStorage.setItem('reservationsCurrentView', 'table'); // Save the current view
+  }
+
+  function showReservationForm() {
+    document.getElementById('reservations').style.display = 'block';
+    document.getElementById('reservationsTable').style.display = 'none';
+    localStorage.setItem('reservationsCurrentView', 'form'); // Save the current view
+  }
+
+  // On page load, if the Reservations section is active, load the correct view
+  if (activeSection === 'reservations') {
+    const currentView = localStorage.getItem('reservationsCurrentView') || 'form';
+    if (currentView === 'table') {
+      showReservationsTable();
+    } else {
+      showReservationForm();
+    }
+  }
+
+
+
+  // Profile Picture Upload Handling
+  const profilePictureUpload = document.getElementById('profile-picture-upload');
+  if (profilePictureUpload) {
+    profilePictureUpload.addEventListener('change', function (event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          document.getElementById('profile-picture').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+
+  // Fetch labs for dropdown
+  fetchLabs();
+
+  // Fetch session history for the logged-in student
+  const studentIdno = "{{ session.student_idno }}"; // Get student ID from session
+  if (studentIdno) {
+    fetchSessionHistory(studentIdno);
+  }
+});
+
+function saveProfileChanges() {
+  const updatedData = {
+    firstname: document.getElementById('editable-firstname').value,
+    lastname: document.getElementById('editable-lastname').value,
+    midname: document.getElementById('editable-midname').value, // Ensure this line is present
+    course: document.getElementById('editable-course').value,
+    year_level: document.getElementById('editable-year-level').value,
+    email: document.getElementById('editable-email').value,
+    username: document.getElementById('editable-username').value
+  };
+
+  const formData = new FormData();
+  formData.append('data', JSON.stringify(updatedData));
+  const profilePictureFile = document.getElementById('profile-picture-upload').files[0];
+  if (profilePictureFile) {
+    formData.append('profile_picture', profilePictureFile);
+  }
+
+  fetch('/update_profile', {
+    method: 'POST',
+    body: formData
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        alert('Profile updated successfully!');
+        window.location.reload(); // Refresh the page to reflect changes
+      } else {
+        alert('Failed to update profile: ' + data.message);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('An error occurred while updating the profile.');
+    });
+}
+
+
+
+
+
+
+function fetchLabs() {
+  fetch('/get_labs')
+    .then(response => response.json())
+    .then(data => {
+      const labSelect = document.getElementById('lab_name');
+      if (labSelect) {
+        labSelect.innerHTML = '<option value="">Select Lab</option>'; // Reset options
+
+        if (data.success && data.labs.length > 0) {
+          data.labs.forEach(lab => {
+            const option = document.createElement('option');
+            option.value = lab.id;  // Use the lab ID as the value
+            option.textContent = lab.lab_name;  // Use the lab name as the display text
+            labSelect.appendChild(option);
+          });
+        } else {
+          console.error('No labs found or error in response');
+        }
+      }
+    })
+    .catch(error => console.error('Error fetching labs:', error));
+}
+
+function formatDuration(seconds) {
+  if (!seconds) return 'N/A';
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  let durationString = '';
+  if (hours > 0) durationString += `${hours}h `;
+  if (minutes > 0) durationString += `${minutes}m `;
+  if (secs > 0 || durationString === '') durationString += `${secs}s`;
+
+  return durationString.trim();
+}
+
+let currentPage = 1;
+let rowsPerPage = 5;
+let sessionData = [];
+
+function fetchSessionHistory(studentIdno) {
+  fetch(`/get_session_history/${studentIdno}`)
+    .then(response => response.json())
+    .then(data => {
+      sessionData = data;
+      renderTable();
+      renderChart();
+    })
+    .catch(error => console.error('Error fetching session history:', error));
+}
+
+function renderTable() {
+  const sessionHistoryBody = document.getElementById('session-history-body');
+  const prevButton = document.getElementById('prev-page');
+  const nextButton = document.getElementById('next-page');
+  const pageInfo = document.getElementById('page-info');
+
+  if (sessionHistoryBody) {
+    sessionHistoryBody.innerHTML = ''; // Clear existing rows
+
+    const start = (currentPage - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    const paginatedData = sessionData.slice(start, end);
+
+    paginatedData.forEach((session, index) => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>Session ${start + index + 1}</td>
+        <td>${session.login_time}</td>
+        <td>${session.logout_time || 'Active'}</td>
+        <td>${formatDuration(session.duration)}</td>
+      `;
+      sessionHistoryBody.appendChild(row);
+    });
+
+    // Update pagination controls
+    prevButton.disabled = currentPage === 1;
+    nextButton.disabled = end >= sessionData.length;
+    pageInfo.textContent = `Page ${currentPage} of ${Math.ceil(sessionData.length / rowsPerPage)}`;
+  }
+}
+
+function renderChart() {
+  const loginTimes = [];
+  const durationsInSeconds = [];
+
+  sessionData.forEach(session => {
+    if (session.logout_time) {
+      loginTimes.push(session.login_time);
+      durationsInSeconds.push(session.duration);
+    }
+  });
+
+  const ctx = document.getElementById('sessionChart')?.getContext('2d');
+  if (ctx) {
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: loginTimes,
+        datasets: [{
+          label: 'Session Duration',
+          data: durationsInSeconds,
+          backgroundColor: 'hsla(273, 77%, 65%, 0.2)',
+          borderColor: 'hsl(273, 77%, 65%)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 3,
+          pointBackgroundColor: 'hsl(273, 77%, 65%)',
+          pointBorderColor: 'hsl(273, 77%, 65%)',
+          pointHoverRadius: 5,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'nearest',
+          intersect: false,
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              display: false,
+            },
+            title: {
+              display: window.innerWidth > 768,
+              text: 'Duration (seconds)'
+            },
+            ticks: {
+              color: 'hsl(273, 77%, 65%)',
+            }
+          },
+          x: {
+            grid: {
+              display: false,
+            },
+            title: {
+              display: window.innerWidth > 768,
+              text: 'Login Time'
+            },
+            ticks: {
+              display: window.innerWidth > 768,
+              color: 'hsl(273, 77%, 65%)',
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: window.innerWidth > 768,
+            position: 'top',
+            labels: {
+              color: 'hsl(273, 77%, 65%)',
+            }
+          },
+          tooltip: {
+            enabled: true,
+            mode: 'nearest',
+            intersect: false,
+            backgroundColor: 'hsl(273, 77%, 65%)',
+            titleColor: '#fff',
+            bodyColor: '#fff',
+            callbacks: {
+              label: function (context) {
+                const durationInSeconds = context.raw;
+                const hours = Math.floor(durationInSeconds / 3600);
+                const minutes = Math.floor((durationInSeconds % 3600) / 60);
+                const seconds = durationInSeconds % 60;
+                return `Duration: ${hours}h ${minutes}m ${seconds}s`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+}
+
+// Pagination event listeners
+document.getElementById('prev-page').addEventListener('click', () => {
+  if (currentPage > 1) {
+    currentPage--;
+    renderTable();
+  }
+});
+
+document.getElementById('next-page').addEventListener('click', () => {
+  if (currentPage < Math.ceil(sessionData.length / rowsPerPage)) {
+    currentPage++;
+    renderTable();
+  }
+});
+
+// Utility function to format duration
+function formatDuration(durationInSeconds) {
+  const hours = Math.floor(durationInSeconds / 3600);
+  const minutes = Math.floor((durationInSeconds % 3600) / 60);
+  const seconds = durationInSeconds % 60;
+  return `${hours}h ${minutes}m ${seconds}s`;
+}
+
+let inactivityTime = function () {
+  const INACTIVITY_LIMIT = 15 * 60 * 1000; // 15 minutes in milliseconds
+  let timeout;
+
+  // Function to log out the user
+  function logout() {
+    fetch('/logout', { method: 'POST' })
+      .then(response => {
+        if (response.redirected) {
+          window.location.href = response.url;
+        }
+      });
+  }
+
+  // Function to reset the inactivity timer
+  function resetTimer() {
+    clearTimeout(timeout);
+    timeout = setTimeout(logout, INACTIVITY_LIMIT); // Set new timeout
+  }
+
+  // Start the timer when the page loads
+  resetTimer();
+
+  // Event listeners to reset the timer on user activity
+  document.onmousemove = resetTimer;
+  document.onkeypress = resetTimer;
+  document.onscroll = resetTimer;
+};
+
+// Start tracking inactivity
+inactivityTime();
+
+function checkSidebarHeight() {
+  const sidebar = document.querySelector('.sidebar');
+  const sidebarContentHeight = sidebar.scrollHeight; // Get the total height of the sidebar content
+
+  // If sidebar content height exceeds 662px, apply max-height
+  if (sidebarContentHeight > 662) {
+    sidebar.classList.add('max-height');
+  } else {
+    sidebar.classList.remove('max-height');
+  }
+}
+
+// Run the function on page load and window resize
+window.addEventListener('load', checkSidebarHeight);
+window.addEventListener('resize', checkSidebarHeight);
+
+
+// Weekly Lab Usage Chart (Line Chart)
+const weeklyUsageCtx = document.getElementById('weeklyUsageChart').getContext('2d');
+
+// Create a gradient for the chart background below the line
+const gradient = weeklyUsageCtx.createLinearGradient(0, 0, 0, 400);
+gradient.addColorStop(0, 'rgba(207, 159, 255, 0.3)'); // Light purple (matches line color)
+gradient.addColorStop(1, 'rgba(207, 159, 255, 0)'); // Transparent
+
+// Initialize the chart with empty data
+const weeklyUsageChart = new Chart(weeklyUsageCtx, {
+  type: 'line',
+  data: {
+    labels: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], // Include Sunday
+    datasets: [{
+      label: 'Sessions Count',
+      data: [0, 0, 0, 0, 0, 0, 0], // Start with 0s (7 days)
+      borderColor: 'hsl(273, 77%, 65%)', // Purple line color
+      borderWidth: 3, // Slightly thicker line
+      fill: true, // Fill the area under the line
+      backgroundColor: gradient, // Use the gradient as the fill background
+      tension: 0.4, // Smooth the line
+      pointRadius: 5, // Make data points larger
+      pointBackgroundColor: 'hsl(273, 77%, 65%)', // Purple point color
+      pointBorderColor: '#fff', // White border for points
+      pointHoverRadius: 7, // Increase size on hover
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false, // Allow the chart to resize freely
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: 'rgba(200, 200, 200, 0.1)', // Light grid lines
+          lineWidth: 1,
+        },
+        ticks: {
+          color: 'hsl(273, 77%, 65%)', // Purple tick labels
+        },
+      },
+      x: {
+        display: window.innerWidth > 600, // Hide x-axis labels on small screens
+        grid: {
+          display: false, // Hide vertical grid lines
+        },
+        ticks: {
+          color: 'hsl(273, 77%, 65%)', // Purple tick labels
+        },
+      },
+    },
+    plugins: {
+      legend: {
+        display: window.innerWidth > 600, // Hide legend on small screens
+        position: 'top',
+        labels: {
+          color: 'hsl(273, 77%, 65%)', // Purple legend text
+        },
+      },
+      tooltip: {
+        enabled: true,
+        backgroundColor: 'hsl(273, 77%, 65%)', // Purple tooltip background
+        titleColor: '#fff', // White tooltip title
+        bodyColor: '#fff', // White tooltip body
+      },
+    },
+  },
+});
+
+// Pass the student ID from Flask to JavaScript
+const studentId = "{{ student.idno }}"; // Replace with your actual variable
+updateChart(studentId); // Call the function with the student ID
+
+function updateChart(studentId) {
+  fetch(`/get_weekly_usage/${studentId}`)
+    .then(response => response.json())
+    .then(data => {
+      console.log("Fetched Data:", data);  // Debugging: Print the fetched data
+
+      const labels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']; // Include Sunday
+      const usageData = labels.map(day => data[day] || 0); // If no record, set to 0
+
+      console.log("Mapped Data:", usageData);  // Debugging: Print the mapped data
+
+      // Update the chart data
+      weeklyUsageChart.data.labels = labels;
+      weeklyUsageChart.data.datasets[0].data = usageData;
+      weeklyUsageChart.update();
+    })
+    .catch(error => console.error('Error fetching session data:', error));
+}
+
+// Handle window resize to dynamically show/hide labels and legend
+window.addEventListener('resize', () => {
+  weeklyUsageChart.options.scales.x.display = window.innerWidth > 600;
+  weeklyUsageChart.options.plugins.legend.display = window.innerWidth > 600;
+  weeklyUsageChart.update();
+});
+
+
+const progressBars = document.querySelectorAll('.circular-progress');
+
+progressBars.forEach(progressBar => {
+    const progress = parseFloat(progressBar.getAttribute('data-progress'));
+    const max = parseFloat(progressBar.getAttribute('data-max'));
+    const percentage = (progress / max) * 100; // Calculate the percentage
+    const progressValue = (progress / max) * 283; // Calculate the stroke-dashoffset
+
+    const progressCircle = progressBar.querySelector('.progress-bar');
+    progressCircle.style.strokeDashoffset = 283 - progressValue; // Update the progress bar
+
+    // Set the progress bar color based on the percentage
+    if (percentage >= 75) {
+        progressCircle.style.stroke = '#4CAF50'; // Green
+    } else if (percentage >= 50) {
+        progressCircle.style.stroke = '#FFC107'; // Yellow
+    } else if (percentage >= 25) {
+        progressCircle.style.stroke = '#FF5722'; // Dark Orange (closer to red)
+    } else {
+        progressCircle.style.stroke = '#F44336'; // Red
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+  const reservationDateInput = document.getElementById('reservation_date');
+  const timeInInput = document.getElementById('time_in');
+  const timeOutInput = document.getElementById('time_out');
+  const timeError = document.getElementById('timeError');
+
+  // Set the reservation date to today's date and disable editing
+  const today = new Date().toISOString().split('T')[0];
+  reservationDateInput.value = today;
+  reservationDateInput.readOnly = true;
+
+  // Validate time-out on input change
+  timeOutInput.addEventListener('change', function () {
+    const timeIn = timeInInput.value;
+    const timeOut = this.value;
+
+    // Convert time strings to Date objects for comparison
+    const timeInDate = new Date(`1970-01-01T${timeIn}:00`);
+    const timeOutDate = new Date(`1970-01-01T${timeOut}:00`);
+
+    // Calculate the difference in hours
+    const timeDifference = (timeOutDate - timeInDate) / (1000 * 60 * 60);
+
+    if (timeOut <= timeIn) {
+      timeError.style.display = 'block';
+      timeError.textContent = 'Time Out must be after Time In.';
+      this.setCustomValidity('Time Out must be after Time In.');
+    } else if (timeDifference > 3) {
+      timeError.style.display = 'block';
+      timeError.textContent = 'Maximum reservation duration is 3 hours.';
+      this.setCustomValidity('Maximum reservation duration is 3 hours.');
+    } else {
+      timeError.style.display = 'none';
+      this.setCustomValidity('');
+    }
+  });
+
+  // Validate time-in on input change
+  timeInInput.addEventListener('change', function () {
+    const timeIn = this.value;
+    const timeOut = timeOutInput.value;
+
+    // Convert time strings to Date objects for comparison
+    const timeInDate = new Date(`1970-01-01T${timeIn}:00`);
+    const timeOutDate = new Date(`1970-01-01T${timeOut}:00`);
+
+    // Calculate the difference in hours
+    const timeDifference = (timeOutDate - timeInDate) / (1000 * 60 * 60);
+
+    if (timeOut && timeOut <= timeIn) {
+      timeError.style.display = 'block';
+      timeError.textContent = 'Time Out must be after Time In.';
+      timeOutInput.setCustomValidity('Time Out must be after Time In.');
+    } else if (timeOut && timeDifference > 3) {
+      timeError.style.display = 'block';
+      timeError.textContent = 'Maximum reservation duration is 3 hours.';
+      timeOutInput.setCustomValidity('Maximum reservation duration is 3 hours.');
+    } else {
+      timeError.style.display = 'none';
+      timeOutInput.setCustomValidity('');
+    }
+  });
+});
+
+document.getElementById('reservationForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+
+  const formData = new FormData(this);
+
+  try {
+    const response = await fetch('/reservations', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (result.status === 'success') {
+      Swal.fire({
+        title: 'Success!',
+        text: result.message,
+        icon: 'success',
+        confirmButtonColor: '#3085d6',
+        customClass: {
+          popup: 'swal-default-size',
+        },
+      }).then(() => {
+        location.reload(); // Refresh the page
+      });
+    } else {
+      Swal.fire({
+        title: 'Error!',
+        text: result.message,
+        icon: 'error',
+        confirmButtonColor: '#d33',
+        customClass: {
+          popup: 'swal-default-size',
+        },
+      });
+    }
+  } catch (error) {
+    Swal.fire({
+      title: 'Error!',
+      text: 'An error occurred while submitting the form.',
+      icon: 'error',
+      confirmButtonColor: '#d33',
+      customClass: {
+        popup: 'swal-default-size',
+      },
+    });
+  }
+});
+
+  // Prevent form submission if there are validation errors
+  document.getElementById('reservationForm').addEventListener('submit', function (event) {
+    if (!this.checkValidity()) {
+      event.preventDefault();
+    }
+  });
+
+
+
+
+
+const approveButtons = document.querySelectorAll('.approve-btn');
+const editButtons = document.querySelectorAll('.edit-btn');
+const cancelButtons = document.querySelectorAll('.cancel-btn');
+
+
+cancelButtons.forEach((button) => {
+    button.addEventListener('click', function () {
+        const row = this.closest('tr');
+        const reservationId = row.dataset.reservationId;
+
+        // SweetAlert confirmation with default scaling
+        Swal.fire({
+            title: "Are you sure?",
+            text: "You are about to cancel this reservation!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#3085d6",
+            confirmButtonText: "Yes, cancel it!",
+            cancelButtonText: "No, keep it",
+            customClass: {
+                popup: 'swal-default-size' // Apply custom class to override scaling
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Update status to "Cancelled"
+                const statusCell = row.querySelector('td:nth-child(7)');
+                statusCell.textContent = 'Cancelled';
+
+                // Disable all buttons in the action cell
+                const actionCell = row.querySelector('td:nth-child(8)');
+                actionCell.querySelectorAll('button').forEach((btn) => {
+                    btn.disabled = true;
+                });
+
+                // Send an AJAX request to cancel the reservation
+                fetch(`/cancel-reservation/${reservationId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.success) {
+                        Swal.fire({
+                            title: "Cancelled!",
+                            text: "Your reservation has been cancelled.",
+                            icon: "success",
+                            confirmButtonColor: "#3085d6",
+                            customClass: {
+                                popup: 'swal-default-size'
+                            }
+                        }).then(() => {
+                            // Reload to reflect changes
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire("Error!", "Failed to cancel the reservation.", "error");
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                    Swal.fire("Error!", "Something went wrong.", "error");
+                });
+            }
+        });
+    });
+});
+
+
+ // Listen for new reservation updates
+ socket.on('new_reservation', function (data) {
+        // If the reservation belongs to the current student, update the UI
+        if (data.student_idno === session.student_idno) {
+            const reservationsBody = document.getElementById('reservationsBody');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${data.student_idno}</td>
+                <td>${data.student_name}</td>
+                <td>${data.lab_id}</td>
+                <td>${data.purpose}</td>
+                <td>${data.reservation_date}</td>
+                <td>${data.logged_in}</td>
+                <td>${data.logged_out}</td>
+                <td>${data.status}</td>
+            `;
+            reservationsBody.appendChild(row);
+        }
+    });
+
+    // Listen for reservation status updates
+    socket.on('reservation_updated', function (data) {
+        const { reservation_id, status } = data;
+
+        // Find the reservation row and update its status
+        const row = document.querySelector(`tr[data-reservation-id="${reservation_id}"]`);
+        if (row) {
+            const statusCell = row.querySelector('td:nth-child(8)');
+            statusCell.textContent = status;
+        }
+    });
+
+  document.addEventListener("DOMContentLoaded", function () {
+    let tableBody = document.getElementById("reservationsBody");
+    let rows = Array.from(tableBody.querySelectorAll("tr"));
+
+    // Sort: Show Pending first, then Approved
+    rows.sort((a, b) => {
+        let statusA = a.getAttribute("data-status");
+        let statusB = b.getAttribute("data-status");
+
+        if (statusA === "pending" && statusB !== "pending") return -1;
+        if (statusA !== "pending" && statusB === "pending") return 1;
+        return 0;
+    });
+
+    // Re-append sorted rows to the table
+    rows.forEach(row => tableBody.appendChild(row));
+
+    // Set default filter to "Pending"
+    let statusFilter = document.getElementById("statusFilter");
+    statusFilter.value = "pending";
+
+    // Apply filter on page load
+    function applyFilter() {
+        let filterValue = statusFilter.value;
+        rows.forEach(row => {
+            let status = row.getAttribute("data-status");
+            row.style.display = (filterValue === "all" || status === filterValue) ? "" : "none";
+        });
+    }
+
+    applyFilter(); // Show only Pending on load
+
+    // Reapply filter when dropdown changes
+    statusFilter.addEventListener("change", applyFilter);
+});
+
+const studentIdno = "{{ session.student_idno }}"; // This will be replaced by your server-side template engine
+
+// Toggle chat modal and load chat history
+function toggleChat() {
+    const chatModal = document.getElementById("chatModal");
+    chatModal.classList.toggle("active");
+
+    if (chatModal.classList.contains("active")) {
+        loadChatHistory(); // Load chat history when modal opens
+    }
+}
+
+// Load chat history from the backend
+async function loadChatHistory() {
+    const chatMessages = document.getElementById("chatMessages");
+    chatMessages.innerHTML = ""; // Clear existing messages
+
+    try {
+        const response = await fetch(`/chat/history?student_idno=${studentIdno}`);
+        const history = await response.json();
+
+        history.forEach((message) => {
+            addMessage(message.sender, message.message);
+        });
+    } catch (error) {
+        console.error("Failed to load chat history:", error);
+    }
+}
+function handleKeyPress(event) {
+    if (event.key === 'Enter') {
+        sendMessage(); // Call sendMessage when Enter is pressed
+    }
+}
+async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const message = input.value.trim();
+
+    if (message) {
+        // Add user message to the chat window
+        addMessage('user', message);
+        input.value = '';
+
+        // Send the message to the backend
+        try {
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message, student_idno: studentIdno })
+            });
+
+            const data = await response.json();
+
+            // Check if the bot's response is the special delete success message
+            if (data.reply === "__DELETE_SUCCESS__") {
+                // Auto-refresh the page after a short delay (e.g., 1 second)
+                setTimeout(() => {
+                    location.reload();
+                }, 1000); // 1000ms = 1 second
+            } else {
+                // Add bot's reply to the chat window
+                addMessage('bot', data.reply);
+            }
+        } catch (error) {
+            console.error("Failed to send message:", error);
+        }
+    }
+}
+
+function addMessage(sender, message) {
+    const chatMessages = document.getElementById('chatMessages');
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', `${sender}-message`);
+
+    // Add sender name and student ID (if user)
+    const senderName = sender === 'bot' ? 
+        `<span class="bot-name">CCS BOT</span>` : 
+        `User (ID: ${studentIdno})`;
+
+    const messageContent = document.createElement('div');
+    messageContent.classList.add('message-content');
+
+    // Check if the message contains a code block
+    if (message.includes('```')) {
+        // Extract the code block
+        const codeBlock = message.match(/```([\s\S]*?)```/)[1];
+        const formattedCode = `<pre><code>${codeBlock}</code></pre>`;
+
+        // Replace the code block in the message with the formatted code
+        message = message.replace(/```[\s\S]*?```/, formattedCode);
+    }
+
+    // Insert the message content with proper formatting
+    messageContent.innerHTML = `<strong>${senderName}:</strong> ${message}`;
+
+    // Append the message content to the message div
+    messageDiv.appendChild(messageContent);
+
+    // If sender is bot, apply the 'bot-message' class to style it
+    if (sender === 'bot') {
+        messageDiv.classList.add('bot-message');
+    }
+
+    // Append the message to the chat window
+    chatMessages.appendChild(messageDiv);
+
+    // Auto-scroll to the latest message
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+
+
+    socket.on('connect', function () {
+        console.log('WebSocket connected to', socketURL);
+    });
+
+    socket.on('disconnect', function () {
+        console.log('WebSocket disconnected');
+    });
+
+    socket.on('connect_error', function (error) {
+        console.error('WebSocket connection error:', error);
+    });
+
+  // Function to fetch announcements
+function fetchAnnouncements() {
+    fetch('/get_announcements')
+        .then(response => response.json())
+        .then(data => {
+            const announcementsList = document.getElementById('announcements-list');
+            if (announcementsList) {
+                announcementsList.innerHTML = ''; // Clear existing announcements
+
+                data.forEach(announcement => {
+                    const announcementDate = new Date(announcement.announcement_date).toLocaleString();
+
+                    const announcementBox = document.createElement('div');
+                    announcementBox.className = 'announcement-box';
+
+                    announcementBox.innerHTML = `
+                        <div class="announcement-header">
+                            <span class="announcement-date">${announcementDate}</span>
+                            <span class="announcement-admin">Posted by: ${announcement.admin_username}</span>
+                        </div>
+                        <div class="announcement-content">
+                            <p>${announcement.announcement_text}</p>
+                        </div>
+                    `;
+
+                    announcementsList.appendChild(announcementBox);
+                });
+            }
+        })
+        .catch(error => console.error('Error fetching announcements:', error));
+}
+
+
+// Fetch announcements when the page loads
+fetchAnnouncements();
+    socket.on('announcement_updated', (data) => {
+    console.log('Updated announcement:', data);
+    fetchAnnouncements(); // Refresh the announcements list
+    });
+
+    // Listen for deleted announcements
+    socket.on('announcement_deleted', (data) => {
+        console.log('Deleted announcement:', data);
+        fetchAnnouncements(); // Refresh the announcements list
+    });
+
+
+    // Listen for new announcements
+    socket.on('new_announcement', (data) => {
+        console.log('New announcement:', data);
+        // Add the new announcement to the list
+        const announcementsList = document.getElementById('announcements-list');
+        if (announcementsList) {
+            const announcementDate = new Date(data.announcement_date).toLocaleString();
+
+            const announcementBox = document.createElement('div');
+            announcementBox.className = 'announcement-box';
+
+            announcementBox.innerHTML = `
+                <div class="announcement-header">
+                    <span class="announcement-date">${announcementDate}</span>
+                    <span class="announcement-admin">Posted by: ${data.admin_username}</span>
+                </div>
+                <div class="announcement-content">
+                    <p>${data.announcement_text}</p>
+                </div>
+            `;
+
+            announcementsList.prepend(announcementBox); // Add to the top of the list
+        }
+    });
+
+  // Star Rating Interaction
+const stars = document.querySelectorAll('.star-rating .star');
+stars.forEach(star => {
+  star.addEventListener('click', function () {
+    const value = this.getAttribute('data-value');
+    stars.forEach(s => {
+      s.classList.toggle('active', s.getAttribute('data-value') <= value); // This will highlight all stars up to the clicked one
+    });
+  });
+});
+
+document.getElementById('feedbackForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+
+    const lab = document.getElementById('labSelection').value;
+    const feedbackText = document.getElementById('feedbackText').value;
+
+    // Get the highest rating by checking all active stars
+    const rating = Array.from(document.querySelectorAll('.star-rating .star.active'))
+                        .map(star => star.getAttribute('data-value'))
+                        .reduce((max, current) => Math.max(max, current), 0) || 0; // Get the highest value or 0 if no star is selected
+
+    // Retrieve student_idno from the session or a hidden input field
+    const student_idno = document.getElementById('student_idno').value;
+
+    // Send feedback data to the server using socket
+    socket.emit('submit_feedback', {
+        lab: lab,
+        feedback_text: feedbackText,
+        rating: rating,
+        student_idno: student_idno
+    });
+
+    // Reset the form after submission
+    document.getElementById('feedbackForm').reset();
+    document.querySelectorAll('.star-rating .star').forEach(star => star.classList.remove('active'));
+
+    // Display SweetAlert for feedback submission with custom size
+    Swal.fire({
+        icon: 'success',
+        title: 'Feedback Submitted!',
+        text: 'Thank you for your feedback.',
+        customClass: {
+            popup: 'swal-default-size'
+        }
+    });
+});
+
+socket.on('new_announcement', (data) => {
+    const notificationDropdown = document.getElementById('notificationDropdown');
+    const notificationItem = document.createElement('div');
+    notificationItem.classList.add('notification-item');
+    if (!data.is_read) notificationItem.classList.add('unread');
+
+    notificationItem.innerHTML = `
+        <div class="notification-icon">
+            <i class="fas fa-bell"></i>
+        </div>
+        <div class="notification-content">
+            <div class="notification-title">New Announcement</div>
+            <div class="notification-text">${data.announcement_text}</div>
+            <div class="notification-time">Just now</div>
+        </div>
+    `;
+
+    // Add click event to mark as read
+    notificationItem.addEventListener('click', () => {
+        markNotificationAsRead(data.id);
+    });
+
+    notificationDropdown.insertBefore(notificationItem, notificationDropdown.firstChild);
+    updateNotificationCount();
+});
+
+
+// Mark all as read
+function markNotificationAsRead(notificationId) {
+    fetch('/mark_notification_as_read', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ notification_id: notificationId }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove the 'unread' class from the notification item
+            const notificationItem = document.querySelector(`.notification-item[data-id="${notificationId}"]`);
+            if (notificationItem) {
+                notificationItem.classList.remove('unread');
+                updateNotificationCount();
+            }
+        }
+    })
+    .catch(error => console.error('Error marking notification as read:', error));
+}
+ 
+document.addEventListener('DOMContentLoaded', () => {
+    fetch('/get_unread_notifications')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && Array.isArray(data.data)) {
+                const notificationDropdown = document.getElementById('notificationDropdown');
+                notificationDropdown.innerHTML = ''; // Clear existing notifications
+
+                data.data.forEach(notification => {
+                    const notificationItem = document.createElement('div');
+                    notificationItem.classList.add('notification-item');
+                    if (!notification.is_read) notificationItem.classList.add('unread');
+
+                    notificationItem.innerHTML = `
+                        <div class="notification-icon">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title">New Announcement</div>
+                            <div class="notification-text">${notification.announcement_text}</div>
+                            <div class="notification-time">${notification.announcement_date}</div>
+                        </div>
+                    `;
+
+                    // Add click event to mark as read
+                    notificationItem.addEventListener('click', () => {
+                        markNotificationAsRead(notification.id);
+                    });
+
+                    notificationDropdown.appendChild(notificationItem);
+                });
+
+                updateNotificationCount(); // Update the notification badge count
+            } else {
+                console.error('Invalid response format:', data);
+            }
+        })
+        .catch(error => console.error('Error fetching unread notifications:', error));
+});
+
+function updateNotificationCount() {
+    const unreadCount = document.querySelectorAll('.notification-item.unread').length;
+    const notificationBadge = document.getElementById('notificationBadge');
+    if (unreadCount > 0) {
+        notificationBadge.textContent = unreadCount;
+        notificationBadge.style.display = 'flex';
+    } else {
+        notificationBadge.style.display = 'none';
+    }
+}
+
+const notificationBtn = document.getElementById('notificationBtn');
+    const notificationDropdown = document.getElementById('notificationDropdown');
+    const markAllReadBtn = document.getElementById('markAllRead');
+    const unreadItems = document.querySelectorAll('.unread');
+    const notificationBadge = document.getElementById('notificationBadge');
+    
+    // Count unread notifications
+    function updateNotificationCount() {
+      const unreadCount = document.querySelectorAll('.unread').length;
+      if (unreadCount > 0) {
+        notificationBadge.textContent = unreadCount;
+        notificationBadge.style.display = 'flex';
+      } else {
+        notificationBadge.style.display = 'none';
+      }
+    }
+    
+    // Initialize notification count
+    updateNotificationCount();
+
+    // Toggle dropdown
+    notificationBtn.addEventListener('click', function() {
+      notificationDropdown.classList.toggle('show');
+    });
+
+    // Close dropdown when clicking outside
+    window.addEventListener('click', function(event) {
+      if (!event.target.matches('.notification-button') && 
+          !event.target.matches('.fa-bell') &&
+          !notificationDropdown.contains(event.target)) {
+        if (notificationDropdown.classList.contains('show')) {
+          notificationDropdown.classList.remove('show');
+        }
+      }
+    });
+
+    // Mark all as read functionality
+    markAllReadBtn.addEventListener('click', function() {
+      const unreadItems = document.querySelectorAll('.unread');
+      unreadItems.forEach(item => {
+        item.classList.remove('unread');
+      });
+      updateNotificationCount();
+    });
+</script>
+{% endblock %}

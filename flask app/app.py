@@ -175,14 +175,6 @@ def login():
             active_users_dict[username] = True
             socketio.emit('update_active_users', list(active_users_dict.keys()))  # Emit active users update
 
-            # Insert login time into session history
-            login_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            insert_session_history(user['idno'], login_time)
-
-            # Decrease sessions left and update the database
-            if user['sessions_left'] > 0:
-                user['sessions_left'] -= 1
-                update_student_sessions(user['idno'], user['sessions_left'])
 
             flash("Login successful!", 'success')
             return redirect(url_for('student_dashboard'))
@@ -243,26 +235,44 @@ def reservations():
     lab_id = request.form.get('lab_id', '').strip()
     purpose = request.form.get('purpose_select', '').strip()
     reservation_date = request.form.get('reservation_date', '').strip()
-    time_in = request.form.get('time_in', '').strip()
-    time_out = request.form.get('time_out', '').strip()
+    sessions_left = int(request.form.get('sessions_left', 0))  # Get sessions_left from the form
+    login_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')  # Current time as logged-in time
 
-    if not all([student_idno, student_name, lab_id, purpose, reservation_date, time_in, time_out]):
+    # Check if all required fields are provided
+    if not all([student_idno, student_name, lab_id, purpose, reservation_date]):
         return jsonify({'status': 'error', 'message': 'All fields are required'}), 400
 
+    # Validate the reservation date format
     try:
         datetime.strptime(reservation_date, '%Y-%m-%d')
     except ValueError:
         return jsonify({'status': 'error', 'message': 'Invalid date format (YYYY-MM-DD expected)'}), 400
 
+    # Check if the student already has a pending reservation
+    if has_pending_reservation(student_idno):
+        return jsonify({'status': 'error', 'message': 'You already have a pending reservation'}), 400
+
+    # Check if the student has sessions left
+    if sessions_left <= 0:
+        return jsonify({'status': 'error', 'message': 'You have no sessions left'}), 400
+
+    # Create the reservation
     if create_reservation(
         student_idno=student_idno,
         student_name=student_name,
         lab_id=lab_id,
         purpose=purpose,
         reservation_date=reservation_date,
-        time_in=time_in,
-        time_out=time_out
+        login_time=login_time,  # Logged-in time
+        status='Pending'
     ):
+        user = get_student_by_id(student_idno)  # Assuming you have a function to get the user by student_idno
+        
+        # Decrease sessions left and update the database
+        if user and user['sessions_left'] > 0:
+            user['sessions_left'] -= 1
+            update_student_sessions(user['idno'], user['sessions_left'])  # Assuming you have a function to update sessions left
+
         # Emit a Socket.IO event to notify both admin and student
         socketio.emit('new_reservation', {
             'student_idno': student_idno,
@@ -270,42 +280,177 @@ def reservations():
             'lab_id': lab_id,
             'purpose': purpose,
             'reservation_date': reservation_date,
-            'time_in': time_in,
-            'time_out': time_out,
+            'login_time': login_time,
             'status': 'Pending'
         })
         return jsonify({'status': 'success', 'message': 'Reservation created successfully'}), 200
     else:
         return jsonify({'status': 'error', 'message': 'Failed to create reservation'}), 500
 
-@app.route('/approve-reservation/<int:reservation_id>', methods=['POST'])
-def approve_reservation(reservation_id):
+    
+    
+@app.route('/sit-in-reservation/<int:reservation_id>', methods=['POST'])
+def sit_in_reservation(reservation_id):
     try:
+        print(f"Attempting to approve reservation with ID: {reservation_id}")  # Print reservation ID
+        
+        # Fetch the reservation details
+        reservation = get_reservation_by_id(reservation_id)
+        if not reservation:
+            print(f"Reservation with ID {reservation_id} not found")
+            return jsonify({'success': False, 'message': 'Reservation not found'})
+        
+        print(f"Fetched reservation: {reservation}")  # Print reservation details
+        
+        # Update the reservation status to "Approved"
         if update_reservation_status(reservation_id, 'Approved'):
+            print(f"Successfully updated reservation {reservation_id} status to 'Approved'")  # Print success message
             # Emit a Socket.IO event to notify both admin and student
             socketio.emit('reservation_updated', {
                 'reservation_id': reservation_id,
                 'status': 'Approved'
             })
             return jsonify({'success': True, 'message': 'Reservation approved successfully'})
-        return jsonify({'success': False, 'message': 'Reservation not found'})
+        else:
+            print(f"Failed to update reservation {reservation_id} status to 'Approved'")
+            return jsonify({'success': False, 'message': 'Failed to update reservation status'})
+    
     except Exception as e:
+        print(f"Error in sit-in reservation for {reservation_id}: {str(e)}")  # Print the exception message
         return jsonify({'success': False, 'message': str(e)})
+
 
 @app.route('/close-reservation/<int:reservation_id>', methods=['POST'])
 def close_reservation(reservation_id):
     try:
-        if update_reservation_status(reservation_id, 'Closed'):
+        print(f"Attempting to close reservation with ID: {reservation_id}")  # Print reservation ID
+        
+        # Fetch the reservation details
+        reservation = get_reservation_by_id(reservation_id)
+        if not reservation:
+            print(f"Reservation with ID {reservation_id} not found")
+            return jsonify({'success': False, 'message': 'Reservation not found'})
+        
+        print(f"Fetched reservation: {reservation}")  # Print reservation details
+        
+        # Check if 2 hours have passed since the reservation was made
+        reservation_time = datetime.strptime(reservation['login_time'], '%Y-%m-%d %H:%M:%S')
+        current_time = datetime.now()
+        time_difference = current_time - reservation_time
+        
+        print(f"Time difference (in seconds): {time_difference.total_seconds()}")  # Print time difference
+        
+        if time_difference.total_seconds() >= 7200:  # 2 hours = 7200 seconds
+            # Delete the reservation
+            print(f"Deleting reservation {reservation_id} as more than 2 hours have passed")
+            delete_reservation(reservation_id)
+            return jsonify({'success': True, 'message': 'Reservation deleted successfully (2 hours passed)'})
+        else:
+            print(f"Updating reservation {reservation_id} status to 'Disapproved'")  # Print action before updating status
+            # Update the reservation status to "Disapproved"
+            if update_reservation_status(reservation_id, 'Disapproved'):
+                # Emit a Socket.IO event to notify both admin and student
+                socketio.emit('reservation_updated', {
+                    'reservation_id': reservation_id,
+                    'status': 'Disapproved'
+                })
+                return jsonify({'success': True, 'message': 'Reservation disapproved successfully'})
+            else:
+                print(f"Failed to update reservation {reservation_id} status to 'Disapproved'")
+                return jsonify({'success': False, 'message': 'Failed to update reservation status'})
+    
+    except Exception as e:
+        print(f"Error in close reservation for {reservation_id}: {str(e)}")  # Print the exception message
+        return jsonify({'success': False, 'message': str(e)})
+
+
+
+@app.route('/logout-student/<int:reservation_id>', methods=['POST'])
+def logout_student(reservation_id):
+    try:
+        # Fetch the reservation details
+        reservation = get_reservation_by_id(reservation_id)
+        if not reservation:
+            return jsonify({'success': False, 'message': 'Reservation not found'})
+
+        # Record the logged-out time
+        logout_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        # Update the reservation with logged-out time and status
+        if update_reservation_logout(reservation_id, logout_time, 'Closed'):
+            # Insert session history
+            insert_session_history(
+                student_idno=reservation['student_idno'],
+                login_time=reservation['login_time'],
+                logout_time=logout_time
+            )
+
+            # Deduct one session from the student's sessions_left
+            student = get_student_by_idno(reservation['student_idno'])
+            if student and student['sessions_left'] > 0:
+                student['sessions_left'] -= 1
+                update_student_sessions(student['idno'], student['sessions_left'])
+
             # Emit a Socket.IO event to notify both admin and student
             socketio.emit('reservation_updated', {
                 'reservation_id': reservation_id,
-                'status': 'Closed'
+                'status': 'Closed',
+                'logout_time': logout_time
             })
-            return jsonify({'success': True, 'message': 'Reservation closed successfully'})
-        return jsonify({'success': False, 'message': 'Reservation not found'})
+            return jsonify({'success': True, 'message': 'Student logged out successfully'})
+        return jsonify({'success': False, 'message': 'Failed to update reservation'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
+
+def get_all_reservations(search_term='') -> list:
+    if search_term:
+        sql = """
+        SELECT r.id, r.student_idno, r.student_name, l.lab_name, r.purpose, 
+               r.reservation_date, r.login_time, r.logout_time, r.status
+        FROM reservations r
+        JOIN laboratories l ON r.lab_id = l.id
+        WHERE r.student_idno LIKE ? AND r.status = 'Pending'
+        """
+        return getprocess(sql, (f"%{search_term}%",))
+    else:
+        sql = """
+        SELECT r.id, r.student_idno, r.student_name, l.lab_name, r.purpose, 
+               r.reservation_date, r.login_time, r.logout_time, r.status
+        FROM reservations r
+        JOIN laboratories l ON r.lab_id = l.id
+        WHERE r.status = 'Pending'
+        """
+        return getprocess(sql)
+
+@app.route('/get_reservation_history')
+def get_reservation_history():
+    if 'student_idno' not in session:
+        print('Unauthorized access attempt. Student ID not in session.')
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    student_idno = session['student_idno']
+    print(f"Fetching reservation history for student ID: {student_idno}")  # Log student ID fetching
+
+    sql = """
+    SELECT r.id, l.lab_name, r.purpose, r.reservation_date, r.status, r.logout_time
+    FROM reservations r
+    JOIN laboratories l ON r.lab_id = l.id
+    WHERE r.student_idno = ? AND r.status IN ('Closed', 'Cancelled', 'Logged Out', 'Approved', 'Disapproved')
+    ORDER BY r.reservation_date DESC
+    """
+    
+    try:
+        # Attempt to fetch reservations from the database
+        reservations = getprocess(sql, (student_idno,))
+        print(f"Found {len(reservations)} reservations for student ID: {student_idno}")  # Log number of reservations found
+
+        return jsonify({"success": True, "data": reservations})  
+    except Exception as e:
+        # Catch any errors during the query process
+        print(f"Error fetching reservation history: {e}")  # Log any errors during fetch
+        return jsonify({"success": False, "message": "Error fetching reservation history"}), 500
+    
 
 @app.route('/get_reservations')
 def get_reservations():
@@ -313,29 +458,29 @@ def get_reservations():
         return jsonify({"success": False, "message": "Unauthorized"}), 401
 
     search_term = request.args.get('search', '').strip()
-    reservations = get_all_reservations(search_term)  # Replace with your function to fetch reservations
+    reservations = get_all_reservations(search_term)  # Fetch reservations with lab_name
     reservation_list = []
+
     for reservation in reservations:
+        # Fetch sessions_left for the student
+        student_idno = reservation['student_idno']
+        student = get_student_by_idno(student_idno)
+        sessions_left = student['sessions_left'] if student else 0
+
         reservation_list.append({
             "id": reservation['id'],
             "student_idno": reservation['student_idno'],
             "student_name": reservation['student_name'],
-            "lab_id": reservation['lab_id'],
+            "lab_name": reservation['lab_name'],  # Use lab_name instead of lab_id
             "purpose": reservation['purpose'],
             "reservation_date": reservation['reservation_date'],
-            "time_in": reservation['time_in'],
-            "time_out": reservation['time_out'],
-            "status": reservation['status']
+            "login_time": reservation['login_time'],  # Use login_time instead of time_in
+            "logout_time": reservation['logout_time'],  # Use logout_time instead of time_out
+            "status": reservation['status'],
+            "sessions_left": sessions_left  # Add sessions_left to the response
         })
-    return jsonify({"success": True, "data": reservation_list})
 
-def get_all_reservations(search_term='') -> list:
-    if search_term:
-        sql = "SELECT * FROM reservations WHERE student_idno LIKE ?"
-        return getprocess(sql, (f"%{search_term}%",))
-    else:
-        sql = "SELECT * FROM reservations"
-        return getprocess(sql)
+    return jsonify({"success": True, "data": reservation_list})
 
 
 
@@ -422,20 +567,6 @@ def get_feedback():
 
 
 
-
-
-@app.route('/cancel-reservation/<int:reservation_id>', methods=['POST'])
-def cancel_reservation(reservation_id):
-    try:
-        # Delete the reservation from the database
-        success = delete_record('reservations', id=reservation_id)
-        
-        if success:
-            return jsonify({'success': True})
-        else:
-            return jsonify({'success': False, 'error': 'Failed to delete reservation'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
 
 
 @app.route('/update_profile', methods=['POST'])
@@ -582,13 +713,11 @@ def logout():
         del active_users_dict[username]
         socketio.emit('update_active_users', list(active_users_dict.keys()))  # Emit active users update
 
-    student_idno = session.get('student_idno')
-    if student_idno:
-        logout_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        update_session_history(student_idno, logout_time)
-
     flash("You Have Been Logged Out", 'info')
     return redirect(url_for('login'))
+
+
+
 
 def format_duration(seconds):
     if not seconds:

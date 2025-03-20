@@ -436,7 +436,6 @@ pre {
                 <a href="#" data-section="lab-rules"><i class="fas fa-clipboard-list"></i><span>Lab Rules</span></a>
                 <a href="#" data-section="history"><i class="fas fa-history"></i><span>History</span></a>
                 <a href="#" data-section="reservations"><i class="fas fa-calendar-alt"></i><span>Reservations</span></a>
-                <a href="#" data-section="feedback-report"><i class="fas fa-comments"></i><span>Feedback Report</span></a>
                 <a href="#" data-section="sessions"><i class="fas fa-eye"></i><span>View Session</span></a>
               </div>
 
@@ -751,73 +750,86 @@ pre {
           </div>
         </div>
 
-    <!-- History Section -->
-    <div id="history" class="dashboard-section" style="display: none;">
-      <h1>History</h1>
-      <p>This is the history section. You can display user history here.</p>
-    </div>
+        <div id="history" class="dashboard-section" style="display: none;">
+          <h1>History</h1>
+          <!-- History Table -->
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Lab Name</th>
+                <th>Purpose</th>
+                <th>Reservation Date</th>
+                <th>Status</th>
+                <th>Logout Time</th>
+                <th>Feedback</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody">
+              <!-- Reservation history rows will be dynamically populated here -->
+            </tbody>
+          </table>
+        </div>
 
-      <!-- Reservation Section -->
-      <div id="reservations" class="dashboard-section">
-        <div class="view-reservations-button">
+     <!-- Reservation Section -->
+    <div id="reservations" class="dashboard-section">
+      <div class="view-reservations-button" style="display: none;">
           <!-- Add a "View Reservations" Button -->
           <button id="viewReservationsBtn">
-            <i class="fas fa-eye"></i> View Reservations
+              <i class="fas fa-eye"></i> View Reservations
           </button>
-        </div>
-        <div id="reservationsForm">
-        <h1>Reservation Form</h1>
-        <form id="reservationForm" action="/reservations" method="POST">
-          <div class="form-group">
-            <label for="lab_id">Lab:</label>
-            <select id="lab_id" name="lab_id" required>
-              <option value="" disabled selected>Select Lab</option>
-              {% for lab in labs %}
-              <option value="{{ lab.id }}">{{ lab.lab_name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-      
-          <div class="form-group">
-            <label for="purpose">Purpose:</label>
-            <select id="purpose_select" name="purpose_select" required>
-              <option value="" disabled selected>Select Purpose</option>
-              <option value="Research">Research</option>
-              <option value="Meeting">Meeting</option>
-              <option value="Coding">Coding</option>
-              <option value="Assignment Work">Assignment Work</option>
-              <option value="Project Development">Project Development</option>
-            </select>
-          </div>
-      
-          <div class="form-group">
-            <label for="reservation_date">Reservation Date:</label>
-            <input type="date" id="reservation_date" name="reservation_date" required pattern="\d{4}-\d{2}-\d{2}" min="{{ current_date }}" />
-            <small id="dateError" class="error-message" style="color: red; display: none;">You cannot select a past date.</small>
-          </div>
-      
-          <div class="form-group">
-            <label for="time_in">Time In:</label>
-            <input type="time" id="time_in" name="time_in" required />
-          </div>
-      
-          <div class="form-group">
-            <label for="time_out">Time Out:</label>
-            <input type="time" id="time_out" name="time_out" required />
-            <small id="timeError" class="error-message" style="color: red; display: none;">Time Out must be after Time In.</small>
-          </div>
-      
-          <button type="submit">
-            <i class="fas fa-calendar-check"></i> Submit Reservation
-          </button>
-        </form>
       </div>
+      <div id="reservationsForm">
+          <h1>Reservation Form</h1>
+          <form id="reservationForm" action="/reservations" method="POST">
+              <div class="form-group">
+                  <label for="lab_id">Lab:</label>
+                  <select id="lab_id" name="lab_id" required>
+                      <option value="" disabled selected>Select Lab</option>
+                      {% for lab in labs %}
+                      <option value="{{ lab.id }}">{{ lab.lab_name }}</option>
+                      {% endfor %}
+                  </select>
+              </div>
+          
+              <div class="form-group">
+                  <label for="purpose">Purpose:</label>
+                  <select id="purpose_select" name="purpose_select" required>
+                      <option value="" disabled selected>Select Purpose</option>
+                      <option value="Research">Research</option>
+                      <option value="Meeting">Meeting</option>
+                      <option value="Coding">Coding</option>
+                      <option value="Assignment Work">Assignment Work</option>
+                      <option value="Project Development">Project Development</option>
+                  </select>
+              </div>
+          
+              <div class="form-group">
+                  <label for="reservation_date">Reservation Date:</label>
+                  <input type="date" id="reservation_date" name="reservation_date" required pattern="\d{4}-\d{2}-\d{2}" min="{{ current_date }}" />
+                  <small id="dateError" class="error-message" style="color: red; display: none;">You cannot select a past date.</small>
+              </div>
+
+              <div class="form-group">
+                <label for="sessions_left">Sessions Left:</label>
+                <!-- Visible read-only field -->
+                <input type="text" id="sessions_left_display" value="{{ current_session['sessions_left'] if current_session else 'No session found' }}" readonly />
+                <!-- Hidden field for form submission -->
+                <input type="hidden" id="sessions_left" name="sessions_left" value="{{ current_session['sessions_left'] if current_session else '0' }}" />
+            </div>
+          
+              <button type="submit">
+                  <i class="fas fa-calendar-check"></i> Submit Reservation
+              </button>
+          </form>
       </div>
+    </div>
+
+
 
           <!-- Reservations Table Section -->
-            <div id="reservationsTable" class="dashboard-section" style="display: none;">
+          <div id="reservationsTable" class="dashboard-section" style="display: none;">
               <!-- Back Button -->
-              <button id="backToReservationsBtn">
+              <button id="backToReservationsBtn" style="display: none;">
                 <i class="fas fa-arrow-left"></i> Back to Reservation Form
               </button>
 
@@ -830,7 +842,6 @@ pre {
                 </select>
             </div>
             
-            <!-- Table -->
         <!-- Table -->
             <table class="reservations-table">
               <thead>
@@ -839,8 +850,6 @@ pre {
                   <th>Purpose</th>
                   <th>Lab Name</th>
                   <th>Reservation Date</th>
-                  <th>Time In</th>
-                  <th>Time Out</th>
                   <th>Status</th>
                   <th>Action</th>
                 </tr>
@@ -852,8 +861,6 @@ pre {
                   <td data-label="Purpose">{{ reservation[2] }}</td>
                   <td data-label="Lab Name">{{ reservation[3] }}</td>
                   <td data-label="Reservation Date">{{ reservation[4] }}</td>
-                  <td data-label="Time In">{{ reservation[5] }}</td>
-                  <td data-label="Time Out">{{ reservation[6] }}</td>
                   <td data-label="Status">
                     {% if reservation[7] == 'Pending' %}
                       <span class="status-pending">Pending</span>
@@ -877,50 +884,6 @@ pre {
            
           </div>
 
-        <!-- Feedback Report Section -->
-      <div id="feedback-report" class="dashboard-section">
-            <h1>Feedback Report</h1>
-            <form id="feedbackForm">
-              <!-- Lab Selection Dropdown -->
-              <div class="form-group">
-                  <label for="labSelection"><i class="fas fa-flask"></i> Select Lab</label>
-                  <select id="labSelection" required>
-                      <option value="" disabled selected>Select a lab</option>
-                      <option value="Lab544">Lab 544</option>
-                      <option value="Lab542">Lab 542</option>
-                      <option value="Lab530">Lab 530</option>
-                      <option value="Lab524">Lab 524</option>
-                      <option value="Lab526">Lab 526</option>
-                      <option value="Lab525">Lab 525</option>
-                  </select>
-              </div>
-          
-              <!-- Feedback Text -->
-              <div class="form-group">
-                  <label for="feedbackText"><i class="fas fa-comment-dots"></i> Your Feedback</label>
-                  <textarea id="feedbackText" placeholder="Write your feedback here..." required></textarea>
-              </div>
-          
-              <!-- Rating -->
-              <div class="form-group">
-                  <label> Rating</label>
-                  <div class="star-rating">
-                      <span class="star" data-value="1">&#9733;</span>
-                      <span class="star" data-value="2">&#9733;</span>
-                      <span class="star" data-value="3">&#9733;</span>
-                      <span class="star" data-value="4">&#9733;</span>
-                      <span class="star" data-value="5">&#9733;</span>
-                  </div>
-              </div>
-          
-              <!-- Hidden input for student_idno -->
-              <input type="hidden" id="student_idno" value="{{ session.student_idno }}">
-          
-              <!-- Submit Button -->
-              <button type="submit" class="submit-btn"><i class="fas fa-paper-plane"></i> Submit Feedback</button>
-          </form>
-          
-      </div>  
 
         <div id="sessions" class="dashboard-section" style="display: none;">
           <h1>Sessions</h1>
@@ -992,6 +955,55 @@ pre {
             </div>
         </div>
     </div>
+
+    <!-- Feedback Modal -->
+<div id="feedbackModal" class="modal">
+  <div class="modal-content">
+      <span class="close-modal">&times;</span>
+      <h2>Submit Feedback</h2>
+      <form id="feedbackForm">
+          <!-- Lab Selection Dropdown -->
+          <div class="form-group">
+              <label for="labSelectionModal"><i class="fas fa-flask"></i> Select Lab</label>
+              <select id="labSelectionModal" required>
+                  <option value="" disabled selected>Select a lab</option>
+                  <option value="Lab544">Lab 544</option>
+                  <option value="Lab542">Lab 542</option>
+                  <option value="Lab530">Lab 530</option>
+                  <option value="Lab524">Lab 524</option>
+                  <option value="Lab526">Lab 526</option>
+                  <option value="Lab525">Lab 525</option>
+              </select>
+          </div>
+
+          <!-- Feedback Text -->
+          <div class="form-group">
+              <label for="feedbackTextModal"><i class="fas fa-comment-dots"></i> Your Feedback</label>
+              <textarea id="feedbackTextModal" placeholder="Write your feedback here..." required></textarea>
+          </div>
+
+          <!-- Rating -->
+          <div class="form-group">
+              <label>Rating</label>
+              <div class="star-rating">
+                  <span class="star" data-value="1">&#9733;</span>
+                  <span class="star" data-value="2">&#9733;</span>
+                  <span class="star" data-value="3">&#9733;</span>
+                  <span class="star" data-value="4">&#9733;</span>
+                  <span class="star" data-value="5">&#9733;</span>
+              </div>
+              <input type="hidden" id="ratingModal" name="rating" required>
+          </div>
+
+          <!-- Hidden input for student_idno -->
+          <input type="hidden" id="student_idnoModal" value="{{ session.student_idno }}">
+
+          <!-- Submit Button -->
+          <button type="submit" class="submit-btn"><i class="fas fa-paper-plane"></i> Submit Feedback</button>
+      </form>
+  </div>
+</div>
+
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
 <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
@@ -1557,66 +1569,13 @@ progressBars.forEach(progressBar => {
 
 document.addEventListener('DOMContentLoaded', function () {
   const reservationDateInput = document.getElementById('reservation_date');
-  const timeInInput = document.getElementById('time_in');
-  const timeOutInput = document.getElementById('time_out');
-  const timeError = document.getElementById('timeError');
+
 
   // Set the reservation date to today's date and disable editing
   const today = new Date().toISOString().split('T')[0];
   reservationDateInput.value = today;
   reservationDateInput.readOnly = true;
 
-  // Validate time-out on input change
-  timeOutInput.addEventListener('change', function () {
-    const timeIn = timeInInput.value;
-    const timeOut = this.value;
-
-    // Convert time strings to Date objects for comparison
-    const timeInDate = new Date(`1970-01-01T${timeIn}:00`);
-    const timeOutDate = new Date(`1970-01-01T${timeOut}:00`);
-
-    // Calculate the difference in hours
-    const timeDifference = (timeOutDate - timeInDate) / (1000 * 60 * 60);
-
-    if (timeOut <= timeIn) {
-      timeError.style.display = 'block';
-      timeError.textContent = 'Time Out must be after Time In.';
-      this.setCustomValidity('Time Out must be after Time In.');
-    } else if (timeDifference > 3) {
-      timeError.style.display = 'block';
-      timeError.textContent = 'Maximum reservation duration is 3 hours.';
-      this.setCustomValidity('Maximum reservation duration is 3 hours.');
-    } else {
-      timeError.style.display = 'none';
-      this.setCustomValidity('');
-    }
-  });
-
-  // Validate time-in on input change
-  timeInInput.addEventListener('change', function () {
-    const timeIn = this.value;
-    const timeOut = timeOutInput.value;
-
-    // Convert time strings to Date objects for comparison
-    const timeInDate = new Date(`1970-01-01T${timeIn}:00`);
-    const timeOutDate = new Date(`1970-01-01T${timeOut}:00`);
-
-    // Calculate the difference in hours
-    const timeDifference = (timeOutDate - timeInDate) / (1000 * 60 * 60);
-
-    if (timeOut && timeOut <= timeIn) {
-      timeError.style.display = 'block';
-      timeError.textContent = 'Time Out must be after Time In.';
-      timeOutInput.setCustomValidity('Time Out must be after Time In.');
-    } else if (timeOut && timeDifference > 3) {
-      timeError.style.display = 'block';
-      timeError.textContent = 'Maximum reservation duration is 3 hours.';
-      timeOutInput.setCustomValidity('Maximum reservation duration is 3 hours.');
-    } else {
-      timeError.style.display = 'none';
-      timeOutInput.setCustomValidity('');
-    }
-  });
 });
 
 document.getElementById('reservationForm').addEventListener('submit', async function (e) {
@@ -1689,13 +1648,7 @@ document.getElementById('reservationForm').addEventListener('submit', async func
     // Optionally, load reservations data here via AJAX
   });
 
-  document.getElementById('backToReservationsBtn').addEventListener('click', function() {
-    // Hide the reservations table
-    document.getElementById('reservationsTable').style.display = 'none';
-    // Show the reservation form
-    document.getElementById('reservations').style.display = 'block';
-  });
- 
+
 
 
 
@@ -1782,8 +1735,8 @@ cancelButtons.forEach((button) => {
                 <td>${data.lab_id}</td>
                 <td>${data.purpose}</td>
                 <td>${data.reservation_date}</td>
-                <td>${data.time_in}</td>
-                <td>${data.time_out}</td>
+                <td>${data.logged_in}</td>
+                <td>${data.logged_out}</td>
                 <td>${data.status}</td>
             `;
             reservationsBody.appendChild(row);
@@ -2228,5 +2181,141 @@ const notificationBtn = document.getElementById('notificationBtn');
       });
       updateNotificationCount();
     });
+
+
+    document.addEventListener('DOMContentLoaded', function () {
+  // Fetch and display reservation history
+  fetchReservationHistory();
+
+  // Event listener for the feedback modal close button
+  document.querySelector('.close-modal').addEventListener('click', function () {
+    closeFeedbackModal();
+  });
+
+  // Event listener for star ratings
+  document.querySelectorAll('.star-rating .star').forEach(star => {
+    star.addEventListener('click', function () {
+      const rating = this.getAttribute('data-value');
+      document.getElementById('rating').value = rating;
+      highlightStars(rating);
+    });
+  });
+
+  // Event listener for feedback form submission
+  document.getElementById('feedbackForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    submitFeedback();
+  });
+});
+
+// Function to fetch and display reservation history
+function fetchReservationHistory() {
+  console.log('Fetching reservation history...'); // Log when the fetching starts
+  
+  fetch('/get_reservation_history')
+    .then(response => {
+      console.log('Response received:', response); // Log the response object
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch reservation history');
+      }
+
+      return response.json();
+    })
+    .then(data => {
+      console.log('Data received:', data); // Log the data received from the server
+
+      if (data.success) {
+        const historyBody = document.getElementById('historyBody');
+        historyBody.innerHTML = ''; // Clear existing rows
+
+        data.data.forEach(reservation => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${reservation.lab_name}</td>
+            <td>${reservation.purpose}</td>
+            <td>${reservation.reservation_date}</td>
+            <td>${reservation.status}</td>
+            <td>${reservation.logout_time || 'N/A'}</td>
+            <td>
+              ${reservation.status === 'Logged Out' ? 
+                `<button class="submit-feedback-btn" data-reservation-id="${reservation.id}">Submit Feedback</button>` :
+                `<button class="submit-feedback-btn" disabled style="background-color: gray; cursor: not-allowed;">Submit Feedback</button>`
+              }
+            </td>
+          `;
+          historyBody.appendChild(row);
+        });
+
+        // Add event listeners to feedback buttons
+        document.querySelectorAll('.submit-feedback-btn:not(:disabled)').forEach(button => {
+          button.addEventListener('click', function () {
+            const reservationId = this.getAttribute('data-reservation-id');
+            openFeedbackModal(reservationId);
+          });
+        });
+
+      } else {
+        console.log('Failed to fetch data: ', data.message); // Log failure message
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching reservation history:', error); // Log any errors encountered
+    });
+}
+
+// Function to submit feedback
+function submitFeedback() {
+  const reservationId = document.getElementById('reservationId').value;
+  const feedbackText = document.getElementById('feedbackText').value;
+  const rating = document.getElementById('rating').value;
+
+  console.log('Submitting feedback for reservation ID:', reservationId); // Log the reservation ID being submitted
+  console.log('Feedback text:', feedbackText); // Log the feedback text
+  console.log('Rating:', rating); // Log the rating
+
+  fetch('/submit_feedback', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      reservation_id: reservationId,
+      feedback_text: feedbackText,
+      rating: rating,
+    }),
+  })
+    .then(response => response.json())
+    .then(data => {
+      console.log('Feedback submission response:', data); // Log the response from the feedback submission
+
+      if (data.success) {
+        alert('Feedback submitted successfully!');
+        closeFeedbackModal();
+        fetchReservationHistory(); // Refresh the history table
+      } else {
+        alert('Failed to submit feedback: ' + data.message);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('An error occurred while submitting feedback.');
+    });
+}
+
+// Function to open the feedback modal
+function openFeedbackModal(reservationId) {
+  console.log('Opening feedback modal for reservation ID:', reservationId); // Log the reservation ID
+  document.getElementById('reservationId').value = reservationId;
+  document.getElementById('feedbackModal').style.display = 'block';
+}
+
+// Function to close the feedback modal
+function closeFeedbackModal() {
+  console.log('Closing feedback modal'); // Log when the modal is being closed
+  document.getElementById('feedbackModal').style.display = 'none';
+  document.getElementById('feedbackForm').reset();
+  document.querySelectorAll('.star-rating .star').forEach(star => star.classList.remove('active'));
+}
 </script>
 {% endblock %}

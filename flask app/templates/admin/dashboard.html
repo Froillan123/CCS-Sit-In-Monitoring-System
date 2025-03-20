@@ -72,10 +72,6 @@
                     <i class="ri-message-2-line"></i>
                     Feedback
                 </a>
-                <a href="#" data-page="reservations">
-                    <i class="ri-calendar-check-line"></i>
-                    Reservations
-                </a>
                 <a href="#" data-page="statistics">
                     <i class="ri-bar-chart-box-line"></i>
                     Statistics
@@ -122,10 +118,6 @@
                 <i class="ri-message-2-line"></i>
                 <span>Feedback</span>
             </a>
-            <a href="#" data-page="reservations">
-                <i class="ri-calendar-check-line"></i>
-                <span>Reservations</span>
-            </a>
             <a href="#" data-page="statistics">
                 <i class="ri-bar-chart-box-line"></i>
                 <span>Statistics</span>
@@ -140,12 +132,14 @@
         <!-- Main Content -->
         <main id="main-content">
             <div class="top-nav">
+                <!-- Modal Structure -->
                 <div class="search-bar">
                     <form id="searchForm">
                         <i class="ri-search-line" id="searchIcon"></i>
                         <input type="text" id="searchInput" placeholder="Search reservations by ID No...">
                     </form>
                 </div>
+                
                 <div class="profile" id="profile">
                     <img src="{{ url_for('static', filename='images/profile-1.jpg') }}" alt="Profile">
                     <span class="admin-prefix">Admin-</span>{{ admin_firstname }}
@@ -156,26 +150,15 @@
                 </div>
             </div>
             
-            <div class="table-container1">
-                <table id="reservationsTable">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Student ID No</th>
-                            <th>Student Name</th>
-                            <th>Lab ID</th>
-                            <th>Purpose</th>
-                            <th>Reservation Date</th>
-                            <th>Time In</th>
-                            <th>Time Out</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="reservationsBody">
-                        <!-- Reservation rows will be dynamically inserted here -->
-                    </tbody>
-                </table>
+           <!-- Modal Structure -->
+            <div id="searchModal" class="modal">
+                <div class="modal-content">
+                    <span class="close-modal">&times;</span>
+                    <h2>Search Results</h2>
+                    <div id="modalReservationsBody">
+                        <!-- Reservation details will be dynamically inserted here -->
+                    </div>
+                </div>
             </div>
             
             <!-- Dashboard Content -->
@@ -315,10 +298,7 @@
                 </div>
             </div>
 
-            <div id="reservations" class="page-content" style="display: none;">
-                <h2>Reservations</h2>
-                <p>Reservations functionality will be added here.</p>
-            </div>
+           
            <!-- Statistics Section -->
            <div id="statistics" class="page-content" style="display: none;">
             <h2>Statistics</h2>
