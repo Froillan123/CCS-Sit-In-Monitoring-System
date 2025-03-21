@@ -300,9 +300,17 @@ def update_reservation_status(reservation_id, status):
     sql = "UPDATE reservations SET status = ? WHERE id = ?"
     return postprocess(sql, (status, reservation_id))
 
-def update_reservation_logout(reservation_id, logout_time, status):
-    sql = "UPDATE reservations SET logout_time = ?, status = ? WHERE id = ?"
-    return postprocess(sql, (logout_time, status, reservation_id))
+def update_reservation_logout(reservation_id, logout_time):
+    try:
+        sql = """
+        UPDATE reservations
+        SET logout_time = ?
+        WHERE id = ?
+        """
+        return postprocess(sql, (logout_time, reservation_id))
+    except Exception as e:
+        print(f"Error updating reservation logout time: {e}")
+        return False
 
 def insert_session_history(student_idno, login_time, logout_time):
     sql = "INSERT INTO session_history (student_idno, login_time, logout_time) VALUES (?, ?, ?)"

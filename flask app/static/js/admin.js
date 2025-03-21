@@ -935,24 +935,110 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchFeedback(); // Fetch feedback data after adjusting rowsPerPage
 });
 
-// Listen for new feedback events
-socket.on('new_feedback', (data) => {
-    console.log('New feedback received:', data); // Debug: Log received data
+document.addEventListener('DOMContentLoaded', function () {
+    // Fetch and display current sit-in reservations when the page loads
+    fetchAndDisplayCurrentSitIn();
 
-    // Add the new feedback to the beginning of the data array
-    allFeedbackData.unshift(data);
+    // Handle logout button clicks using event delegation
+    document.addEventListener('click', function (event) {
+        if (event.target.classList.contains('logout-btn')) {
+            const reservationId = event.target.getAttribute('data-reservation-id');
+            handleLogout(reservationId);
+        }
+    });
 
-    // If the current page is not the first page, stay on the current page
-    // Otherwise, refresh the first page to show the new feedback
-    if (currentPage === 1) {
-        displayTableRows(allFeedbackData, currentPage);
-    }
+    // Socket event listener for reservation updates (logout only)
+    socket.on('reservation_updated', function (data) {
+        const reservationId = data.reservation_id;
+        const logoutTime = data.logout_time;
 
-    // Update the chart with the new data
-    updateChart(allFeedbackData);
+        // Update the reservation logout time in the UI
+        const reservationRow = document.querySelector(`tr[data-reservation-id="${reservationId}"]`);
+        if (reservationRow) {
+            reservationRow.querySelector('.logout-time').textContent = logoutTime || 'N/A';
 
-    // Update pagination controls
-    updatePaginationControls(allFeedbackData.length);
+            // Hide the row if logout_time is set
+            if (logoutTime) {
+                reservationRow.style.display = 'none';
+            }
+        }
+    });
+
+    // Socket event listener for reservation approvals
+    socket.on('reservation_approved', function (data) {
+        const reservationId = data.reservation_id;
+        const status = data.status;
+
+        // Update the reservation status in the UI
+        const reservationRow = document.querySelector(`tr[data-reservation-id="${reservationId}"]`);
+        if (reservationRow) {
+            reservationRow.querySelector('.status').textContent = status;
+        }
+    });
 });
 
+// Function to handle logout
+function handleLogout(reservationId) {
+    fetch(`/logout-student/${reservationId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Student logged out successfully');
+                // Hide the row instead of deleting it
+                const row = document.querySelector(`tr[data-reservation-id="${reservationId}"]`);
+                if (row) {
+                    row.style.display = 'none'; // Hide the row
+                }
+            } else {
+                alert('Failed to log out student: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error during logout:', error);
+        });
+}
 
+// Function to fetch and display current sit-in reservations
+function fetchAndDisplayCurrentSitIn() {
+    fetch('/get_currentsitin')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const tableBody = document.querySelector('#reservations-table tbody');
+                tableBody.innerHTML = ''; // Clear existing rows
+
+                data.data.forEach(reservation => {
+                    const row = document.createElement('tr');
+                    row.setAttribute('data-reservation-id', reservation.id);
+
+                    row.innerHTML = `
+                        <td>${reservation.id}</td>
+                        <td>${reservation.student_idno}</td>
+                        <td>${reservation.student_name}</td>
+                        <td>${reservation.lab_name}</td>
+                        <td>${reservation.purpose}</td>
+                        <td>${reservation.reservation_date}</td>
+                        <td>${reservation.login_time}</td>
+                        <td class="logout-time">${reservation.logout_time || 'N/A'}</td>
+                        <td class="status">${reservation.status}</td>
+                        <td class="sessions-left">${reservation.sessions_left}</td>
+                        <td>
+                            <button class="logout-btn" data-reservation-id="${reservation.id}">Logout</button>
+                        </td>
+                    `;
+
+                    tableBody.appendChild(row);
+                });
+            } else {
+                console.error('Failed to fetch current sit-in reservations:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching current sit-in reservations:', error);
+        });
+}

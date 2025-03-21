@@ -2208,6 +2208,7 @@ const notificationBtn = document.getElementById('notificationBtn');
   });
 });
 
+
 // Function to fetch and display reservation history
 function fetchReservationHistory() {
   console.log('Fetching reservation history...'); // Log when the fetching starts
@@ -2317,5 +2318,123 @@ function closeFeedbackModal() {
   document.getElementById('feedbackForm').reset();
   document.querySelectorAll('.star-rating .star').forEach(star => star.classList.remove('active'));
 }
+
+
+socket.on('update_session_count', function(data) {
+    try {
+        console.log('Received data:', data);  // Debug: Log the received data
+
+        // Ensure you're checking the correct student ID
+        if (data.student_idno === studentIdno) {  // Ensure this event is for the current student
+            const sessionsLeftElement = document.getElementById('sessions-left');
+            console.log('Sessions Left Element:', sessionsLeftElement);  // Debug: Check if the element exists
+
+            if (sessionsLeftElement) {
+                // Update the sessions left in the DOM
+                sessionsLeftElement.textContent = data.sessions_left;
+                console.log('Updated sessions left:', data.sessions_left);
+
+                // Optionally update the progress bar (if needed)
+                const progressValueElement = document.querySelector('.progress-value');
+                if (progressValueElement) {
+                    progressValueElement.textContent = data.sessions_left;
+                }
+            } else {
+                console.error("Element with id 'sessions-left' not found in the DOM.");
+            }
+        } else {
+            console.error(`Received event for student ID ${data.student_idno}, but the current student ID is ${studentIdno}`);
+        }
+    } catch (error) {
+        console.error("Error handling 'update_session_count' event:", error);
+    }
+});
+
+// Optionally, handle page load event to ensure everything is ready before using socket
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM fully loaded and parsed");
+    // You can initialize your socket listeners here as well, just in case you have any dynamic rendering.
+});
+
+
+// Example: Emit event when a student submits a reservation
+document.getElementById('reservationForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    fetch('/reservations', {
+        method: 'POST',
+        body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Emit event to notify the admin
+            socket.emit('new_reservation', {
+                reservation_id: data.reservation_id,
+                student_idno: data.student_idno,
+                lab_name: data.lab_name,
+                purpose: data.purpose,
+                reservation_date: data.reservation_date,
+            });
+        } else {
+            alert('Failed to submit reservation: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error submitting reservation:', error);
+    });
+});
+
+// Example: Emit event when a student submits feedback
+document.getElementById('feedbackForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    fetch('/submit_feedback', {
+        method: 'POST',
+        body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Emit event to notify the admin
+            socket.emit('feedback_submitted', {
+                reservation_id: data.reservation_id,
+                feedback_text: data.feedback_text,
+                rating: data.rating,
+            });
+        } else {
+            alert('Failed to submit feedback: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error submitting feedback:', error);
+    });
+});
+
+
+// Listen for reservation approval updates
+socket.on('reservation_approved', (data) => {
+    console.log('Reservation approved:', data);
+    // Update the student's reservation status in the UI
+    const reservationRow = document.querySelector(`tr[data-reservation-id="${data.reservation_id}"]`);
+    if (reservationRow) {
+        reservationRow.querySelector('.status').textContent = data.status;
+    }
+});
+
+// Listen for logout updates
+socket.on('reservation_updated', (data) => {
+    console.log('Reservation updated:', data);
+    // Update the student's reservation logout time in the UI
+    const reservationRow = document.querySelector(`tr[data-reservation-id="${data.reservation_id}"]`);
+    if (reservationRow) {
+        reservationRow.querySelector('.logout-time').textContent = data.logout_time || 'N/A';
+    }
+});
+
 </script>
 {% endblock %}

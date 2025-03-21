@@ -915,6 +915,36 @@ margin-right: 0.5rem;
         display: none;
     }
 }
+.sit-in-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-text);
+}
+
+.sit-in-table td {
+    padding: 10px;                  /* Add padding for spacing */
+    text-align: center;             /* Center the text within each cell */
+    border-bottom: 1px solid #ddd;  /* Add a subtle border between rows */
+    font-size: 14px;                /* Set a readable font size */
+}
+
+
+
+.sit-in-table td:first-child {
+    font-weight: bold;              /* Make the first column bold (ID) */
+}
+
+.sit-in-table td:last-child {
+    text-align: left;               /* Align the last column (Action) to the left */
+    padding-left: 15px;             /* Add more padding on the left for the action column */
+}
+
+.sit-in-table td span {
+    cursor: pointer;               /* Make any span elements clickable (e.g., for Action buttons) */
+}
+
+
 
 /* Table Container */
 .table-container {
