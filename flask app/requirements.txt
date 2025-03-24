@@ -21,3 +21,4 @@ Levenshtein
 regex
 pycryptodome
 google-genai
+better-profanity

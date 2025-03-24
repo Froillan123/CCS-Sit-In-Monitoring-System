@@ -793,7 +793,41 @@ function adjustRowsPerPage() {
     }
 }
 
-// Function to display table rows
+// Function to detect and censor foul language
+function detectFoulLanguage(text) {
+    // List of foul words (can be expanded)
+    const foulWords = [
+        'fuck', 'shit', 'asshole', 'bitch', 'bastard', 'idiot', 
+        'piste', 'atay', 'animal', // Add more as needed
+        // Include variations and different languages
+        /f\*ck/, /sh\*t/, /b\*tch/, /a\*\*hole/, /id\*ot/
+    ];
+    
+    let hasFoulLanguage = false;
+    let censoredText = text;
+    
+    foulWords.forEach(word => {
+        const regex = new RegExp(word, 'gi');
+        if (regex.test(text)) {
+            hasFoulLanguage = true;
+            censoredText = censoredText.replace(regex, match => {
+                // Replace with asterisks but keep first and last character
+                if (match.length > 2) {
+                    return match[0] + '*'.repeat(match.length - 2) + match.slice(-1);
+                }
+                return '*'.repeat(match.length);
+            });
+        }
+    });
+    
+    return {
+        hasFoulLanguage,
+        censoredText: hasFoulLanguage ? censoredText : text,
+        originalText: text
+    };
+}
+
+// Modify the displayTableRows function to highlight foul language
 function displayTableRows(data, page) {
     const tableBody = document.querySelector('#feedbackTable tbody');
     tableBody.innerHTML = ''; // Clear existing rows
@@ -803,12 +837,20 @@ function displayTableRows(data, page) {
     const paginatedData = data.slice(start, end);
 
     paginatedData.forEach(feedback => {
+        const languageCheck = detectFoulLanguage(feedback.feedback_text);
+        const feedbackClass = languageCheck.hasFoulLanguage ? 'foul-language' : '';
+        
         const newRow = document.createElement('tr');
         newRow.innerHTML = 
             `<td data-label="Lab">${feedback.lab}</td>
              <td data-label="Student ID">${feedback.student_idno}</td>
-             <td data-label="Feedback">${feedback.feedback_text}</td>
-             <td data-label="Rating" class="star-rating">${'★'.repeat(feedback.rating)}</td>`;
+             <td data-label="Feedback" class="${feedbackClass}">${languageCheck.censoredText}</td>
+             <td data-label="Rating" class="star-rating">${'★'.repeat(feedback.rating)}${'☆'.repeat(5 - feedback.rating)}</td>`;
+        
+        if (languageCheck.hasFoulLanguage) {
+            newRow.dataset.foulLanguage = 'true';
+        }
+        
         tableBody.appendChild(newRow);
     });
 
@@ -947,20 +989,19 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Socket event listener for reservation updates (logout only)
+   // Listen for reservation updates (e.g., logout time)
     socket.on('reservation_updated', function (data) {
-        const reservationId = data.reservation_id;
-        const logoutTime = data.logout_time;
-
-        // Update the reservation logout time in the UI
-        const reservationRow = document.querySelector(`tr[data-reservation-id="${reservationId}"]`);
+        const reservationRow = document.querySelector(`tr[data-reservation-id="${data.reservation_id}"]`);
         if (reservationRow) {
-            reservationRow.querySelector('.logout-time').textContent = logoutTime || 'N/A';
-
-            // Hide the row if logout_time is set
-            if (logoutTime) {
-                reservationRow.style.display = 'none';
-            }
+        const logoutTimeCell = reservationRow.querySelector('.logout-time');
+        const feedbackButton = reservationRow.querySelector('.submit-feedback-btn');
+    
+        if (data.logout_time) {
+            logoutTimeCell.textContent = data.logout_time;
+            feedbackButton.disabled = false;
+            feedbackButton.style.backgroundColor = ''; // Reset button style
+            feedbackButton.style.cursor = ''; // Reset button style
+        }
         }
     });
 
@@ -977,68 +1018,385 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-// Function to handle logout
 function handleLogout(reservationId) {
-    fetch(`/logout-student/${reservationId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Student logged out successfully');
-                // Hide the row instead of deleting it
-                const row = document.querySelector(`tr[data-reservation-id="${reservationId}"]`);
-                if (row) {
-                    row.style.display = 'none'; // Hide the row
+    Swal.fire({
+        title: 'Are you sure?',
+        text: 'You are about to log out this student',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, log out!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/logout-student/${reservationId}`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Success!', data.message, 'success');
+                    fetchAndDisplayCurrentSitIn(); // Refresh the table
+                } else {
+                    Swal.fire('Error!', data.message, 'error');
                 }
-            } else {
-                alert('Failed to log out student: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error during logout:', error);
-        });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Error!', 'Failed to log out student', 'error');
+            });
+        }
+    });
 }
 
-// Function to fetch and display current sit-in reservations
+// Function to update a single reservation row
+function updateReservationRow(reservation) {
+    const row = document.querySelector(`tr[data-reservation-id="${reservation.id}"]`);
+    if (row) {
+        // Update the row data
+        row.querySelector('.logout-time').textContent = reservation.logout_time;
+        row.querySelector('.status').textContent = reservation.status;
+        row.querySelector('.sessions-left').textContent = reservation.sessions_left;
+        
+        // Disable the logout button
+        const logoutBtn = row.querySelector('.logout-btn');
+        if (logoutBtn) {
+            logoutBtn.disabled = true;
+            logoutBtn.classList.add('disabled-btn');
+        }
+    } else {
+        // If row not found (shouldn't happen), refresh the whole table
+        fetchAndDisplayCurrentSitIn();
+    }
+}
+
+
+// Handle logout button clicks
+document.addEventListener('click', function(event) {
+    if (event.target.classList.contains('logout-btn') && !event.target.disabled) {
+        const reservationId = event.target.getAttribute('data-reservation-id');
+        handleLogout(reservationId);
+    }
+});
+
 function fetchAndDisplayCurrentSitIn() {
     fetch('/get_currentsitin')
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 const tableBody = document.querySelector('#reservations-table tbody');
-                tableBody.innerHTML = ''; // Clear existing rows
+                tableBody.innerHTML = '';
 
                 data.data.forEach(reservation => {
+                    const isLoggedOut = reservation.status === 'Logged Out';
+                    const sessionDisplay = reservation.session_number ? 
+                        `Session ${reservation.session_number}` : 'N/A';
+                    const sessionsLeftDisplay = reservation.sessions_left !== undefined ? 
+                        `${reservation.sessions_left} left` : 'N/A';
+
                     const row = document.createElement('tr');
                     row.setAttribute('data-reservation-id', reservation.id);
-
                     row.innerHTML = `
-                        <td>${reservation.id}</td>
                         <td>${reservation.student_idno}</td>
                         <td>${reservation.student_name}</td>
                         <td>${reservation.lab_name}</td>
                         <td>${reservation.purpose}</td>
                         <td>${reservation.reservation_date}</td>
                         <td>${reservation.login_time}</td>
-                        <td class="logout-time">${reservation.logout_time || 'N/A'}</td>
-                        <td class="status">${reservation.status}</td>
-                        <td class="sessions-left">${reservation.sessions_left}</td>
+                        <td>${reservation.logout_time || 'N/A'}</td>
+                        <td>${sessionDisplay}</td>
+                        <td>${reservation.status}</td>
                         <td>
-                            <button class="logout-btn" data-reservation-id="${reservation.id}">Logout</button>
+                            <button class="logout-btn ${isLoggedOut ? 'disabled-btn' : ''}" 
+                                    data-reservation-id="${reservation.id}"
+                                    ${isLoggedOut ? 'disabled' : ''}>
+                                ${isLoggedOut ? 'Logged Out' : 'Logout'}
+                            </button>
                         </td>
                     `;
-
                     tableBody.appendChild(row);
                 });
             } else {
-                console.error('Failed to fetch current sit-in reservations:', data.message);
+                console.error('Failed to fetch reservations:', data.message);
+                Swal.fire('Error', 'Failed to load reservations', 'error');
             }
         })
         .catch(error => {
-            console.error('Error fetching current sit-in reservations:', error);
+            console.error('Error fetching reservations:', error);
+            Swal.fire('Error', 'Failed to load reservations', 'error');
         });
 }
+
+socket.on('update_session_count', function (data) {
+    if (data.student_idno === studentIdno) {
+      const sessionsLeftElement = document.getElementById('sessions-left');
+      if (sessionsLeftElement) {
+        sessionsLeftElement.textContent = data.sessions_left;
+      }
+    }
+  });
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize search student modal
+    initSearchStudentModal();
+    
+    // Initialize other modals
+    initSearchModal();
+    initEditModal();
+});
+  
+function initSearchStudentModal() {
+    const modal = document.getElementById('searchStudentModal');
+    const searchInput = document.getElementById('studentSearchInput');
+    const searchResults = document.getElementById('searchResults');
+    const selectedStudentInfo = document.getElementById('selectedStudentInfo');
+    const sitInForm = document.getElementById('sitInForm');
+    const closeBtn = modal.querySelector('.close-modal'); // Get close button specific to this modal
+    
+    // Open modal when search student link is clicked
+    document.querySelector('[data-bs-target="#searchStudentModal"]').addEventListener('click', function(e) {
+        e.preventDefault();
+        modal.style.display = 'block';
+        document.body.classList.add('modal-open');
+        searchInput.focus();
+    });
+    
+    // Close modal when close button is clicked
+    closeBtn.addEventListener('click', function() {
+        modal.style.display = 'none';
+        document.body.classList.remove('modal-open');
+        resetSearchModal();
+    });
+    
+    // Close when clicking outside modal
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+            document.body.classList.remove('modal-open');
+            resetSearchModal();
+        }
+    });
+    
+    // Prevent clicks inside modal content from closing the modal
+    modal.querySelector('.modal-content').addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+    
+    // Search as you type with debounce
+    let searchTimeout;
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            const searchTerm = this.value.trim();
+            if (searchTerm.length >= 2) {
+                searchStudents(searchTerm);
+            } else {
+                searchResults.innerHTML = '';
+                searchResults.style.display = 'none';
+            }
+        }, 300);
+    });
+    
+    // Handle form submission
+    sitInForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        createSitInReservation();
+    });
+}
+  
+
+
+function initSearchModal() {
+    const modal = document.getElementById('searchModal');
+    const closeBtn = modal.querySelector('.close-modal'); // Get close button specific to this modal
+
+}
+
+// Close modal when close button is clicked
+closeBtn.addEventListener('click', function() {
+    modal.style.display = 'none';
+    document.body.classList.remove('modal-open');
+});
+
+    // Close when clicking outside modal
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+            document.body.classList.remove('modal-open');
+        }
+    });
+
+        // Prevent clicks inside modal content from closing the modal
+        modal.querySelector('.modal-content').addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+        
+
+        function initEditModal() {
+            const modal = document.getElementById('editModal');
+            const closeBtn = modal.querySelector('.close-modal'); // Get close button specific to this modal
+            
+            // Close modal when close button is clicked
+            closeBtn.addEventListener('click', function() {
+                modal.style.display = 'none';
+                document.body.classList.remove('modal-open');
+            });
+            
+            // Close when clicking outside modal
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                    document.body.classList.remove('modal-open');
+                }
+            });
+            
+            // Prevent clicks inside modal content from closing the modal
+            modal.querySelector('.modal-content').addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        }
+
+        
+
+  function searchStudents(searchTerm) {
+    const searchResults = document.getElementById('searchResults');
+    
+    fetch(`/search_students?q=${encodeURIComponent(searchTerm)}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success && data.data.length > 0) {
+          searchResults.innerHTML = '';
+          data.data.forEach(student => {
+            const resultItem = document.createElement('div');
+            resultItem.className = 'search-result-item';
+            resultItem.innerHTML = `
+              <p><strong>${student.idno}</strong> - ${student.lastname}, ${student.firstname}</p>
+              <p>${student.course} - Year ${student.year_level}</p>
+            `;
+            resultItem.addEventListener('click', function() {
+              selectStudent(student);
+            });
+            searchResults.appendChild(resultItem);
+          });
+          searchResults.style.display = 'block';
+        } else {
+          searchResults.innerHTML = '<div class="no-results">No students found</div>';
+          searchResults.style.display = 'block';
+        }
+      })
+      .catch(error => {
+        console.error('Error searching students:', error);
+        searchResults.innerHTML = '<div class="error">Error searching students</div>';
+        searchResults.style.display = 'block';
+      });
+  }
+  
+  function selectStudent(student) {
+    const selectedStudentInfo = document.getElementById('selectedStudentInfo');
+    const searchResults = document.getElementById('searchResults');
+    
+    // Display selected student info
+    document.getElementById('selectedStudentId').textContent = student.idno;
+    document.getElementById('selectedStudentName').textContent = `${student.lastname}, ${student.firstname}`;
+    document.getElementById('selectedStudentCourse').textContent = `${student.course} - Year ${student.year_level}`;
+    document.getElementById('selectedStudentSessions').textContent = student.sessions_left;
+    
+    // Set hidden input value
+    document.getElementById('selectedStudentIdInput').value = student.idno;
+    
+    // Hide search results and show selected student info
+    searchResults.style.display = 'none';
+    selectedStudentInfo.style.display = 'block';
+    
+    // Clear search input
+    document.getElementById('studentSearchInput').value = '';
+  }
+  
+  function resetSearchModal() {
+    document.getElementById('studentSearchInput').value = '';
+    document.getElementById('searchResults').innerHTML = '';
+    document.getElementById('searchResults').style.display = 'none';
+    document.getElementById('selectedStudentInfo').style.display = 'none';
+    document.getElementById('sitInForm').reset();
+  }
+  
+  function createSitInReservation() {
+    const studentId = document.getElementById('selectedStudentIdInput').value;
+    const lab = document.getElementById('labSelect').value;
+    const purpose = document.getElementById('purposeSelect').value;
+    const submitBtn = document.querySelector('#sitInForm button[type="submit"]');
+    
+    if (!studentId || !lab || !purpose) {
+      Swal.fire('Error', 'Please fill all required fields', 'error');
+      return;
+    }
+    
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span> Processing...';
+    
+    fetch('/admin_create_sitin', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        student_id: studentId,
+        lab: lab,
+        purpose: purpose
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        Swal.fire('Success', 'Sit-in reservation created successfully', 'success').then(() => {
+          // Close modal and reset
+          document.getElementById('searchStudentModal').style.display = 'none';
+          resetSearchModal();
+          
+          // Refresh current sit-in list
+          fetchAndDisplayCurrentSitIn();
+          
+          // Emit socket event to update all clients
+          socket.emit('new_sitin', data.reservation);
+        });
+      } else {
+        Swal.fire('Error', data.message || 'Failed to create reservation', 'error');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      Swal.fire('Error', 'An error occurred while creating reservation', 'error');
+    })
+    .finally(() => {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Sit In';
+    });
+  }
+
+  // Listen for new sit-in events to update the current sit-in list
+socket.on('new_sitin', function(reservation) {
+    // Add the new reservation to the current sit-in table
+    const tableBody = document.querySelector('#reservations-table tbody');
+    
+    const newRow = document.createElement('tr');
+    newRow.setAttribute('data-reservation-id', reservation.id);
+    
+    newRow.innerHTML = `
+        <td>${reservation.student_idno}</td>
+        <td>${reservation.student_name}</td>
+        <td>${reservation.lab_id}</td>
+        <td>${reservation.purpose}</td>
+        <td>${reservation.reservation_date}</td>
+        <td>${reservation.login_time}</td>
+        <td class="logout-time">N/A</td>
+        <td class="status">${reservation.status}</td>
+        <td class="sessions-left">${reservation.sessions_left}</td>
+        <td>
+            <button class="logout-btn" data-reservation-id="${reservation.id}">Logout</button>
+        </td>
+    `;
+    
+    tableBody.prepend(newRow);
+});
+

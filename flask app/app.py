@@ -15,6 +15,10 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 from Crypto.Random import get_random_bytes
 import base64
+from better_profanity import profanity
+from werkzeug.exceptions import BadRequest
+
+profanity.load_censor_words()
 
 
 KEY_IV_FILE = "key_iv.dat"
@@ -39,6 +43,8 @@ app.config["SESSION_COOKIE_NAME"] = "main_app_session"
 app.config['UPLOAD_FOLDER'] = 'static/images'
 app.secret_key = os.urandom(24)
 socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins="*")
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
+app.config['JSON_SORT_KEYS'] = False
 
 # client = openai.OpenAI(
 #     api_key="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",
@@ -282,7 +288,7 @@ def reservations():
 
 
     
-    
+
 @app.route('/sit-in-reservation/<int:reservation_id>', methods=['POST'])
 def sit_in_reservation(reservation_id):
     try:
@@ -313,103 +319,164 @@ def sit_in_reservation(reservation_id):
         print(f"Error in sit-in reservation for {reservation_id}: {str(e)}")  # Print the exception message
         return jsonify({'success': False, 'message': str(e)})
 
-@app.route('/close-reservation/<int:reservation_id>', methods=['POST'])
-def close_reservation(reservation_id):
-    try:
-        print(f"Attempting to close reservation with ID: {reservation_id}")  # Print reservation ID
-        
-        # Fetch the reservation details
-        reservation = get_reservation_by_id(reservation_id)
-        if not reservation:
-            print(f"Reservation with ID {reservation_id} not found")
-            return jsonify({'success': False, 'message': 'Reservation not found'})
-        
-        print(f"Fetched reservation: {reservation}")  # Print reservation details
-        
-        # Check if 2 hours have passed since the reservation was made
-        reservation_time = datetime.strptime(reservation['login_time'], '%Y-%m-%d %H:%M:%S')
-        current_time = datetime.now()
-        time_difference = current_time - reservation_time
-        
-        print(f"Time difference (in seconds): {time_difference.total_seconds()}")  # Print time difference
-        
-        if time_difference.total_seconds() >= 7200:  # 2 hours = 7200 seconds
-            # Delete the reservation
-            print(f"Deleting reservation {reservation_id} as more than 2 hours have passed")
-            delete_reservation(reservation_id)
-            return jsonify({'success': True, 'message': 'Reservation deleted successfully (2 hours passed)'})
-        else:
-            print(f"Updating reservation {reservation_id} status to 'Disapproved'")  # Print action before updating status
-            # Update the reservation status to "Disapproved"
-            if update_reservation_status(reservation_id, 'Disapproved'):
-                # Emit a Socket.IO event to notify both admin and student
-                socketio.emit('reservation_updated', {
-                    'reservation_id': reservation_id,
-                    'status': 'Disapproved'
-                })
-                return jsonify({'success': True, 'message': 'Reservation disapproved successfully'})
-            else:
-                print(f"Failed to update reservation {reservation_id} status to 'Disapproved'")
-                return jsonify({'success': False, 'message': 'Failed to update reservation status'})
-    
-    except Exception as e:
-        print(f"Error in close reservation for {reservation_id}: {str(e)}")  # Print the exception message
-        return jsonify({'success': False, 'message': str(e)})
-
-
 
 @app.route('/logout-student/<int:reservation_id>', methods=['POST'])
 def logout_student(reservation_id):
     try:
-        print(f"Attempting to log out reservation with ID: {reservation_id}")  # Debug print
+        print(f"DEBUG: Initiating logout for reservation ID: {reservation_id}")
 
         # Fetch the reservation details
         reservation = get_reservation_by_id(reservation_id)
         if not reservation:
-            print(f"Reservation with ID {reservation_id} not found")  # Debug print
-            return jsonify({'success': False, 'message': 'Reservation not found'})
+            print("DEBUG: Reservation not found")
+            return jsonify({'success': False, 'message': 'Reservation not found'}), 404
+        print(f"DEBUG: Retrieved reservation: {reservation}")
 
         # Record the logged-out time
         logout_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        print(f"Logout time recorded: {logout_time}")  # Debug print
+        print(f"DEBUG: Logout time recorded: {logout_time}")
 
-        # Update the reservation with logged-out time (status remains unchanged)
-        if update_reservation_logout(reservation_id, logout_time):
-            print(f"Reservation {reservation_id} updated successfully")  # Debug print
+        # Get student info
+        student = get_student_by_idno(reservation['student_idno'])
+        if not student:
+            print("DEBUG: Student not found")
+            return jsonify({'success': False, 'message': 'Student not found'}), 404
+        print(f"DEBUG: Retrieved student info: {student}")
 
-            # Insert session history
-            insert_session_history(
-                student_idno=reservation['student_idno'],
-                login_time=reservation['login_time'],
-                logout_time=logout_time
-            )
+        # Update reservation status and logout time
+        if not update_reservation_logout(reservation_id, logout_time):
+            print("DEBUG: Failed to update reservation logout time")
+            return jsonify({'success': False, 'message': 'Failed to update reservation'}), 500
+        print("DEBUG: Logout time updated in reservation")
 
-            # Deduct one session from the student's sessions_left
-            student = get_student_by_idno(reservation['student_idno'])
-            if student and student['sessions_left'] > 0:
-                student['sessions_left'] -= 1
-                update_student_sessions(student['idno'], student['sessions_left'])
-                print(f"Updated sessions_left for student {student['idno']} to {student['sessions_left']}")  # Debug print
+        # Insert session history without session_number
+        history_result = insert_session_history(
+            student_idno=reservation['student_idno'],
+            login_time=reservation['login_time'],
+            logout_time=logout_time
+        )
+        if not history_result:
+            print("DEBUG: Failed to save session history")
+            return jsonify({'success': False, 'message': 'Failed to save session history'}), 500
+        print("DEBUG: Session history recorded")
 
-                # Emit a Socket.IO event to notify the student about the session update
-                socketio.emit('update_session_count', {
-                    'student_idno': student['idno'],
-                    'sessions_left': student['sessions_left']
-                }, room=student['idno'])  # Emit to the specific student's room
-
-            # Emit a Socket.IO event to notify both admin and student
-            socketio.emit('reservation_updated', {
-                'reservation_id': reservation_id,
+        return jsonify({
+            'success': True,
+            'message': 'Student logged out successfully',
+            'reservation': {
+                'id': reservation_id,
+                'student_idno': reservation['student_idno'],
+                'student_name': reservation['student_name'],
+                'lab_name': reservation['lab_name'],
+                'purpose': reservation['purpose'],
+                'reservation_date': reservation['reservation_date'],
+                'login_time': reservation['login_time'],
                 'logout_time': logout_time,
-                'sessions_left': student['sessions_left'] if student else 0
-            })
-            return jsonify({'success': True, 'message': 'Student logged out successfully'})
-        else:
-            print(f"Failed to update reservation {reservation_id}")  # Debug print
-            return jsonify({'success': False, 'message': 'Failed to update reservation'})
+                'status': 'Logged Out',
+                'sessions_left': student['sessions_left']
+            }
+        })
     except Exception as e:
-        print(f"Error in logout-student for {reservation_id}: {str(e)}")  # Debug print
-        return jsonify({'success': False, 'message': str(e)})
+        print(f"DEBUG: Exception encountered: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/search_students')
+def search_students():
+    if 'admin_username' not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    search_term = request.args.get('q', '').strip()
+    if not search_term:
+        return jsonify({"success": False, "message": "Search term required"}), 400
+
+    # Search in database using dbhelper functions
+    query = """
+        SELECT idno, firstname, lastname, course, year_level, sessions_left 
+        FROM students 
+        WHERE idno LIKE ? OR firstname LIKE ? OR lastname LIKE ?
+        LIMIT 10
+    """
+    search_pattern = f"%{search_term}%"
+    students = getprocess(query, (search_pattern, search_pattern, search_pattern))
+    
+    student_list = []
+    for student in students:
+        student_list.append({
+            "idno": student['idno'],
+            "firstname": student['firstname'],
+            "lastname": student['lastname'],
+            "course": student['course'],
+            "year_level": student['year_level'],
+            "sessions_left": student['sessions_left']
+        })
+    
+    return jsonify({"success": True, "data": student_list})
+
+
+@app.route('/admin_create_sitin', methods=['POST'])
+def admin_create_sitin():
+    if 'admin_username' not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    data = request.get_json()
+    student_id = data.get('student_id')
+    lab = data.get('lab')
+    purpose = data.get('purpose')
+
+    if not all([student_id, lab, purpose]):
+        return jsonify({"success": False, "message": "All fields are required"}), 400
+
+    # Get student info including current sessions_left
+    student = get_student_by_idno(student_id)
+    if not student:
+        return jsonify({"success": False, "message": "Student not found"}), 404
+
+    if student['sessions_left'] <= 0:
+        return jsonify({"success": False, "message": "Student has no sessions left"}), 400
+
+    # Calculate session number (total sessions - remaining + 1)
+    session_number = (30 - student['sessions_left']) + 1  # Assuming 30 is max sessions
+
+    # Create reservation with session number
+    sql = """
+        INSERT INTO reservations 
+        (student_idno, student_name, lab_id, purpose, reservation_date, 
+         login_time, status, session_number) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """
+    params = (
+        student_id, 
+        f"{student['firstname']} {student['lastname']}",
+        lab, 
+        purpose,
+        datetime.now().strftime('%Y-%m-%d'),
+        datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'Approved',
+        session_number
+    )
+    
+    if not postprocess(sql, params):
+        return jsonify({"success": False, "message": "Failed to create reservation"}), 500
+
+    # Decrease sessions left
+    postprocess(
+        "UPDATE students SET sessions_left = sessions_left - 1 WHERE idno = ?",
+        (student_id,)
+    )
+
+    # Return the created reservation
+    new_reservation = getprocess(
+        "SELECT * FROM reservations WHERE student_idno = ? ORDER BY id DESC LIMIT 1",
+        (student_id,)
+    )[0]
+
+    return jsonify({
+        "success": True,
+        "message": "Sit-in reservation created",
+        "reservation": new_reservation
+    })
+
 
 
 
@@ -432,34 +499,85 @@ def get_all_reservations(search_term='') -> list:
         WHERE r.status = 'Pending'
         """
         return getprocess(sql)
+    
+
+@app.route('/get_all_reservations')
+def get_all_reservations():
+    try:
+        query = """
+            SELECT 
+                r.id, 
+                r.student_idno as student_id,
+                r.student_name,
+                l.lab_name,
+                r.purpose,
+                DATE(r.reservation_date) AS reservation_date,
+                r.status,
+                TIME(r.login_time) AS login_time,
+                TIME(r.logout_time) AS logout_time,
+                r.session_number
+            FROM reservations r
+            LEFT JOIN laboratories l ON r.lab_id = l.id
+            LEFT JOIN students s ON r.student_idno = s.idno
+            ORDER BY r.reservation_date DESC, r.login_time DESC
+        """
+        reservations = getprocess(query)
+        
+        # Convert datetime objects to strings
+        for reservation in reservations:
+            if 'reservation_date' in reservation:
+                reservation['reservation_date'] = str(reservation['reservation_date'])
+            if 'login_time' in reservation:
+                reservation['login_time'] = str(reservation['login_time']) if reservation['login_time'] else None
+            if 'logout_time' in reservation:
+                reservation['logout_time'] = str(reservation['logout_time']) if reservation['logout_time'] else None
+        
+        return jsonify({
+            'success': True,
+            'reservations': reservations
+        })
+    except Exception as e:
+        print(f"Error in get_all_reservations: {str(e)}")  # Debugging
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
 
 @app.route('/get_reservation_history')
 def get_reservation_history():
     if 'student_idno' not in session:
-        print('Unauthorized access attempt. Student ID not in session.')
         return jsonify({"success": False, "message": "Unauthorized"}), 401
 
     student_idno = session['student_idno']
-    print(f"Fetching reservation history for student ID: {student_idno}")  # Log student ID fetching
-
+    
     sql = """
-    SELECT r.id, l.lab_name, r.purpose, r.reservation_date, r.status, r.logout_time
+    SELECT r.id, l.lab_name, r.purpose, r.reservation_date, r.status, 
+           COALESCE(r.logout_time, '') as logout_time,
+           EXISTS(SELECT 1 FROM feedback WHERE reservation_id = r.id) as feedback_submitted
     FROM reservations r
     JOIN laboratories l ON r.lab_id = l.id
-    WHERE r.student_idno = ? AND r.status IN ('Closed', 'Cancelled', 'Logged Out', 'Approved', 'Disapproved')
+    WHERE r.student_idno = ? 
+    AND r.status IN ('Closed', 'Cancelled', 'Logged Out', 'Approved', 'Disapproved')
     ORDER BY r.reservation_date DESC
     """
     
     try:
-        # Attempt to fetch reservations from the database
         reservations = getprocess(sql, (student_idno,))
-        print(f"Found {len(reservations)} reservations for student ID: {student_idno}")  # Log number of reservations found
+        
+        # Convert feedback_submitted from 0/1 to True/False
+        formatted_reservations = [
+            {**dict(row), "feedback_submitted": bool(row["feedback_submitted"])}
+            for row in reservations
+        ]
 
-        return jsonify({"success": True, "data": reservations})  
+        return jsonify({
+            "success": True, 
+            "data": formatted_reservations
+        })
     except Exception as e:
-        # Catch any errors during the query process
-        print(f"Error fetching reservation history: {e}")  # Log any errors during fetch
+        print(f"Error fetching reservation history: {e}")
         return jsonify({"success": False, "message": "Error fetching reservation history"}), 500
+
     
 
 @app.route('/get_reservations')
@@ -493,50 +611,27 @@ def get_reservations():
     return jsonify({"success": True, "data": reservation_list})
 
 
-
 @app.route('/get_currentsitin')
 def get_currentsitin():
     if 'admin_username' not in session:
-        print("Unauthorized access attempt. Admin not logged in.")  # Debug print
         return jsonify({"success": False, "message": "Unauthorized"}), 401
 
     try:
-        # Fetch reservations that are approved and have a login_time but no logout_time
         sql = """
         SELECT r.id, r.student_idno, r.student_name, l.lab_name, r.purpose, 
-               r.reservation_date, r.login_time, r.logout_time, r.status
+               r.reservation_date, r.login_time, r.logout_time, r.status,
+               r.session_number, s.sessions_left
         FROM reservations r
         JOIN laboratories l ON r.lab_id = l.id
-        WHERE r.status = 'Approved' AND r.logout_time IS NULL
+        JOIN students s ON r.student_idno = s.idno
+        ORDER BY r.login_time DESC
         """
         reservations = getprocess(sql)
-        print(f"Fetched {len(reservations)} current sit-in reservations.")  # Debug print
-
-        reservation_list = []
-        for reservation in reservations:
-            # Fetch sessions_left for the student
-            student_idno = reservation['student_idno']
-            student = get_student_by_idno(student_idno)
-            sessions_left = student['sessions_left'] if student else 0
-
-            reservation_list.append({
-                "id": reservation['id'],
-                "student_idno": reservation['student_idno'],
-                "student_name": reservation['student_name'],
-                "lab_name": reservation['lab_name'],
-                "purpose": reservation['purpose'],
-                "reservation_date": reservation['reservation_date'],
-                "login_time": reservation['login_time'],
-                "logout_time": reservation['logout_time'],
-                "status": reservation['status'],
-                "sessions_left": sessions_left
-            })
-
-        return jsonify({"success": True, "data": reservation_list})
+        
+        return jsonify({"success": True, "data": reservations})
     except Exception as e:
-        print(f"Error fetching current sit-in reservations: {e}")  # Debug print
-        return jsonify({"success": False, "message": "Error fetching current sit-in reservations"}), 500
-
+        print(f"Error fetching reservations: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
 
 
 @app.route('/student_dashboard')
@@ -571,34 +666,119 @@ def student_dashboard():
         reservations=reservations 
     )
 
+@app.route('/submit_feedback', methods=['POST'])
+def submit_feedback():
+    try:
+        data = request.get_json()
+        reservation_id = data.get('reservation_id')
+        feedback_text = data.get('feedback_text')
+        rating = data.get('rating')
+
+        # Validate required fields
+        if not all([reservation_id, feedback_text, rating]):
+            return jsonify({'success': False, 'message': 'All fields are required'}), 400
+
+        # Check for foul language
+        contains_profanity = profanity.contains_profanity(feedback_text)
+        censored_text = profanity.censor(feedback_text)
+
+        # Fetch reservation details
+        reservation = get_reservation_by_id(reservation_id)
+        if not reservation:
+            return jsonify({'success': False, 'message': 'Reservation not found'}), 404
+
+        # Check if feedback already exists
+        conn = get_db_connection()
+        existing_feedback = conn.execute(
+            'SELECT * FROM feedback WHERE reservation_id = ?', (reservation_id,)
+        ).fetchone()
+        if existing_feedback:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Feedback already submitted'}), 400
+
+        # Save feedback (including profanity flag)
+        conn.execute(
+            '''INSERT INTO feedback 
+            (reservation_id, lab, student_idno, feedback_text, rating, contains_profanity) 
+            VALUES (?, ?, ?, ?, ?, ?)''',
+            (reservation_id, reservation['lab_name'], reservation['student_idno'], 
+             censored_text, rating, contains_profanity)
+        )
+        conn.commit()
+        conn.close()
+
+        # Notify admins with profanity alert
+        socketio.emit('new_feedback', {
+            'reservation_id': reservation_id,
+            'lab': reservation['lab_name'],
+            'student_idno': reservation['student_idno'],
+            'feedback_text': censored_text,
+            'original_text': feedback_text if contains_profanity else None,
+            'rating': rating,
+            'contains_profanity': contains_profanity
+        }, broadcast=True)
+
+        return jsonify({
+            'success': True,
+            'message': 'Feedback submitted successfully',
+            'contains_profanity': contains_profanity,
+            'censored_text': censored_text
+        }), 200
+
+    except Exception as e:
+        print(f"Error submitting feedback: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @socketio.on('submit_feedback')
 def handle_feedback(data):
-    print('Received feedback:', data)  # Debug: Log received feedback
-    lab = data['lab']
-    feedback_text = data['feedback_text']
-    rating = data['rating']
-    student_idno = data['student_idno']  # Get student_idno from the data
+    try:
+        print('Received feedback:', data)
+        reservation_id = data['reservation_id']
+        feedback_text = data['feedback_text']
+        rating = data['rating']
 
-    # Save feedback to the database
-    conn = get_db_connection()
-    conn.execute(
-        'INSERT INTO feedback (lab, student_idno, feedback_text, rating) VALUES (?, ?, ?, ?)',
-        (lab, student_idno, feedback_text, rating)
-    )
-    conn.commit()
-    conn.close()
+        reservation = get_reservation_by_id(reservation_id)
+        if not reservation:
+            emit('feedback_error', {'message': 'Reservation not found'})
+            return
 
-    # Broadcast the new feedback to all connected admin clients
-    emit('new_feedback', {
-        'lab': lab,
-        'student_idno': student_idno,  # Use idno instead of student_name
-        'feedback_text': feedback_text,
-        'rating': rating
-    }, broadcast=True)
-    print('Broadcasted feedback to admin clients')  # Debug: Log broadcast
+        # Check if feedback already exists
+        conn = get_db_connection()
+        existing = conn.execute(
+            'SELECT 1 FROM feedback WHERE reservation_id = ?', (reservation_id,)
+        ).fetchone()
+        if existing:
+            conn.close()
+            emit('feedback_error', {'message': 'Feedback already submitted'})
+            return
 
+        # Save feedback
+        conn.execute(
+            'INSERT INTO feedback (reservation_id, lab, student_idno, feedback_text, rating) VALUES (?, ?, ?, ?, ?)',
+            (reservation_id, reservation['lab_name'], reservation['student_idno'], feedback_text, rating)
+        )
+        conn.commit()
+        conn.close()
 
+        # Notify client of success
+        emit('feedback_submitted', {
+            'success': True,
+            'message': 'Feedback submitted successfully',
+            'reservation_id': reservation_id
+        })
+
+        # Broadcast to admins
+        socketio.emit('new_feedback', {
+            'reservation_id': reservation_id,
+            'lab': reservation['lab_name'],
+            'student_idno': reservation['student_idno'],
+            'feedback_text': feedback_text,
+            'rating': rating
+        }, broadcast=True)
+
+    except Exception as e:
+        print(f"Error handling feedback: {e}")
+        emit('feedback_error', {'message': str(e)})
 
 @app.route('/get-feedback', methods=['GET'])
 def get_feedback():
@@ -650,6 +830,201 @@ def update_profile():
 
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
+    
+
+@app.route('/api/students', methods=['GET'])
+def get_all_students():
+    try:
+        # Get pagination parameters with defaults
+        page = request.args.get('page', default=1, type=int)
+        per_page = request.args.get('per_page', default=10, type=int)
+        search = request.args.get('search', default='', type=str)
+        
+        # Validate parameters
+        if page < 1 or per_page < 1:
+            raise BadRequest("Invalid pagination parameters")
+        
+        # Calculate offset
+        offset = (page - 1) * per_page
+        
+        # Base query
+        query = """
+            SELECT id, idno, lastname, firstname, midname, course, year_level, sessions_left
+            FROM students
+            WHERE idno LIKE ? OR lastname LIKE ? OR firstname LIKE ? OR course LIKE ?
+            LIMIT ? OFFSET ?
+        """
+        search_term = f"%{search}%"
+        params = (search_term, search_term, search_term, search_term, per_page, offset)
+        
+        # Get students
+        students = getprocess(query, params)
+        
+        # Get total count for pagination
+        count_query = """
+            SELECT COUNT(*) as total 
+            FROM students
+            WHERE idno LIKE ? OR lastname LIKE ? OR firstname LIKE ? OR course LIKE ?
+        """
+        total = getprocess(count_query, (search_term, search_term, search_term, search_term))[0]['total']
+        
+        return jsonify({
+            'success': True,
+            'students': students,
+            'total': total,
+            'page': page,
+            'per_page': per_page
+        })
+        
+    except BadRequest as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+    except Exception as e:
+        app.logger.error(f"Error fetching students: {str(e)}")
+        return jsonify({'success': False, 'message': 'Internal server error'}), 500
+    
+@app.route('/api/students/<int:student_id>', methods=['GET'])
+def get_student(student_id):
+    try:
+        query = "SELECT * FROM students WHERE id = ?"
+        students = getprocess(query, (student_id,))
+        
+        if not students or len(students) == 0:
+            return jsonify({
+                'success': False, 
+                'message': f'Student with ID {student_id} not found'
+            }), 404
+            
+        return jsonify({
+            'success': True,
+            'student': students[0]  # Return single student object
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error fetching student {student_id}: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Internal server error'
+        }), 500
+
+    
+@app.route('/api/students/<int:student_id>', methods=['GET', 'PUT', 'DELETE'])
+def student_operations(student_id):
+    try:
+        if request.method == 'GET':
+            query = "SELECT * FROM students WHERE id = ?"
+            student = getprocess(query, (student_id,))
+            
+            if not student:
+                return jsonify({
+                    'success': False, 
+                    'message': 'Student not found'
+                }), 404
+                
+            return jsonify({
+                'success': True,
+                'student': student[0]  # Return single student object
+            })
+            
+        elif request.method == 'PUT':
+            data = request.get_json()
+            required_fields = ['idno', 'lastname', 'firstname', 'course', 'year_level', 'sessions_left']
+            
+            if not all(field in data for field in required_fields):
+                return jsonify({
+                    'success': False,
+                    'message': 'Missing required fields'
+                }), 400
+            
+            query = """
+                UPDATE students 
+                SET idno=?, lastname=?, firstname=?, midname=?, 
+                    course=?, year_level=?, sessions_left=?
+                WHERE id=?
+            """
+            params = (
+                data['idno'], data['lastname'], data['firstname'], 
+                data.get('midname', ''), data['course'], 
+                data['year_level'], data['sessions_left'], student_id
+            )
+            
+            if postprocess(query, params):
+                return jsonify({
+                    'success': True,
+                    'message': 'Student updated successfully'
+                })
+            return jsonify({
+                'success': False,
+                'message': 'Student not found'
+            }), 404
+            
+        elif request.method == 'DELETE':
+            query = "DELETE FROM students WHERE id = ?"
+            if postprocess(query, (student_id,)):
+                return jsonify({
+                    'success': True,
+                    'message': 'Student deleted successfully'
+                })
+            return jsonify({
+                'success': False,
+                'message': 'Student not found'
+            }), 404
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+    
+
+@app.route('/api/students/<int:student_id>', methods=['PUT'])
+def edit_student(student_id):
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['idno', 'lastname', 'firstname', 'course', 'year_level', 'sessions_left']
+        if not all(field in data for field in required_fields):
+            return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+        
+        # Update student
+        query = """
+            UPDATE students 
+            SET idno = ?, lastname = ?, firstname = ?, midname = ?, 
+                course = ?, year_level = ?, sessions_left = ?
+            WHERE id = ?
+        """
+        params = (
+            data['idno'], data['lastname'], data['firstname'], data.get('midname', ''),
+            data['course'], data['year_level'], data['sessions_left'], student_id
+        )
+        
+        if postprocess(query, params):
+            return jsonify({'success': True, 'message': 'Student updated successfully'})
+        else:
+            return jsonify({'success': False, 'message': 'Student not found or no changes made'}), 404
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/students/<int:student_id>', methods=['DELETE'])
+def delete_student(student_id):
+    try:
+        query = "DELETE FROM students WHERE id = ?"
+        if postprocess(query, (student_id,)):
+            return jsonify({'success': True, 'message': 'Student deleted successfully'})
+        else:
+            return jsonify({'success': False, 'message': 'Student not found'}), 404
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/students/reset-sessions', methods=['POST'])
+def reset_all_sessions():
+    try:
+        query = "UPDATE students SET sessions_left = 30"
+        postprocess(query)
+        return jsonify({'success': True, 'message': 'All student sessions reset to 30'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 
 @app.route('/upload_profile_picture', methods=['POST'])
 def upload_profile_picture():
@@ -825,53 +1200,64 @@ def dashboard():
         flash("You need to login first", 'warning')
         return redirect(url_for('admin_login'))
 
+    # Get all necessary data
     admin_username = session.get('admin_username')
     active_students = list(active_users_dict.keys())
+    labs = get_lab_names() or []
     laboratories = get_count_laboratories()
     student_count = get_count_students()
     active_students_count = len(active_students)
+    
+    # Pagination for students
     page = request.args.get('page', 1, type=int)
     per_page = 10
     offset = (page - 1) * per_page
-    admin_firstname = session.get('admin_firstname')
-    students = get_paginated_students(offset, per_page)
-    total_students = get_count_students()
+    
+    # Search functionality
+    search_term = request.args.get('search', '')
+    
+    # Get students with search filter
+    if search_term:
+        students = getprocess("""
+            SELECT id, idno, lastname, firstname, midname, course, year_level, sessions_left
+            FROM students
+            WHERE idno LIKE ? OR lastname LIKE ? OR firstname LIKE ? OR course LIKE ?
+            LIMIT ? OFFSET ?
+        """, (f"%{search_term}%", f"%{search_term}%", f"%{search_term}%", f"%{search_term}%", per_page, offset))
+        
+        total_students = getprocess("""
+            SELECT COUNT(*) as count FROM students
+            WHERE idno LIKE ? OR lastname LIKE ? OR firstname LIKE ? OR course LIKE ?
+        """, (f"%{search_term}%", f"%{search_term}%", f"%{search_term}%", f"%{search_term}%"))[0]['count']
+    else:
+        students = get_paginated_students(offset, per_page)
+        total_students = get_count_students()
+    
     total_pages = (total_students + per_page - 1) // per_page
+    
+    # Other data
+    admin_firstname = session.get('admin_firstname')
     reservations = get_all_reservations()
     today = datetime.now().strftime('%Y-%m-%d')
 
     return render_template('admin/dashboard.html',
-                           student_count=student_count,
-                           active_students=active_students,
-                           laboratories=laboratories,
-                           admin_username=admin_username,
-                           pagetitle=pagetitle,
-                           active_students_count=active_students_count,
-                           students=students,
-                           page=page,
-                           total_pages=total_pages,
-                           reservations=reservations,
-                           today=today,
-                           admin_firstname=admin_firstname
-                           )
+                         student_count=student_count,
+                         active_students=active_students,
+                         laboratories=laboratories,
+                         labs=labs,
+                         admin_username=admin_username,
+                         pagetitle=pagetitle,
+                         active_students_count=active_students_count,
+                         students=students,
+                         page=page,
+                         total_pages=total_pages,
+                         reservations=reservations,
+                         today=today,
+                         admin_firstname=admin_firstname,
+                         search_term=search_term,
+                         current_page='dashboard')
 
-@app.route('/get_students')
-def get_students():
-    if 'admin_username' not in session:
-        return jsonify({"success": False, "message": "Unauthorized"}), 401
 
-    students = get_all_students()  # Replace with your function to fetch students
-    student_list = []
-    for student in students:
-        student_list.append({
-            "idno": student['idno'],  # Access dictionary keys
-            "lastname": student['lastname'],
-            "firstname": student['firstname'],
-            "course": student['course'],
-            "year_level": student['year_level'],
-            "sessions_left": student['sessions_left']
-        })
-    return jsonify({"success": True, "data": student_list})
     
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_login():

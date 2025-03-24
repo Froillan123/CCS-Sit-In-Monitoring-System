@@ -749,7 +749,6 @@ pre {
             </div>
           </div>
         </div>
-
         <div id="history" class="dashboard-section" style="display: none;">
           <h1>History</h1>
           <!-- History Table -->
@@ -761,7 +760,8 @@ pre {
                 <th>Reservation Date</th>
                 <th>Status</th>
                 <th>Logout Time</th>
-                <th>Feedback</th>
+                <th>Feedback Status</th> <!-- New column for feedback status -->
+                <th>Action</th>
               </tr>
             </thead>
             <tbody id="historyBody">
@@ -824,65 +824,6 @@ pre {
       </div>
     </div>
 
-
-
-          <!-- Reservations Table Section -->
-          <div id="reservationsTable" class="dashboard-section" style="display: none;">
-              <!-- Back Button -->
-              <button id="backToReservationsBtn" style="display: none;">
-                <i class="fas fa-arrow-left"></i> Back to Reservation Form
-              </button>
-
-              <div class="filter-container">
-                <label for="statusFilter">Filter by Status:</label>
-                <select id="statusFilter">
-                  <option value="pending">Pending</option>
-                  <option value="approved">Approved</option>
-                    <option value="all">All</option>
-                </select>
-            </div>
-            
-        <!-- Table -->
-            <table class="reservations-table">
-              <thead>
-                <tr>
-                  <th>Student Name</th>
-                  <th>Purpose</th>
-                  <th>Lab Name</th>
-                  <th>Reservation Date</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="reservationsBody">
-                {% for reservation in reservations %}
-                <tr data-reservation-id="{{ reservation[0] }}" data-status="{{ reservation[7] | lower }}">
-                  <td data-label="Student Name">{{ reservation[1] }}</td>
-                  <td data-label="Purpose">{{ reservation[2] }}</td>
-                  <td data-label="Lab Name">{{ reservation[3] }}</td>
-                  <td data-label="Reservation Date">{{ reservation[4] }}</td>
-                  <td data-label="Status">
-                    {% if reservation[7] == 'Pending' %}
-                      <span class="status-pending">Pending</span>
-                    {% elif reservation[7] == 'Approved' %}
-                      <span class="status-approved">Approved</span>
-                    {% else %}
-                      {{ reservation[7] }}
-                    {% endif %}
-                  </td>
-                  <td data-label="Action">
-                    {% if reservation[7] == 'Pending' %}
-                      <button class="cancel-btn">Cancel</button>
-                    {% else %}
-                      <button class="cancel-btn" disabled>Cancel</button>
-                    {% endif %}
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-           
-          </div>
 
 
         <div id="sessions" class="dashboard-section" style="display: none;">
@@ -955,54 +896,32 @@ pre {
             </div>
         </div>
     </div>
-
-    <!-- Feedback Modal -->
-<div id="feedbackModal" class="modal">
-  <div class="modal-content">
-      <span class="close-modal">&times;</span>
-      <h2>Submit Feedback</h2>
-      <form id="feedbackForm">
-          <!-- Lab Selection Dropdown -->
-          <div class="form-group">
-              <label for="labSelectionModal"><i class="fas fa-flask"></i> Select Lab</label>
-              <select id="labSelectionModal" required>
-                  <option value="" disabled selected>Select a lab</option>
-                  <option value="Lab544">Lab 544</option>
-                  <option value="Lab542">Lab 542</option>
-                  <option value="Lab530">Lab 530</option>
-                  <option value="Lab524">Lab 524</option>
-                  <option value="Lab526">Lab 526</option>
-                  <option value="Lab525">Lab 525</option>
-              </select>
+    <div id="feedbackModal" class="feedback-modal">
+      <div class="feedback-modal-overlay"></div>
+      <div class="feedback-modal-content">
+        <span class="feedback-modal-close">&times;</span>
+        <h2>Submit Feedback</h2>
+        <form id="feedbackForm">
+          <input type="hidden" id="reservationId">
+          <div class="feedback-form-group">
+            <label for="feedbackText">Your Feedback</label>
+            <textarea id="feedbackText" placeholder="Write your feedback here..." required></textarea>
           </div>
-
-          <!-- Feedback Text -->
-          <div class="form-group">
-              <label for="feedbackTextModal"><i class="fas fa-comment-dots"></i> Your Feedback</label>
-              <textarea id="feedbackTextModal" placeholder="Write your feedback here..." required></textarea>
+          <div class="feedback-form-group">
+            <label>Rating</label>
+            <div class="feedback-star-rating">
+              <span class="feedback-star" data-value="1">&#9733;</span>
+              <span class="feedback-star" data-value="2">&#9733;</span>
+              <span class="feedback-star" data-value="3">&#9733;</span>
+              <span class="feedback-star" data-value="4">&#9733;</span>
+              <span class="feedback-star" data-value="5">&#9733;</span>
+            </div>
+            <input type="hidden" id="rating" name="rating" required>
           </div>
-
-          <!-- Rating -->
-          <div class="form-group">
-              <label>Rating</label>
-              <div class="star-rating">
-                  <span class="star" data-value="1">&#9733;</span>
-                  <span class="star" data-value="2">&#9733;</span>
-                  <span class="star" data-value="3">&#9733;</span>
-                  <span class="star" data-value="4">&#9733;</span>
-                  <span class="star" data-value="5">&#9733;</span>
-              </div>
-              <input type="hidden" id="ratingModal" name="rating" required>
-          </div>
-
-          <!-- Hidden input for student_idno -->
-          <input type="hidden" id="student_idnoModal" value="{{ session.student_idno }}">
-
-          <!-- Submit Button -->
-          <button type="submit" class="submit-btn"><i class="fas fa-paper-plane"></i> Submit Feedback</button>
-      </form>
-  </div>
-</div>
+          <button type="submit" class="feedback-submit-btn">Submit Feedback</button>
+        </form>
+      </div>
+    </div>
 
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
@@ -1024,10 +943,46 @@ const socketURL =
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
     });
+
+     // Listen for new reservation updates
+ socket.on('new_reservation', function (data) {
+        // If the reservation belongs to the current student, update the UI
+        if (data.student_idno === session.student_idno) {
+            const reservationsBody = document.getElementById('reservationsBody');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${data.student_idno}</td>
+                <td>${data.student_name}</td>
+                <td>${data.lab_id}</td>
+                <td>${data.purpose}</td>
+                <td>${data.reservation_date}</td>
+                <td>${data.logged_in}</td>
+                <td>${data.logged_out}</td>
+                <td>${data.status}</td>
+            `;
+            reservationsBody.appendChild(row);
+        }
+    });
+
+ // Listen for reservation updates (e.g., logout time)
+socket.on('reservation_updated', function (data) {
+  const reservationRow = document.querySelector(`tr[data-reservation-id="${data.reservation_id}"]`);
+  if (reservationRow) {
+    const logoutTimeCell = reservationRow.querySelector('.logout-time');
+    const feedbackButton = reservationRow.querySelector('.submit-feedback-btn');
+
+    if (data.logout_time && data.status === 'Logged Out') {
+      logoutTimeCell.textContent = data.logout_time;
+      feedbackButton.disabled = false;
+      feedbackButton.style.backgroundColor = ''; // Reset button style
+      feedbackButton.style.cursor = ''; // Reset button style
+    }
+  }
+});
     
-  document.addEventListener('DOMContentLoaded', function () {
-   // Section Toggling Logic
-   const links = document.querySelectorAll('.sidebar-links a');
+document.addEventListener('DOMContentLoaded', function () {
+  // Section Toggling Logic
+  const links = document.querySelectorAll('.sidebar-links a');
   const sections = document.querySelectorAll('.dashboard-section');
 
   // Function to show the selected section and hide others
@@ -1035,7 +990,7 @@ const socketURL =
     sections.forEach(section => {
       section.style.display = section.id === sectionId ? 'block' : 'none';
     });
-    localStorage.setItem('activeDashboardSection', sectionId); // Save the active section
+    localStorage.setItem('activeDashboardSection', sectionId);
   }
 
   // Function to set the active link
@@ -1057,16 +1012,6 @@ const socketURL =
       const sectionId = this.getAttribute('data-section');
       showSection(sectionId);
       setActiveLink(sectionId);
-
-      // If the Reservations section is active, load the correct view (form or table)
-      if (sectionId === 'reservations') {
-        const currentView = localStorage.getItem('reservationsCurrentView') || 'form';
-        if (currentView === 'table') {
-          showReservationsTable();
-        } else {
-          showReservationForm();
-        }
-      }
     });
   });
 
@@ -1075,47 +1020,7 @@ const socketURL =
   if (logoutLink) {
     logoutLink.addEventListener('click', function () {
       localStorage.removeItem('activeDashboardSection');
-      localStorage.removeItem('reservationsCurrentView');
     });
-  }
-
-  // Reservation View Toggling Logic
-  function showReservationsTable() {
-    document.getElementById('reservations').style.display = 'none';
-    document.getElementById('reservationsTable').style.display = 'block';
-    localStorage.setItem('reservationsCurrentView', 'table'); // Save the current view
-  }
-
-  function showReservationForm() {
-    document.getElementById('reservations').style.display = 'block';
-    document.getElementById('reservationsTable').style.display = 'none';
-    localStorage.setItem('reservationsCurrentView', 'form'); // Save the current view
-  }
-
-  // Event listener for the "View Reservations" button
-  const viewReservationsBtn = document.getElementById('viewReservationsBtn');
-  if (viewReservationsBtn) {
-    viewReservationsBtn.addEventListener('click', function () {
-      showReservationsTable();
-    });
-  }
-
-  // Event listener for the "Back to Reservations" button
-  const backToReservationsBtn = document.getElementById('backToReservationsBtn');
-  if (backToReservationsBtn) {
-    backToReservationsBtn.addEventListener('click', function () {
-      showReservationForm();
-    });
-  }
-
-  // On page load, if the Reservations section is active, load the correct view
-  if (activeSection === 'reservations') {
-    const currentView = localStorage.getItem('reservationsCurrentView') || 'form';
-    if (currentView === 'table') {
-      showReservationsTable();
-    } else {
-      showReservationForm();
-    }
   }
 
   // Profile Picture Upload Handling
@@ -1652,144 +1557,7 @@ document.getElementById('reservationForm').addEventListener('submit', async func
 
 
 
-const approveButtons = document.querySelectorAll('.approve-btn');
-const editButtons = document.querySelectorAll('.edit-btn');
-const cancelButtons = document.querySelectorAll('.cancel-btn');
 
-
-cancelButtons.forEach((button) => {
-    button.addEventListener('click', function () {
-        const row = this.closest('tr');
-        const reservationId = row.dataset.reservationId;
-
-        // SweetAlert confirmation with default scaling
-        Swal.fire({
-            title: "Are you sure?",
-            text: "You are about to cancel this reservation!",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonColor: "#d33",
-            cancelButtonColor: "#3085d6",
-            confirmButtonText: "Yes, cancel it!",
-            cancelButtonText: "No, keep it",
-            customClass: {
-                popup: 'swal-default-size' // Apply custom class to override scaling
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Update status to "Cancelled"
-                const statusCell = row.querySelector('td:nth-child(7)');
-                statusCell.textContent = 'Cancelled';
-
-                // Disable all buttons in the action cell
-                const actionCell = row.querySelector('td:nth-child(8)');
-                actionCell.querySelectorAll('button').forEach((btn) => {
-                    btn.disabled = true;
-                });
-
-                // Send an AJAX request to cancel the reservation
-                fetch(`/cancel-reservation/${reservationId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                })
-                .then((response) => response.json())
-                .then((data) => {
-                    if (data.success) {
-                        Swal.fire({
-                            title: "Cancelled!",
-                            text: "Your reservation has been cancelled.",
-                            icon: "success",
-                            confirmButtonColor: "#3085d6",
-                            customClass: {
-                                popup: 'swal-default-size'
-                            }
-                        }).then(() => {
-                            // Reload to reflect changes
-                            window.location.reload();
-                        });
-                    } else {
-                        Swal.fire("Error!", "Failed to cancel the reservation.", "error");
-                    }
-                })
-                .catch((error) => {
-                    console.error('Error:', error);
-                    Swal.fire("Error!", "Something went wrong.", "error");
-                });
-            }
-        });
-    });
-});
-
-
- // Listen for new reservation updates
- socket.on('new_reservation', function (data) {
-        // If the reservation belongs to the current student, update the UI
-        if (data.student_idno === session.student_idno) {
-            const reservationsBody = document.getElementById('reservationsBody');
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${data.student_idno}</td>
-                <td>${data.student_name}</td>
-                <td>${data.lab_id}</td>
-                <td>${data.purpose}</td>
-                <td>${data.reservation_date}</td>
-                <td>${data.logged_in}</td>
-                <td>${data.logged_out}</td>
-                <td>${data.status}</td>
-            `;
-            reservationsBody.appendChild(row);
-        }
-    });
-
-    // Listen for reservation status updates
-    socket.on('reservation_updated', function (data) {
-        const { reservation_id, status } = data;
-
-        // Find the reservation row and update its status
-        const row = document.querySelector(`tr[data-reservation-id="${reservation_id}"]`);
-        if (row) {
-            const statusCell = row.querySelector('td:nth-child(8)');
-            statusCell.textContent = status;
-        }
-    });
-
-  document.addEventListener("DOMContentLoaded", function () {
-    let tableBody = document.getElementById("reservationsBody");
-    let rows = Array.from(tableBody.querySelectorAll("tr"));
-
-    // Sort: Show Pending first, then Approved
-    rows.sort((a, b) => {
-        let statusA = a.getAttribute("data-status");
-        let statusB = b.getAttribute("data-status");
-
-        if (statusA === "pending" && statusB !== "pending") return -1;
-        if (statusA !== "pending" && statusB === "pending") return 1;
-        return 0;
-    });
-
-    // Re-append sorted rows to the table
-    rows.forEach(row => tableBody.appendChild(row));
-
-    // Set default filter to "Pending"
-    let statusFilter = document.getElementById("statusFilter");
-    statusFilter.value = "pending";
-
-    // Apply filter on page load
-    function applyFilter() {
-        let filterValue = statusFilter.value;
-        rows.forEach(row => {
-            let status = row.getAttribute("data-status");
-            row.style.display = (filterValue === "all" || status === filterValue) ? "" : "none";
-        });
-    }
-
-    applyFilter(); // Show only Pending on load
-
-    // Reapply filter when dropdown changes
-    statusFilter.addEventListener("change", applyFilter);
-});
 
 const studentIdno = "{{ session.student_idno }}"; // This will be replaced by your server-side template engine
 
@@ -1988,53 +1756,7 @@ fetchAnnouncements();
         }
     });
 
-  // Star Rating Interaction
-const stars = document.querySelectorAll('.star-rating .star');
-stars.forEach(star => {
-  star.addEventListener('click', function () {
-    const value = this.getAttribute('data-value');
-    stars.forEach(s => {
-      s.classList.toggle('active', s.getAttribute('data-value') <= value); // This will highlight all stars up to the clicked one
-    });
-  });
-});
-
-document.getElementById('feedbackForm').addEventListener('submit', function (event) {
-    event.preventDefault();
-
-    const lab = document.getElementById('labSelection').value;
-    const feedbackText = document.getElementById('feedbackText').value;
-
-    // Get the highest rating by checking all active stars
-    const rating = Array.from(document.querySelectorAll('.star-rating .star.active'))
-                        .map(star => star.getAttribute('data-value'))
-                        .reduce((max, current) => Math.max(max, current), 0) || 0; // Get the highest value or 0 if no star is selected
-
-    // Retrieve student_idno from the session or a hidden input field
-    const student_idno = document.getElementById('student_idno').value;
-
-    // Send feedback data to the server using socket
-    socket.emit('submit_feedback', {
-        lab: lab,
-        feedback_text: feedbackText,
-        rating: rating,
-        student_idno: student_idno
-    });
-
-    // Reset the form after submission
-    document.getElementById('feedbackForm').reset();
-    document.querySelectorAll('.star-rating .star').forEach(star => star.classList.remove('active'));
-
-    // Display SweetAlert for feedback submission with custom size
-    Swal.fire({
-        icon: 'success',
-        title: 'Feedback Submitted!',
-        text: 'Thank you for your feedback.',
-        customClass: {
-            popup: 'swal-default-size'
-        }
-    });
-});
+ 
 
 socket.on('new_announcement', (data) => {
     const notificationDropdown = document.getElementById('notificationDropdown');
@@ -2192,14 +1914,28 @@ const notificationBtn = document.getElementById('notificationBtn');
     closeFeedbackModal();
   });
 
-  // Event listener for star ratings
-  document.querySelectorAll('.star-rating .star').forEach(star => {
-    star.addEventListener('click', function () {
-      const rating = this.getAttribute('data-value');
-      document.getElementById('rating').value = rating;
-      highlightStars(rating);
+
+// Star rating interaction - FIXED CLASS NAMES
+document.querySelectorAll('.feedback-star-rating .feedback-star').forEach(star => {
+  star.addEventListener('click', function () {
+    const value = this.getAttribute('data-value');
+    document.getElementById('rating').value = value;
+    document.querySelectorAll('.feedback-star-rating .feedback-star').forEach(s => {
+      s.classList.remove('active');
+      if (parseInt(s.getAttribute('data-value')) <= parseInt(value)) {
+        s.classList.add('active');
+      }
     });
   });
+});
+
+// Close modal when clicking outside of it - FIXED
+document.addEventListener('click', function (event) {
+  const modal = document.getElementById('feedbackModal');
+  if (event.target === modal || event.target.classList.contains('feedback-modal-overlay')) {
+    closeFeedbackModal();
+  }
+});
 
   // Event listener for feedback form submission
   document.getElementById('feedbackForm').addEventListener('submit', function (e) {
@@ -2208,117 +1944,206 @@ const notificationBtn = document.getElementById('notificationBtn');
   });
 });
 
+document.addEventListener("DOMContentLoaded", function () {
+    let tableBody = document.getElementById("reservationsBody");
+    let rows = Array.from(tableBody.querySelectorAll("tr"));
 
-// Function to fetch and display reservation history
+    // Sort: Show Pending first, then Approved
+    rows.sort((a, b) => {
+        let statusA = a.getAttribute("data-status");
+        let statusB = b.getAttribute("data-status");
+
+        if (statusA === "pending" && statusB !== "pending") return -1;
+        if (statusA !== "pending" && statusB === "pending") return 1;
+        return 0;
+    });
+
+    // Re-append sorted rows to the table
+    rows.forEach(row => tableBody.appendChild(row));
+
+    // Set default filter to "Pending"
+    let statusFilter = document.getElementById("statusFilter");
+    statusFilter.value = "pending";
+
+    // Apply filter on page load
+    function applyFilter() {
+        let filterValue = statusFilter.value;
+        rows.forEach(row => {
+            let status = row.getAttribute("data-status");
+            row.style.display = (filterValue === "all" || status === filterValue) ? "" : "none";
+        });
+    }
+
+    applyFilter(); // Show only Pending on load
+
+    // Reapply filter when dropdown changes
+    statusFilter.addEventListener("change", applyFilter);
+});
+
 function fetchReservationHistory() {
-  console.log('Fetching reservation history...'); // Log when the fetching starts
-  
   fetch('/get_reservation_history')
     .then(response => {
-      console.log('Response received:', response); // Log the response object
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch reservation history');
-      }
-
+      if (!response.ok) throw new Error('Network response was not ok');
       return response.json();
     })
     .then(data => {
-      console.log('Data received:', data); // Log the data received from the server
-
       if (data.success) {
         const historyBody = document.getElementById('historyBody');
-        historyBody.innerHTML = ''; // Clear existing rows
+        historyBody.innerHTML = '';
 
         data.data.forEach(reservation => {
           const row = document.createElement('tr');
+          row.setAttribute('data-reservation-id', reservation.id);
+
+          // Enable feedback button if logged out OR approved and feedback not submitted
+          const canSubmitFeedback = (
+            reservation.logout_time &&
+            (reservation.status === 'Logged Out' || reservation.status === 'Approved') &&
+            !reservation.feedback_submitted
+          );
+
           row.innerHTML = `
             <td>${reservation.lab_name}</td>
             <td>${reservation.purpose}</td>
             <td>${reservation.reservation_date}</td>
             <td>${reservation.status}</td>
-            <td>${reservation.logout_time || 'N/A'}</td>
+            <td class="logout-time">${reservation.logout_time || 'N/A'}</td>
+            <td>${reservation.feedback_submitted ? '✅' : '❌'}</td>
             <td>
-              ${reservation.status === 'Logged Out' ? 
-                `<button class="submit-feedback-btn" data-reservation-id="${reservation.id}">Submit Feedback</button>` :
-                `<button class="submit-feedback-btn" disabled style="background-color: gray; cursor: not-allowed;">Submit Feedback</button>`
-              }
+              <button class="submit-feedback-btn" 
+                data-reservation-id="${reservation.id}"
+                ${canSubmitFeedback ? '' : 'disabled'}
+                style="${canSubmitFeedback ? '' : 'background-color: gray; cursor: not-allowed;'}"
+              >
+                Submit Feedback
+              </button>
             </td>
           `;
           historyBody.appendChild(row);
         });
 
-        // Add event listeners to feedback buttons
+        // Attach event listeners dynamically
         document.querySelectorAll('.submit-feedback-btn:not(:disabled)').forEach(button => {
           button.addEventListener('click', function () {
-            const reservationId = this.getAttribute('data-reservation-id');
-            openFeedbackModal(reservationId);
+            openFeedbackModal(this.getAttribute('data-reservation-id'));
           });
         });
-
-      } else {
-        console.log('Failed to fetch data: ', data.message); // Log failure message
       }
     })
     .catch(error => {
-      console.error('Error fetching reservation history:', error); // Log any errors encountered
+      console.error('Error fetching reservation history:', error);
+      alert('Error loading reservation history');
     });
 }
 
-// Function to submit feedback
+// Event delegation for feedback buttons
+document.getElementById('historyBody').addEventListener('click', function (event) {
+  if (event.target.classList.contains('submit-feedback-btn')) {
+    const reservationId = event.target.getAttribute('data-reservation-id');
+    openFeedbackModal(reservationId);
+  }
+});
+
+
+// Improved submitFeedback function with proper error handling and custom Swal class
 function submitFeedback() {
   const reservationId = document.getElementById('reservationId').value;
   const feedbackText = document.getElementById('feedbackText').value;
   const rating = document.getElementById('rating').value;
 
-  console.log('Submitting feedback for reservation ID:', reservationId); // Log the reservation ID being submitted
-  console.log('Feedback text:', feedbackText); // Log the feedback text
-  console.log('Rating:', rating); // Log the rating
-
-  fetch('/submit_feedback', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      reservation_id: reservationId,
-      feedback_text: feedbackText,
-      rating: rating,
-    }),
-  })
-    .then(response => response.json())
-    .then(data => {
-      console.log('Feedback submission response:', data); // Log the response from the feedback submission
-
-      if (data.success) {
-        alert('Feedback submitted successfully!');
-        closeFeedbackModal();
-        fetchReservationHistory(); // Refresh the history table
-      } else {
-        alert('Failed to submit feedback: ' + data.message);
-      }
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      alert('An error occurred while submitting feedback.');
+  if (!rating) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Missing Rating',
+      text: 'Please select a star rating before submitting',
+      customClass: {
+        popup: 'swal-default-size',
+      },
     });
+    return;
+  }
+
+  const submitButton = document.querySelector('#feedbackForm button[type="submit"]');
+  submitButton.disabled = true;
+
+  // Create one-time event listeners
+  const handleSuccess = (data) => {
+    if (data.success) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Thank You!',
+        text: 'Your feedback has been submitted successfully!',
+        customClass: {
+          popup: 'swal-default-size',
+        },
+      }).then(() => {
+        closeFeedbackModal();
+        fetchReservationHistory();
+      });
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Submission Failed',
+        text: data.message || 'Something went wrong!',
+        customClass: {
+          popup: 'swal-default-size',
+        },
+      });
+    }
+    submitButton.disabled = false;
+    socket.off('feedback_submitted', handleSuccess);
+    socket.off('feedback_error', handleError);
+  };
+
+  const handleError = (error) => {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: error.message || 'An unexpected error occurred.',
+      customClass: {
+        popup: 'swal-default-size',
+      },
+    });
+    submitButton.disabled = false;
+    socket.off('feedback_submitted', handleSuccess);
+    socket.off('feedback_error', handleError);
+  };
+
+  socket.once('feedback_submitted', handleSuccess);
+  socket.once('feedback_error', handleError);
+
+  socket.emit('submit_feedback', {
+    reservation_id: reservationId,
+    feedback_text: feedbackText,
+    rating: rating
+  });
 }
 
-// Function to open the feedback modal
+
+
+
+
+// Open feedback modal - FIXED
 function openFeedbackModal(reservationId) {
-  console.log('Opening feedback modal for reservation ID:', reservationId); // Log the reservation ID
   document.getElementById('reservationId').value = reservationId;
   document.getElementById('feedbackModal').style.display = 'block';
+  document.body.style.overflow = 'hidden'; // Prevent scrolling
 }
 
-// Function to close the feedback modal
+// Close feedback modal
 function closeFeedbackModal() {
-  console.log('Closing feedback modal'); // Log when the modal is being closed
+  console.log('Closing feedback modal');
   document.getElementById('feedbackModal').style.display = 'none';
   document.getElementById('feedbackForm').reset();
   document.querySelectorAll('.star-rating .star').forEach(star => star.classList.remove('active'));
 }
 
+
+
+
+
+
+document.addEventListener('DOMContentLoaded', fetchReservationHistory);
 
 socket.on('update_session_count', function(data) {
     try {
@@ -2378,42 +2203,13 @@ document.getElementById('reservationForm').addEventListener('submit', function (
                 purpose: data.purpose,
                 reservation_date: data.reservation_date,
             });
-        } else {
-            alert('Failed to submit reservation: ' + data.message);
-        }
+        } 
     })
     .catch(error => {
         console.error('Error submitting reservation:', error);
     });
 });
 
-// Example: Emit event when a student submits feedback
-document.getElementById('feedbackForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-
-    const formData = new FormData(this);
-
-    fetch('/submit_feedback', {
-        method: 'POST',
-        body: formData,
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Emit event to notify the admin
-            socket.emit('feedback_submitted', {
-                reservation_id: data.reservation_id,
-                feedback_text: data.feedback_text,
-                rating: data.rating,
-            });
-        } else {
-            alert('Failed to submit feedback: ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error submitting feedback:', error);
-    });
-});
 
 
 // Listen for reservation approval updates
@@ -2436,5 +2232,90 @@ socket.on('reservation_updated', (data) => {
     }
 });
 
+
+// Initialize when DOM is loaded
+document.addEventListener("DOMContentLoaded", function() {
+  // Initialize star rating
+  initStarRating();
+  
+  // Initialize modal close handlers
+  initModalCloseHandlers();
+  
+  // Initialize form submission
+  initFeedbackForm();
+  
+  // Initialize reservation history
+  fetchReservationHistory();
+});
+
+// Star Rating Functionality
+function initStarRating() {
+  document.querySelectorAll('.feedback-star-rating .feedback-star').forEach(star => {
+    star.addEventListener('click', function() {
+      const value = this.getAttribute('data-value');
+      document.getElementById('rating').value = value;
+      
+      // Update star display
+      document.querySelectorAll('.feedback-star-rating .feedback-star').forEach((s, index) => {
+        s.classList.toggle('active', index < value);
+      });
+    });
+  });
+}
+
+// Modal Close Handlers
+function initModalCloseHandlers() {
+  // Close button
+  document.querySelector('.feedback-modal-close').addEventListener('click', closeFeedbackModal);
+  
+  // Click outside to close
+  document.addEventListener('click', function(event) {
+    const modal = document.getElementById('feedbackModal');
+    if (event.target === modal || event.target.classList.contains('feedback-modal-overlay')) {
+      closeFeedbackModal();
+    }
+  });
+  
+  // Escape key to close
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+      closeFeedbackModal();
+    }
+  });
+}
+
+// Form Submission
+function initFeedbackForm() {
+  document.getElementById('feedbackForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    submitFeedback();
+  });
+}
+
+// Listen for new sit-in events to update the current sit-in list
+socket.on('new_sitin', function(reservation) {
+    // Add the new reservation to the current sit-in table
+    const tableBody = document.querySelector('#reservations-table tbody');
+    
+    const newRow = document.createElement('tr');
+    newRow.setAttribute('data-reservation-id', reservation.id);
+    
+    newRow.innerHTML = `
+        <td>${reservation.student_idno}</td>
+        <td>${reservation.student_name}</td>
+        <td>${reservation.lab_id}</td>
+        <td>${reservation.purpose}</td>
+        <td>${reservation.reservation_date}</td>
+        <td>${reservation.login_time}</td>
+        <td class="logout-time">N/A</td>
+        <td class="status">${reservation.status}</td>
+        <td class="sessions-left">${reservation.sessions_left}</td>
+        <td>
+            <button class="logout-btn" data-reservation-id="${reservation.id}">Logout</button>
+        </td>
+    `;
+    
+    tableBody.prepend(newRow);
+});
 </script>
 {% endblock %}

@@ -257,19 +257,74 @@ def delete_record(table: str, **kwargs) -> bool:
     sql = f"DELETE FROM {table} WHERE {key} = ?"
     return postprocess(sql, (value,))
 
-def update_student_sessions(idno, sessions_left):
-    query = "UPDATE students SET sessions_left = ? WHERE idno = ?"
-    success = postprocess(query, (sessions_left, idno))
-    if success:
-        print("Sessions updated successfully!")
-    else:
-        print("Failed to update sessions.")
-    return success
+def update_student_sessions(student_idno, sessions_left):
+    """Update a student's remaining sessions"""
+    sql = "UPDATE students SET sessions_left = ? WHERE idno = ?"
+    return postprocess(sql, (sessions_left, student_idno))
 
 
-def insert_session_history(student_idno, login_time):
-    sql = "INSERT INTO session_history (student_idno, login_time) VALUES (?, ?)"
-    return postprocess(sql, (student_idno, login_time))
+def insert_session_history(student_idno, login_time, logout_time):
+    """Insert a record into session history without session number"""
+    print(f"DEBUG: Inserting session history for student {student_idno}")
+
+    # Calculate duration if both times are available
+    duration = None
+    if login_time and logout_time:
+        try:
+            login = datetime.strptime(login_time, '%Y-%m-%d %H:%M:%S')
+            logout = datetime.strptime(logout_time, '%Y-%m-%d %H:%M:%S')
+            duration = str(logout - login)
+        except ValueError as e:
+            print(f"Duration calculation error: {e}")
+            pass
+
+    # SQL without session_number
+    sql = """
+    INSERT INTO session_history 
+    (student_idno, login_time, logout_time, duration)
+    VALUES (?, ?, ?, ?)
+    """
+    params = (student_idno, login_time, logout_time, duration)
+
+    print(f"Executing SQL: {sql} with params: {params}")
+    result = postprocess(sql, params)
+    print(f"Insert result: {result}")
+    return result
+
+
+
+def increment_daily_sitin(student_idno):
+    # Get student's program
+    student = get_student_by_idno(student_idno)
+    if not student:
+        raise ValueError("Student not found")
+    
+    program = student['course']
+    today = datetime.now().strftime('%Y-%m-%d')
+    
+    # Try to update existing record
+    updated = postprocess(
+        "UPDATE daily_sitins SET count = count + 1 WHERE program = ? AND sitin_date = ?",
+        (program, today)
+    )
+    
+    # If no record exists, insert a new one
+    if not updated or updated.rowcount == 0:
+        postprocess(
+            "INSERT INTO daily_sitins (program, sitin_date, count) VALUES (?, ?, 1)",
+            (program, today)
+        )
+
+def get_todays_sitin_counts():
+    today = datetime.now().strftime('%Y-%m-%d')
+    results = getprocess("""
+        SELECT p.program_code, p.program_name, COALESCE(d.count, 0) as count
+        FROM programs p
+        LEFT JOIN daily_sitins d ON p.program_code = d.program AND d.sitin_date = ?
+        ORDER BY p.program_code
+    """, (today,))
+    
+    return {row['program_code']: row['count'] for row in results}
 
 def update_session_history(student_idno, logout_time):
     sql = """
@@ -288,12 +343,16 @@ def insert_extension_request(student_idno, request_time):
 
 
 def get_reservation_by_id(reservation_id):
-    sql = "SELECT * FROM reservations WHERE id = ?"
-    # Assuming getprocess returns a list of results, we select the first one
+    sql = """
+    SELECT reservations.*, laboratories.lab_name AS lab_name
+    FROM reservations
+    JOIN laboratories ON reservations.lab_id = laboratories.id
+    WHERE reservations.id = ?
+    """
     result = getprocess(sql, (reservation_id,))
     if result:
-        return result[0]  # Return the first result if there are any rows
-    return None  # If no result, return None
+        return result[0]  # Ensure this includes 'lab_name'
+    return None
 
 
 def update_reservation_status(reservation_id, status):
@@ -404,3 +463,13 @@ def get_unread_notifications_from_db(user_id):
     """
     result = getprocess(query, (user_id,))
     return result
+
+def update_reservation_session(reservation_id, session_number):
+    """Update a reservation with session number"""
+    sql = "UPDATE reservations SET session_number = ? WHERE id = ?"
+    return postprocess(sql, (session_number, reservation_id))
+
+def update_reservation_logout(reservation_id, logout_time):
+    """Update a reservation with logout time and status"""
+    sql = "UPDATE reservations SET logout_time = ?, status = 'Logged Out' WHERE id = ?"
+    return postprocess(sql, (logout_time, reservation_id))

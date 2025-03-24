@@ -1,959 +1,158 @@
-{% extends 'client/clientbase.html' %}
+/* Filter Container Styling */
+.filter-container {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  margin-top: 2rem;
+}
 
-{% block content %}
+.filter-container label {
+  font-weight: 500;
+  color: var(--text-color);
+}
 
-<meta charset="UTF-8">
+#statusFilter {
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 2px solid var(--first-color);
+  background-color: white;
+  color: var(--text-color);
+  cursor: pointer;
+}
 
-<style>
-  :root
-  {
-    --text-color: #333;
+
+/* Status Colors */
+.status-pending {
+  color: #ffc107; /* Yellow for Pending */
+  font-weight: 500;
+}
+
+.status-approved {
+  color: #14a636; /* Green for Approved */
+  font-weight: 500;
+}
+
+/* Table Styling */
+.reservations-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+.reservations-table th,
+.reservations-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.reservations-table th {
+  background-color: var(--first-color);
+  color: white;
+  font-weight: 500;
+}
+
+.reservations-table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Button Styling */
+.approve-btn {
+  padding: 6px 12px;
+  background-color: var(--first-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.approve-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.approve-btn:hover:not(:disabled) {
+  background-color: #9d2db0;
+}
+
+.cancel-btn {
+  padding: 6px 12px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.cancel-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background-color: #c82333;
+}
+
+/* Responsive Design for Screens 1113px and Below */
+@media (max-width: 1113px) {
+  .reservations-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto; /* Allow horizontal scrolling if needed */
   }
 
-  .sidebar.zoomed {
-  max-height: 100vh; /* Applied when zoom level is high */
-  min-height: auto; /* Override min-height */
-}
-
-.swal-default-size {
-    font-size: 1.6rem !important; /* Reset font size */
-    width: auto !important; /* Default width */
-    max-width: 400px !important; /* Prevent excessive scaling */
-}
-
-.bot-name {
-    font-weight: bold;
-    font-size: 1.4rem; /* Slightly larger font */
-    color: var(--first-color); /* Ensure visibility */
-    text-transform: uppercase; /* Make it stand out */
-    margin-right: 0.5rem;
+  .reservations-table thead {
+    display: none; /* Hide the table header on small screens */
   }
 
+  .reservations-table tbody {
+    display: block;
+    width: 100%;
+  }
 
-/* Smaller screens (e.g., mobile devices) */
-@media (max-width: 480px) {
-    .swal-default-size {
-        font-size: 1.2rem !important;  /* Reduce font size */
-        max-width: 300px !important;   /* Reduce width */
-    }
-}
-
-/* Very small screens (e.g., extra small mobile) */
-@media (max-width: 320px) {
-    .swal-default-size {
-        font-size: 1rem !important;  /* Further reduce font size */
-        max-width: 250px !important; /* Further reduce width */
-      }
-}
-
-
-.bot-icon {
-      margin-right: 5px;
-    }
-/* Chat Modal */
-.chat-modal {
-    position: fixed;
-    bottom: 20px;
-    right: -400px; /* Hidden by default */
-    width: 350px;
-    height: 500px;
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-    display: flex;
-    flex-direction: column;
-    transition: right 0.3s ease;
-    z-index: 1000;
-}
-
-.chat-modal.active {
-    right: 20px; /* Slide in when active */
-}
-
-.chat-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px;
-    background-color: var(--first-color);
-    color: white;
-    border-top-left-radius: 10px;
-    border-top-right-radius: 10px;
-}
-
-.chat-modal-header h3 {
-    margin: 0;
-    font-size: 1.5rem;
-    font-weight: 500;
-}
-
-.close-btn {
-    font-size: 1.6rem;
-    cursor: pointer;
-    transition: color 0.3s ease;
-}
-
-.close-btn:hover {
-    color: var(--second-color);
-}
-
-.chat-modal-body {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 15px;
-    background-color: var(--background-color);
-    overflow: hidden;
-}
-
-.chat-messages {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 10px;
-    margin-bottom: 10px;
-    display: flex;
-    flex-direction: column; /* Changed from column-reverse to column */
-}
-
-.message {
-    padding: 12px 15px;
+  .reservations-table tr {
+    display: block;
     margin-bottom: 15px;
-    border-radius: 15px;
-    max-width: 80%;
-    font-size: 1.3rem;
-    line-height: 1.4;
-    word-wrap: break-word;
-    box-sizing: border-box;
-}
-
-.bot-message {
-    background-color: #fff; /* White background */
-    color: var(--text-color); /* Use your theme's text color */
-    align-self: flex-start; /* Align to the left */
-    border: 1px solid #e0e0e0; /* Light border */
-    border-radius: 15px 15px 15px 4px; /* Rounded corners, left side more rounded */
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-    padding: 12px 16px; /* Comfortable padding */
-    max-width: 80%; /* Limit width for better readability */
-    margin: 8px 0; /* Spacing between messages */
-    position: relative; /* For pseudo-elements */
-    animation: fadeIn 0.3s ease-in-out; /* Fade-in animation */
-    word-wrap: break-word; /* Ensure long words don't overflow */
-}
-
-/* Add a small arrow/triangle to the bot message */
-.bot-message::before {
-    content: '';
-    position: absolute;
-    left: -10px; /* Position the arrow */
-    top: 10px; /* Adjust vertical position */
-    width: 0;
-    height: 0;
-    border-top: 8px solid transparent;
-    border-bottom: 8px solid transparent;
-    border-right: 10px solid #fff; /* Match the background color */
-    z-index: 1;
-}
-
-.bot-message::after {
-    content: '';
-    position: absolute;
-    left: -11px; /* Position the border arrow */
-    top: 10px; /* Adjust vertical position */
-    width: 0;
-    height: 0;
-    border-top: 8px solid transparent;
-    border-bottom: 8px solid transparent;
-    border-right: 10px solid #e0e0e0; /* Match the border color */
-    z-index: 0;
-}
-
-/* Fade-in animation */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Responsive design for smaller screens */
-@media (max-width: 768px) {
-    .bot-message {
-        max-width: 90%; /* Wider on smaller screens */
-        padding: 10px 14px; /* Slightly smaller padding */
-        font-size: 14px; /* Smaller font size */
-    }
-
-    .bot-message::before,
-    .bot-message::after {
-        left: -8px; /* Adjust arrow position for smaller screens */
-        top: 8px;
-    }
-}
-
-.user-message {
-    background-color: var(--first-color);
-    color: white;
-    align-self: flex-end;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-.chat-input {
-    display: flex;
-    gap: 10px;
-    padding: 10px;
-    background-color: #f1f1f1;
-    border-radius: 25px;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
-}
-
-.chat-input input {
-    flex: 1;
-    padding: 10px;
     border: 1px solid var(--border-color);
-    border-radius: 5px;
-    outline: none;
-}
+    border-radius: 8px;
+    background-color: var(--background-color);
+  }
 
-.chat-input button {
-    padding: 10px 15px;
-    background-color: var(--first-color);
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.chat-input button:hover {
-    background-color: var(--second-color);
-}
-
-/* Responsive Design for Smaller Screens */
-@media (max-width: 424px) {
-    .chat-modal {
-        width: 100%; /* Full width on small screens */
-        height: 100%; /* Full height on small screens */
-        bottom: 0;
-        right: -100%; /* Hide off-screen */
-        border-radius: 0; /* Remove rounded corners */
-    }
-
-    .chat-modal.active {
-        right: 0; /* Slide in from the right */
-    }
-
-    .chat-modal-header {
-        border-top-left-radius: 0;
-        border-top-right-radius: 0;
-    }
-
-    .chat-messages {
-        max-height: calc(100vh - 150px); /* Adjust height for smaller screens */
-    }
-
-    .chat-input {
-        flex-direction: column; /* Stack input and button vertically */
-    }
-
-    .chat-input input {
-        width: 100%; /* Full width input */
-    }
-
-    .chat-input button {
-        width: 100%; /* Full width button */
-    }
-}
-:root
-{
-  --second-color: hsl(273, 100%, 51%);
-}
-.chat-icon {
-    position: fixed;
-    bottom: 50px;
-    right: 20px;
-    width: 10rem;
-    height: 10rem;
-    background-color: var(--first-color);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-/* Style for code blocks */
-pre {
-    background-color: #f4f4f4;
+  .reservations-table td {
+    display: block;
+    text-align: right;
     padding: 10px;
-    border-radius: 5px;
-    overflow-x: auto;
-    font-family: 'Courier New', Courier, monospace;
     font-size: 14px;
-    margin: 10px 0;
-    position: relative; /* Allow for positioning the copy button */
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle shadow around the code block */
-}
+    border-bottom: 1px solid var(--border-color);
+  }
 
-/* Style for the "Copy Snippet" box */
-.copy-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    padding: 8px 12px;
-    font-size: 12px;
-    background-color: #e0e0e0;
-    color: #333;
-    border: 1px solid #bbb;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+  .reservations-table td::before {
+    content: attr(data-label); /* Use data-label attribute to show column headers */
+    float: left;
+    font-weight: 500;
+    color: var(--first-color);
+    text-transform: uppercase;
+  }
 
-.copy-btn:hover {
-    background-color: #ccc;
-    transform: scale(1.05); /* Slight hover effect */
-}
+  .reservations-table td:last-child {
+    border-bottom: none; /* Remove border for the last cell in each row */
+  }
 
-.copy-btn:focus {
-    outline: none; /* Remove focus outline */
-}
-
-/* Adjusting the hover effect of the icon inside the copy button */
-.copy-btn:hover svg {
-    fill: #fff; /* Change icon color on hover */
-}
-
-/* Style for the copy icon inside the button */
-.copy-btn svg {
-    width: 16px;
-    height: 16px;
-    margin-right: 5px;
-}
-
-/* Responsive style for messages */
-.message {
-    padding: 12px 15px;
-    margin-bottom: 15px;
-    border-radius: 15px;
-    max-width: 80%;
-    font-size: 1.3rem;
-    line-height: 1.4;
-    word-wrap: break-word;
-    box-sizing: border-box;
-}
-
-.bot-message, .user-message {
-    max-width: 80%; /* Ensures the message doesn't take the full width */
-    word-wrap: break-word; /* Prevent text from overflowing */
-}
-
-/* Styling for text messages for bot and user */
-.bot-message {
-    background-color: #fff;
-    color: var(--text-color);
-    align-self: flex-start;
-    border: 1px solid #e0e0e0;
-    border-radius: 15px 15px 15px 4px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    padding: 12px 16px;
-    animation: fadeIn 0.3s ease-in-out;
-}
-
-.user-message {
-    background-color: var(--first-color);
-    color: white;
-    align-self: flex-end;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-/* Fade-in animation */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+  .approve-btn {
+    width: 100%; /* Make the button full width on small screens */
+    margin-top: 10px;
+  }
 }
 
 
-.chat-icon:hover {
-    background-color: var(--second-color);
-}
-
-.chat-icon svg {
-    width: 4rem;
-    height: 4rem;
-}
-
-/* Media query for small screens */
-@media (max-width: 600px) {
-    .chat-icon {
-        width: 6rem;
-        height: 6rem;
-        bottom: 50px; /* Optionally move the icon up */
-    }
-
-    .chat-icon svg {
-        width: 2rem;
-        height: 2rem;
-    }
-}
-</style>
-      <!-- Dashboard Container -->
-          <div class="dashboard-wrapper">
-            <!-- Sidebar -->
-            <div class="sidebar">
-             
-
-              <!-- Profile Section -->
-              <div class="profile-section">
-                <div class="profile-image">
-                  <img src="{{ url_for('static', filename='images/' + student.profile_picture if student.profile_picture else 'default.png') }}" alt="Profile Picture" />
-                </div>
-                <div class="profile-info">
-                  <h3>{{ student.firstname }} {{ student.midname }} {{ student.lastname }}</h3>
-                </div>
-              </div>
-
-              <!-- Sidebar Links -->
-              <div class="sidebar-links">
-                <a href="#" data-section="dashboard"><i class="fas fa-home"></i><span>Dashboard</span></a>
-                <a href="#" data-section="profile"><i class="fas fa-user"></i><span>Profile</span></a>
-                <a href="#" data-section="announcements"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
-                <a href="#" data-section="lab-rules"><i class="fas fa-clipboard-list"></i><span>Lab Rules</span></a>
-                <a href="#" data-section="history"><i class="fas fa-history"></i><span>History</span></a>
-                <a href="#" data-section="reservations"><i class="fas fa-calendar-alt"></i><span>Reservations</span></a>
-                <a href="#" data-section="feedback-report"><i class="fas fa-comments"></i><span>Feedback Report</span></a>
-                <a href="#" data-section="sessions"><i class="fas fa-eye"></i><span>View Session</span></a>
-              </div>
-
-              <div class="log-out-small-size">
-                <a href="{{ url_for('logout') }}" id="logout-link"><i class="fas fa-sign-out-alt"></i><span></span></a>
-              </div>
-
-              <!-- Logout Button -->
-              <div class="button-container">
-                <a href="{{ url_for('logout') }}" id="logout-link">
-                  <button type="button" class="btn btn-danger">
-                    <i class="fas fa-sign-out-alt"></i> <span class="logout-text">Log Out</span>
-                  </button>
-                </a>
-              </div>              
-            </div>
-
-  <!-- Main Content -->
-      <div class="dashboard-container">
-        
-        <div id="dashboard" class="dashboard-section">
-          <!-- Top Section: Welcome, Notifications, Calendar -->
-          <div class="top-section">
-            <!-- Welcome Message on the Left -->
-            <div class="welcome-message">
-              <h1>Welcome, {{ student.firstname }}!</h1>
-              <p>We're glad to have you back on your student dashboard.</p>
-            </div>
-        
-                        <!-- Buttons on the Right -->
-            <div class="notification-calendar">
-              <!-- Notification Button -->
-              <button class="notification-button" id="notificationBtn">
-                <i class="fas fa-bell"></i> Notifications
-                <span class="notification-badge" id="notificationBadge">0</span>
-              </button>
-
-              <!-- Notification Dropdown -->
-              <div class="dropdown-menu" id="notificationDropdown">
-                <div class="dropdown-header">
-                  <span>Notifications</span>
-                  <span class="mark-read" id="markAllRead">Mark all as read</span>
-                </div>
-
-                <!-- Notification Items will be dynamically inserted here -->
-                <div id="notificationItems">
-                  <!-- Example of a single notification item -->
-                  <!--
-                  <div class="notification-item unread">
-                    <div class="notification-icon">
-                      <i class="fas fa-bell"></i>
-                    </div>
-                    <div class="notification-content">
-                      <div class="notification-title">New Announcement</div>
-                      <div class="notification-text">This is a sample notification.</div>
-                      <div class="notification-time">Just now</div>
-                    </div>
-                  </div>
-                  -->
-                </div>
-
-                <!-- Notification Footer -->
-                <div class="notification-footer">
-                  View All Notifications
-                </div>
-              </div>
-
-              <!-- Calendar Button -->
-              <button class="calendar-button" id="openCalendar">
-                <i class="fas fa-calendar-alt"></i> Calendar
-              </button>
-            </div>
-          </div>
-        
-          <!-- Middle Section: Sit-In Rules and Chart -->
-          <div class="middle-section">
-            <!-- Sit-In Rules Box -->
-            <div class="rules-box">
-              <h3>Sit-In Laboratory Rules</h3>
-              <ul class="rules-list">
-                <li>
-                  <i class="fas fa-ban"></i> No games, personal devices, or inappropriate content.
-                </li>
-                <li>
-                  <i class="fas fa-cog"></i> Do not alter computer settings or delete files.
-                </li>
-                <li>
-                  <i class="fas fa-chair"></i> Follow seating arrangements and deposit bags at the counter.
-                </li>
-                <li>
-                  <i class="fas fa-utensils"></i> No food, drinks, or smoking in the lab.
-                </li>
-                <li>
-                  <i class="fas fa-exclamation-triangle"></i> Disturbances may lead to removal or security intervention.
-                </li>
-                <li>
-                  <i class="fas fa-tools"></i> Handle equipment with care – Report any damages or issues immediately to the instructor.
-                </li>
-                <li>
-                  <i class="fas fa-headphones"></i> Use headphones for audio – Keep noise levels low to avoid disturbing others.
-                </li>
-                <li>
-                  <i class="fas fa-sign-out-alt"></i> Log out after use – Ensure you log out from all accounts and close applications before leaving.
-                </li>
-              </ul>
-            </div>
-        
-            <!-- Chart Box -->
-            <div class="chart-box">
-              <h3>Lab Usage Chart</h3>
-              <canvas id="labUsageChart"></canvas> <!-- Chart will be rendered here -->
-            </div>
-          </div>
-          
-          <div class="stats-section">
-            <!-- Total Sessions Left Box -->
-            <div class="stats-box">
-                <div class="circular-progress" data-progress="{{ current_session['sessions_left'] if current_session else 0 }}" data-max="30">
-                    <svg viewBox="0 0 100 100">
-                        <circle class="progress-background" cx="50" cy="50" r="45"></circle>
-                        <circle class="progress-bar" cx="50" cy="50" r="45"></circle>
-                    </svg>
-                    <div class="progress-text">
-                        <span class="progress-value">{{ current_session['sessions_left'] if current_session else 0 }}</span>
-                        <span class="progress-max">/30</span>
-                    </div>
-                </div>
-                <h3>Total Sessions Left</h3>
-            </div>
-        
-            <!-- Available Laboratories Box -->
-            <div class="stats-box">
-                <div class="circular-progress" data-progress="6" data-max="6">
-                    <svg viewBox="0 0 100 100">
-                        <circle class="progress-background" cx="50" cy="50" r="45"></circle>
-                        <circle class="progress-bar" cx="50" cy="50" r="45"></circle>
-                    </svg>
-                    <div class="progress-text">
-                        <span class="progress-value">6</span>
-                        <span class="progress-max">/6</span>
-                    </div>
-                </div>
-                <h3>Available Laboratories</h3>
-            </div>
-        </div>
-
-          <div class="bottom-section">
-            
-            <div class="chart-container">
-              <h3>Activity Breakdown Chart</h3>
-              <div id="noDataPrompt" style="display: none; color: red; font-weight: bold;">
-                  No data available to display.
-              </div>
-              <canvas id="activityBreakdownChart"></canvas>
-          </div>
-          
-
-            <div class="chart-container">
-              <h3>Weekly Usage Chart</h3>
-              <canvas id="weeklyUsageChart"></canvas>
-            </div>
-          </div>
-          
-        </div>
-
-
-
-    <div id="profile" class="dashboard-section" style="display: none;">
-      <div class="profile-container">
-        <div class="profile-card">
-          <!-- Profile Picture -->
-          <div class="profile-header">
-            <div class="profile-picture" onclick="document.getElementById('profile-picture-upload').click()">
-              <img id="profile-picture" src="{{ url_for('static', filename='images/' + student.profile_picture if student.profile_picture else 'default.png') }}" alt="Profile Picture" />
-              <input type="file" id="profile-picture-upload" style="display: none;" />
-              <div class="edit-overlay"><i class="fas fa-camera"></i></div>
-            </div>
-          </div>
-          <!-- Student Details -->
-          <div class="profile-details">
-            <div class="detail-item">
-              <label for="editable-idno"><i class="fas fa-id-card"></i> ID Number:</label>
-              <input type="text" id="editable-idno" value="{{ student.idno }}" readonly />
-            </div>
-            <div class="detail-row">
-              <div class="detail-item">
-                <label for="editable-firstname"><i class="fas fa-user"></i> First Name:</label>
-                <input type="text" id="editable-firstname" value="{{ student.firstname }}" />
-              </div>
-              <div class="detail-item">
-                <label for="editable-lastname"><i class="fas fa-user"></i> Last Name:</label>
-                <input type="text" id="editable-lastname" value="{{ student.lastname }}" />
-              </div>
-            </div>
-            <div class="detail-row">
-              <div class="detail-item">
-                <label for="editable-midname"><i class="fas fa-user"></i> Middle Name:</label>
-                <input type="text" id="editable-midname" value="{{ student.midname }}" />
-              </div>
-              <div class="detail-item">
-                <label for="editable-course"><i class="fas fa-graduation-cap"></i> Course:</label>
-                <input type="text" id="editable-course" value="{{ student.course }}" readonly/>
-              </div>
-            </div>
-            <div class="detail-row">
-              <div class="detail-item">
-                <label for="editable-year-level"><i class="fas fa-calendar-alt"></i> Year Level:</label>
-                <input type="text" id="editable-year-level" value="{{ student.year_level }}" />
-              </div>
-              <div class="detail-item">
-                <label for="editable-email"><i class="fas fa-envelope"></i> Email:</label>
-                <input type="email" id="editable-email" value="{{ student.email }}" />
-              </div>
-            </div>
-            <div class="detail-row">
-              <div class="detail-item">
-                <label for="editable-username"><i class="fas fa-user-circle"></i> Username:</label>
-                <input type="text" id="editable-username" value="{{ student.username }}" readonly/>
-              </div>
-            </div>
-          </div>
-          <!-- Save Button -->
-          <button class="save-button" onclick="saveProfileChanges()"><i class="fas fa-save"></i> Save Changes</button>
-        </div>
-      </div>
-    </div>
-
-      <!-- Announcements Section -->
-      <div id="announcements" class="dashboard-section" style="display: block;">
-        <h1>Announcements</h1>
-        <div id="announcements-list" class="announcements-container">
-            <!-- Announcements will be dynamically inserted here -->
-        </div>
-    </div>
-    
-
-        <!-- Lab Rules Section -->
-        <div id="lab-rules" class="dashboard-section" style="display: none;">
-          <h1>Lab Rules and Regulations</h1>
-          <div class="lab-rules-container">
-            <div class="lab-rules-header">
-              <h2>University of Cebu</h2>
-              <h3>COLLEGE OF INFORMATION & COMPUTER STUDIES</h3>
-            </div>
-            <div class="lab-rules-content">
-              <p>To avoid embarrassment and maintain camaraderie with your friends and superiors at our laboratories, please observe the following:</p>
-              <ol class="lab-rules-list">
-                <li>
-                  <i class="fas fa-volume-mute"></i>
-                  <span>Maintain silence, proper decorum, and discipline inside the laboratory. Mobile phones, walkmans, and other personal pieces of equipment must be switched off.</span>
-                </li>
-                <li>
-                  <i class="fas fa-gamepad"></i>
-                  <span>Games are not allowed inside the lab. This includes computer-related games, card games, and other games that may disturb the operation of the lab.</span>
-                </li>
-                <li>
-                  <i class="fas fa-wifi"></i>
-                  <span>Surfing the Internet is allowed only with the permission of the instructor. Downloading and installing of software are strictly prohibited.</span>
-                </li>
-                <li>
-                  <i class="fas fa-ban"></i>
-                  <span>Getting access to other websites not related to the course (especially pornographic and illicit sites) is strictly prohibited.</span>
-                </li>
-                <li>
-                  <i class="fas fa-trash"></i>
-                  <span>Deleting computer files and changing the set-up of the computer is a major offense.</span>
-                </li>
-                <li>
-                  <i class="fas fa-clock"></i>
-                  <span>Observe computer time usage carefully. A fifteen-minute allowance is given for each use. Otherwise, the unit will be given to those who wish to "sit-in".</span>
-                </li>
-                <li>
-                  <i class="fas fa-clipboard-list"></i>
-                    <span>Observe proper decorum while inside the laboratory:
-                      <ul>
-                        <li>Do not get inside the lab unless the instructor is present.</li>
-                        <li>All bags, knapsacks, and the likes must be deposited at the counter.</li>
-                        <li>Follow the seating arrangement of your instructor.</li>
-                        <li>At the end of class, all software programs must be closed.</li>
-                        <li>Return all chairs to their proper places after using.</li>
-                      </ul>
-                    </span>
-
-                </li>
-                <li>
-                  <i class="fas fa-utensils"></i>
-                  <span>Chewing gum, eating, drinking, smoking, and other forms of vandalism are prohibited inside the lab.</span>
-                </li>
-                <li>
-                  <i class="fas fa-exclamation-triangle"></i>
-                  <span>Anyone causing a continual disturbance will be asked to leave the lab. Acts or gestures offensive to the members of the community, including public display of physical intimacy, are not tolerated.</span>
-                </li>
-                <li>
-                  <i class="fas fa-angry"></i>
-                  <span>Persons exhibiting hostile or threatening behavior such as yelling, swearing, or disregarding requests made by lab personnel will be asked to leave the lab.</span>
-                </li>
-                <li>
-                  <i class="fas fa-shield-alt"></i>
-                  <span>For serious offenses, the lab personnel may call the Civil Security Office (CSU) for assistance.</span>
-                </li>
-                <li>
-                  <i class="fas fa-tools"></i>
-                  <span>Any technical problem or difficulty must be addressed to the laboratory supervisor, student assistant, or instructor immediately.</span>
-                </li>
-              </ol>
-              <div class="lab-rules-disciplinary-action">
-                <h3><i class="fas fa-gavel"></i> DISCIPLINARY ACTION</h3>
-                <p><strong>First Offense:</strong> The Head or the Dean or OIC recommends to the Guidance Center for a suspension from classes for each offender.</p>
-                <p><strong>Second and Subsequent Offenses:</strong> A recommendation for a heavier sanction will be endorsed to the Guidance Center.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-
-          <!-- History Section -->
-        <div id="history" class="dashboard-section" style="display: none;">
-          <h1>History</h1>
-          <div class="filter-container">
-              <label for="historyFilter">Filter by Status:</label>
-              <select id="historyFilter">
-                  <option value="closed">Closed</option>
-                  <option value="cancelled">Cancelled</option>
-                  <option value="all">All</option>
-              </select>
-          </div>
-
-          <!-- History Table -->
-          <table class="history-table">
-              <thead>
-                  <tr>
-                      <th>Student Name</th>
-                      <th>Purpose</th>
-                      <th>Lab Name</th>
-                      <th>Reservation Date</th>
-                      <th>Status</th>
-                  </tr>
-              </thead>
-              <tbody id="historyBody">
-                  <!-- History rows will be dynamically populated here -->
-              </tbody>
-          </table>
-        </div>
-
-     <!-- Reservation Section -->
-    <div id="reservations" class="dashboard-section">
-
-      <div id="reservationsForm">
-          <h1>Reservation Form</h1>
-          <form id="reservationForm" action="/reservations" method="POST">
-              <div class="form-group">
-                  <label for="lab_id">Lab:</label>
-                  <select id="lab_id" name="lab_id" required>
-                      <option value="" disabled selected>Select Lab</option>
-                      {% for lab in labs %}
-                      <option value="{{ lab.id }}">{{ lab.lab_name }}</option>
-                      {% endfor %}
-                  </select>
-              </div>
-          
-              <div class="form-group">
-                  <label for="purpose">Purpose:</label>
-                  <select id="purpose_select" name="purpose_select" required>
-                      <option value="" disabled selected>Select Purpose</option>
-                      <option value="Research">Research</option>
-                      <option value="Meeting">Meeting</option>
-                      <option value="Coding">Coding</option>
-                      <option value="Assignment Work">Assignment Work</option>
-                      <option value="Project Development">Project Development</option>
-                  </select>
-              </div>
-          
-              <div class="form-group">
-                  <label for="reservation_date">Reservation Date:</label>
-                  <input type="date" id="reservation_date" name="reservation_date" required pattern="\d{4}-\d{2}-\d{2}" min="{{ current_date }}" />
-                  <small id="dateError" class="error-message" style="color: red; display: none;">You cannot select a past date.</small>
-              </div>
-
-              <div class="form-group">
-                <label for="sessions_left">Sessions Left:</label>
-                <!-- Visible read-only field -->
-                <input type="text" id="sessions_left_display" value="{{ current_session['sessions_left'] if current_session else 'No session found' }}" readonly />
-                <!-- Hidden field for form submission -->
-                <input type="hidden" id="sessions_left" name="sessions_left" value="{{ current_session['sessions_left'] if current_session else '0' }}" />
-            </div>
-          
-              <button type="submit">
-                  <i class="fas fa-calendar-check"></i> Submit Reservation
-              </button>
-          </form>
-      </div>
-    </div>
-
-
-        <!-- Feedback Report Section -->
-      <div id="feedback-report" class="dashboard-section">
-            <h1>Feedback Report</h1>
-            <form id="feedbackForm">
-              <!-- Lab Selection Dropdown -->
-              <div class="form-group">
-                  <label for="labSelection"><i class="fas fa-flask"></i> Select Lab</label>
-                  <select id="labSelection" required>
-                      <option value="" disabled selected>Select a lab</option>
-                      <option value="Lab544">Lab 544</option>
-                      <option value="Lab542">Lab 542</option>
-                      <option value="Lab530">Lab 530</option>
-                      <option value="Lab524">Lab 524</option>
-                      <option value="Lab526">Lab 526</option>
-                      <option value="Lab525">Lab 525</option>
-                  </select>
-              </div>
-          
-              <!-- Feedback Text -->
-              <div class="form-group">
-                  <label for="feedbackText"><i class="fas fa-comment-dots"></i> Your Feedback</label>
-                  <textarea id="feedbackText" placeholder="Write your feedback here..." required></textarea>
-              </div>
-          
-              <!-- Rating -->
-              <div class="form-group">
-                  <label> Rating</label>
-                  <div class="star-rating">
-                      <span class="star" data-value="1">&#9733;</span>
-                      <span class="star" data-value="2">&#9733;</span>
-                      <span class="star" data-value="3">&#9733;</span>
-                      <span class="star" data-value="4">&#9733;</span>
-                      <span class="star" data-value="5">&#9733;</span>
-                  </div>
-              </div>
-          
-              <!-- Hidden input for student_idno -->
-              <input type="hidden" id="student_idno" value="{{ session.student_idno }}">
-          
-              <!-- Submit Button -->
-              <button type="submit" class="submit-btn"><i class="fas fa-paper-plane"></i> Submit Feedback</button>
-          </form>
-          
-      </div>  
-
-        <div id="sessions" class="dashboard-section" style="display: none;">
-          <h1>Sessions</h1>
-        
-          <!-- Current Session Status -->
-          <div id="current-session">
-            <h2>Current Session</h2>
-            <h3>{{ current_session['sessions_left'] if current_session else 'No session found' }}</h3>
-          </div>
-        
-          <!-- Session Duration Graph -->
-          <div id="session-graph">
-            <h2>Session Duration</h2>
-            <div class="chart-container">
-              <canvas id="sessionChart"></canvas>
-            </div>
-          </div>
-        
-          <!-- Session History -->
-          <div id="session-history">
-            <h2>Session History</h2>
-            <div class="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Session ID</th>
-                    <th>Login Time</th>
-                    <th>Logout Time</th>
-                    <th>Duration</th>
-                  </tr>
-                </thead>
-                <tbody id="session-history-body">
-                  <!-- Session history rows will be dynamically inserted here -->
-                </tbody>
-              </table>
-            </div>
-            <div class="pagination-controls">
-              <button id="prev-page" disabled>Previous</button>
-              <span id="page-info">Page 1 of 1</span>
-              <button id="next-page" disabled>Next</button>
-            </div>
-          </div>
-
-
-
-        </div>
-
-        <div class="chat-icon" onclick="toggleChat()">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="24" height="24">
-              <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
-          </svg>
-      </div>
-
-
-      <div class="chat-modal" id="chatModal">
-        <div class="chat-modal-header">
-          <h3><i class="fas fa-robot bot-icon"></i>CCS BOT</h3>
-            <span class="close-btn" onclick="toggleChat()">
-              <i class="fas fa-times" style="font-size: 2rem;"></i>
-            </span>
-        </div>
-        <div class="chat-modal-body">
-            <div class="chat-messages" id="chatMessages">
-                <!-- Chat messages will appear here -->
-            </div>
-            <div class="chat-input">
-                <input type="text" placeholder="Type a message..." id="chatInput" onkeypress="handleKeyPress(event)">
-                <button onclick="sendMessage()">Send</button>
-            </div>
-        </div>
-    </div>
-<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
-<script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-
-
+my student javascript
 const socketURL =
         window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
             ? 'http://localhost:5000' // Local WebSocket URL
@@ -967,9 +166,9 @@ const socketURL =
         reconnectionDelay: 1000,
     });
     
-    document.addEventListener('DOMContentLoaded', function () {
-  // Section Toggling Logic
-  const links = document.querySelectorAll('.sidebar-links a');
+  document.addEventListener('DOMContentLoaded', function () {
+   // Section Toggling Logic
+   const links = document.querySelectorAll('.sidebar-links a');
   const sections = document.querySelectorAll('.dashboard-section');
 
   // Function to show the selected section and hide others
@@ -1034,6 +233,22 @@ const socketURL =
     localStorage.setItem('reservationsCurrentView', 'form'); // Save the current view
   }
 
+  // Event listener for the "View Reservations" button
+  const viewReservationsBtn = document.getElementById('viewReservationsBtn');
+  if (viewReservationsBtn) {
+    viewReservationsBtn.addEventListener('click', function () {
+      showReservationsTable();
+    });
+  }
+
+  // Event listener for the "Back to Reservations" button
+  const backToReservationsBtn = document.getElementById('backToReservationsBtn');
+  if (backToReservationsBtn) {
+    backToReservationsBtn.addEventListener('click', function () {
+      showReservationForm();
+    });
+  }
+
   // On page load, if the Reservations section is active, load the correct view
   if (activeSection === 'reservations') {
     const currentView = localStorage.getItem('reservationsCurrentView') || 'form';
@@ -1043,8 +258,6 @@ const socketURL =
       showReservationForm();
     }
   }
-
-
 
   // Profile Picture Upload Handling
   const profilePictureUpload = document.getElementById('profile-picture-upload');
@@ -1497,66 +710,13 @@ progressBars.forEach(progressBar => {
 
 document.addEventListener('DOMContentLoaded', function () {
   const reservationDateInput = document.getElementById('reservation_date');
-  const timeInInput = document.getElementById('time_in');
-  const timeOutInput = document.getElementById('time_out');
-  const timeError = document.getElementById('timeError');
+
 
   // Set the reservation date to today's date and disable editing
   const today = new Date().toISOString().split('T')[0];
   reservationDateInput.value = today;
   reservationDateInput.readOnly = true;
 
-  // Validate time-out on input change
-  timeOutInput.addEventListener('change', function () {
-    const timeIn = timeInInput.value;
-    const timeOut = this.value;
-
-    // Convert time strings to Date objects for comparison
-    const timeInDate = new Date(`1970-01-01T${timeIn}:00`);
-    const timeOutDate = new Date(`1970-01-01T${timeOut}:00`);
-
-    // Calculate the difference in hours
-    const timeDifference = (timeOutDate - timeInDate) / (1000 * 60 * 60);
-
-    if (timeOut <= timeIn) {
-      timeError.style.display = 'block';
-      timeError.textContent = 'Time Out must be after Time In.';
-      this.setCustomValidity('Time Out must be after Time In.');
-    } else if (timeDifference > 3) {
-      timeError.style.display = 'block';
-      timeError.textContent = 'Maximum reservation duration is 3 hours.';
-      this.setCustomValidity('Maximum reservation duration is 3 hours.');
-    } else {
-      timeError.style.display = 'none';
-      this.setCustomValidity('');
-    }
-  });
-
-  // Validate time-in on input change
-  timeInInput.addEventListener('change', function () {
-    const timeIn = this.value;
-    const timeOut = timeOutInput.value;
-
-    // Convert time strings to Date objects for comparison
-    const timeInDate = new Date(`1970-01-01T${timeIn}:00`);
-    const timeOutDate = new Date(`1970-01-01T${timeOut}:00`);
-
-    // Calculate the difference in hours
-    const timeDifference = (timeOutDate - timeInDate) / (1000 * 60 * 60);
-
-    if (timeOut && timeOut <= timeIn) {
-      timeError.style.display = 'block';
-      timeError.textContent = 'Time Out must be after Time In.';
-      timeOutInput.setCustomValidity('Time Out must be after Time In.');
-    } else if (timeOut && timeDifference > 3) {
-      timeError.style.display = 'block';
-      timeError.textContent = 'Maximum reservation duration is 3 hours.';
-      timeOutInput.setCustomValidity('Maximum reservation duration is 3 hours.');
-    } else {
-      timeError.style.display = 'none';
-      timeOutInput.setCustomValidity('');
-    }
-  });
 });
 
 document.getElementById('reservationForm').addEventListener('submit', async function (e) {
@@ -1613,6 +773,20 @@ document.getElementById('reservationForm').addEventListener('submit', async func
     if (!this.checkValidity()) {
       event.preventDefault();
     }
+  });
+
+
+
+
+
+
+   // JavaScript to handle the SPA behavior
+   document.getElementById('viewReservationsBtn').addEventListener('click', function() {
+    // Hide the reservation form
+    document.getElementById('reservations').style.display = 'none';
+    // Show the reservations table
+    document.getElementById('reservationsTable').style.display = 'block';
+    // Optionally, load reservations data here via AJAX
   });
 
 
@@ -2148,5 +1322,764 @@ const notificationBtn = document.getElementById('notificationBtn');
       });
       updateNotificationCount();
     });
-</script>
-{% endblock %}
+
+
+    document.addEventListener('DOMContentLoaded', function () {
+  // Fetch and display reservation history
+  fetchReservationHistory();
+
+  // Event listener for the feedback modal close button
+  document.querySelector('.close-modal').addEventListener('click', function () {
+    closeFeedbackModal();
+  });
+
+  // Event listener for star ratings
+  document.querySelectorAll('.star-rating .star').forEach(star => {
+    star.addEventListener('click', function () {
+      const rating = this.getAttribute('data-value');
+      document.getElementById('rating').value = rating;
+      highlightStars(rating);
+    });
+  });
+
+  // Event listener for feedback form submission
+  document.getElementById('feedbackForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    submitFeedback();
+  });
+});
+
+
+// Function to fetch and display reservation history
+function fetchReservationHistory() {
+  console.log('Fetching reservation history...'); // Log when the fetching starts
+  
+  fetch('/get_reservation_history')
+    .then(response => {
+      console.log('Response received:', response); // Log the response object
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch reservation history');
+      }
+
+      return response.json();
+    })
+    .then(data => {
+      console.log('Data received:', data); // Log the data received from the server
+
+      if (data.success) {
+        const historyBody = document.getElementById('historyBody');
+        historyBody.innerHTML = ''; // Clear existing rows
+
+        data.data.forEach(reservation => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${reservation.lab_name}</td>
+            <td>${reservation.purpose}</td>
+            <td>${reservation.reservation_date}</td>
+            <td>${reservation.status}</td>
+            <td>${reservation.logout_time || 'N/A'}</td>
+            <td>
+              ${reservation.status === 'Logged Out' ? 
+                `<button class="submit-feedback-btn" data-reservation-id="${reservation.id}">Submit Feedback</button>` :
+                `<button class="submit-feedback-btn" disabled style="background-color: gray; cursor: not-allowed;">Submit Feedback</button>`
+              }
+            </td>
+          `;
+          historyBody.appendChild(row);
+        });
+
+        // Add event listeners to feedback buttons
+        document.querySelectorAll('.submit-feedback-btn:not(:disabled)').forEach(button => {
+          button.addEventListener('click', function () {
+            const reservationId = this.getAttribute('data-reservation-id');
+            openFeedbackModal(reservationId);
+          });
+        });
+
+      } else {
+        console.log('Failed to fetch data: ', data.message); // Log failure message
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching reservation history:', error); // Log any errors encountered
+    });
+}
+
+// Function to submit feedback
+function submitFeedback() {
+  const reservationId = document.getElementById('reservationId').value;
+  const feedbackText = document.getElementById('feedbackText').value;
+  const rating = document.getElementById('rating').value;
+
+  console.log('Submitting feedback for reservation ID:', reservationId); // Log the reservation ID being submitted
+  console.log('Feedback text:', feedbackText); // Log the feedback text
+  console.log('Rating:', rating); // Log the rating
+
+  fetch('/submit_feedback', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      reservation_id: reservationId,
+      feedback_text: feedbackText,
+      rating: rating,
+    }),
+  })
+    .then(response => response.json())
+    .then(data => {
+      console.log('Feedback submission response:', data); // Log the response from the feedback submission
+
+      if (data.success) {
+        alert('Feedback submitted successfully!');
+        closeFeedbackModal();
+        fetchReservationHistory(); // Refresh the history table
+      } else {
+        alert('Failed to submit feedback: ' + data.message);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('An error occurred while submitting feedback.');
+    });
+}
+
+// Function to open the feedback modal
+function openFeedbackModal(reservationId) {
+  console.log('Opening feedback modal for reservation ID:', reservationId); // Log the reservation ID
+  document.getElementById('reservationId').value = reservationId;
+  document.getElementById('feedbackModal').style.display = 'block';
+}
+
+// Function to close the feedback modal
+function closeFeedbackModal() {
+  console.log('Closing feedback modal'); // Log when the modal is being closed
+  document.getElementById('feedbackModal').style.display = 'none';
+  document.getElementById('feedbackForm').reset();
+  document.querySelectorAll('.star-rating .star').forEach(star => star.classList.remove('active'));
+}
+
+
+socket.on('update_session_count', function(data) {
+    try {
+        console.log('Received data:', data);  // Debug: Log the received data
+
+        // Ensure you're checking the correct student ID
+        if (data.student_idno === studentIdno) {  // Ensure this event is for the current student
+            const sessionsLeftElement = document.getElementById('sessions-left');
+            console.log('Sessions Left Element:', sessionsLeftElement);  // Debug: Check if the element exists
+
+            if (sessionsLeftElement) {
+                // Update the sessions left in the DOM
+                sessionsLeftElement.textContent = data.sessions_left;
+                console.log('Updated sessions left:', data.sessions_left);
+
+                // Optionally update the progress bar (if needed)
+                const progressValueElement = document.querySelector('.progress-value');
+                if (progressValueElement) {
+                    progressValueElement.textContent = data.sessions_left;
+                }
+            } else {
+                console.error("Element with id 'sessions-left' not found in the DOM.");
+            }
+        } else {
+            console.error(`Received event for student ID ${data.student_idno}, but the current student ID is ${studentIdno}`);
+        }
+    } catch (error) {
+        console.error("Error handling 'update_session_count' event:", error);
+    }
+});
+
+// Optionally, handle page load event to ensure everything is ready before using socket
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM fully loaded and parsed");
+    // You can initialize your socket listeners here as well, just in case you have any dynamic rendering.
+});
+
+
+// Example: Emit event when a student submits a reservation
+document.getElementById('reservationForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    fetch('/reservations', {
+        method: 'POST',
+        body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Emit event to notify the admin
+            socket.emit('new_reservation', {
+                reservation_id: data.reservation_id,
+                student_idno: data.student_idno,
+                lab_name: data.lab_name,
+                purpose: data.purpose,
+                reservation_date: data.reservation_date,
+            });
+        } 
+    })
+    .catch(error => {
+        console.error('Error submitting reservation:', error);
+    });
+});
+
+// Example: Emit event when a student submits feedback
+document.getElementById('feedbackForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    fetch('/submit_feedback', {
+        method: 'POST',
+        body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Emit event to notify the admin
+            socket.emit('feedback_submitted', {
+                reservation_id: data.reservation_id,
+                feedback_text: data.feedback_text,
+                rating: data.rating,
+            });
+        } else {
+            alert('Failed to submit feedback: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error submitting feedback:', error);
+    });
+});
+
+
+// Listen for reservation approval updates
+socket.on('reservation_approved', (data) => {
+    console.log('Reservation approved:', data);
+    // Update the student's reservation status in the UI
+    const reservationRow = document.querySelector(`tr[data-reservation-id="${data.reservation_id}"]`);
+    if (reservationRow) {
+        reservationRow.querySelector('.status').textContent = data.status;
+    }
+});
+
+// Listen for logout updates
+socket.on('reservation_updated', (data) => {
+    console.log('Reservation updated:', data);
+    // Update the student's reservation logout time in the UI
+    const reservationRow = document.querySelector(`tr[data-reservation-id="${data.reservation_id}"]`);
+    if (reservationRow) {
+        reservationRow.querySelector('.logout-time').textContent = data.logout_time || 'N/A';
+    }
+});
+
+
+   <div id="history" class="dashboard-section" style="display: none;">
+          <h1>History</h1>
+          <!-- History Table -->
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Lab Name</th>
+                <th>Purpose</th>
+                <th>Reservation Date</th>
+                <th>Status</th>
+                <th>Logout Time</th>
+                <th>Feedback</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody">
+              <!-- Reservation history rows will be dynamically populated here -->
+            </tbody>
+          </table>
+        </div>
+
+
+
+
+
+my admin side
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Fetch and display current sit-in reservations when the page loads
+    fetchAndDisplayCurrentSitIn();
+
+    // Handle logout button clicks using event delegation
+    document.addEventListener('click', function (event) {
+        if (event.target.classList.contains('logout-btn')) {
+            const reservationId = event.target.getAttribute('data-reservation-id');
+            handleLogout(reservationId);
+        }
+    });
+
+    // Socket event listener for reservation updates (logout only)
+    socket.on('reservation_updated', function (data) {
+        const reservationId = data.reservation_id;
+        const logoutTime = data.logout_time;
+
+        // Update the reservation logout time in the UI
+        const reservationRow = document.querySelector(`tr[data-reservation-id="${reservationId}"]`);
+        if (reservationRow) {
+            reservationRow.querySelector('.logout-time').textContent = logoutTime || 'N/A';
+
+            // Hide the row if logout_time is set
+            if (logoutTime) {
+                reservationRow.style.display = 'none';
+            }
+        }
+    });
+
+    // Socket event listener for reservation approvals
+    socket.on('reservation_approved', function (data) {
+        const reservationId = data.reservation_id;
+        const status = data.status;
+
+        // Update the reservation status in the UI
+        const reservationRow = document.querySelector(`tr[data-reservation-id="${reservationId}"]`);
+        if (reservationRow) {
+            reservationRow.querySelector('.status').textContent = status;
+        }
+    });
+});
+
+// Function to handle logout
+function handleLogout(reservationId) {
+    fetch(`/logout-student/${reservationId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Student logged out successfully');
+                // Hide the row instead of deleting it
+                const row = document.querySelector(`tr[data-reservation-id="${reservationId}"]`);
+                if (row) {
+                    row.style.display = 'none'; // Hide the row
+                }
+            } else {
+                alert('Failed to log out student: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error during logout:', error);
+        });
+}
+
+// Function to fetch and display current sit-in reservations
+function fetchAndDisplayCurrentSitIn() {
+    fetch('/get_currentsitin')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const tableBody = document.querySelector('#reservations-table tbody');
+                tableBody.innerHTML = ''; // Clear existing rows
+
+                data.data.forEach(reservation => {
+                    const row = document.createElement('tr');
+                    row.setAttribute('data-reservation-id', reservation.id);
+
+                    row.innerHTML = `
+                        <td>${reservation.student_idno}</td>
+                        <td>${reservation.student_name}</td>
+                        <td>${reservation.lab_name}</td>
+                        <td>${reservation.purpose}</td>
+                        <td>${reservation.reservation_date}</td>
+                        <td>${reservation.login_time}</td>
+                        <td class="logout-time">${reservation.logout_time || 'N/A'}</td>
+                        <td class="status">${reservation.status}</td>
+                        <td class="sessions-left">${reservation.sessions_left}</td>
+                        <td>
+                            <button class="logout-btn" data-reservation-id="${reservation.id}">Logout</button>
+                        </td>
+                    `;
+
+                    tableBody.appendChild(row);
+                });
+            } else {
+                console.error('Failed to fetch current sit-in reservations:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching current sit-in reservations:', error);
+        });
+}
+
+
+   <!-- Other Pages -->
+            <div id="sit-in" class="page-content" style="display: none;">
+                <h2>Current Sit In</h2>
+                <div class="table-container">
+                <table class="sit-in-table" id="reservations-table">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Student Name</th>
+                            <th>Lab Name</th>
+                            <th>Purpose</th>
+                            <th>Reservation Date</th>
+                            <th>Login Time</th>
+                            <th>Logout Time</th>
+                            <th>Status</th>
+                            <th>Sessions Left</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Rows will be populated dynamically -->
+                    </tbody>
+                </table>
+                </div>
+            </div>
+
+
+@app.route('/reservations', methods=['POST'])
+def reservations():
+    student_idno = session.get('student_idno')
+    student_firstname = session.get('student_firstname', '')
+    student_lastname = session.get('student_lastname', '')
+    student_midname = session.get('student_midname', '')
+
+    student_name = f"{student_firstname} {student_midname} {student_lastname}".strip()
+
+    lab_id = request.form.get('lab_id', '').strip()
+    purpose = request.form.get('purpose_select', '').strip()
+    reservation_date = request.form.get('reservation_date', '').strip()
+    sessions_left = int(request.form.get('sessions_left', 0))  # Get sessions_left from the form
+    login_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')  # Current time as logged-in time
+
+    # Check if all required fields are provided
+    if not all([student_idno, student_name, lab_id, purpose, reservation_date]):
+        return jsonify({'status': 'error', 'message': 'All fields are required'}), 400
+
+    # Validate the reservation date format
+    try:
+        datetime.strptime(reservation_date, '%Y-%m-%d')
+    except ValueError:
+        return jsonify({'status': 'error', 'message': 'Invalid date format (YYYY-MM-DD expected)'}), 400
+
+    # Check if the student already has a pending reservation
+    if has_pending_reservation(student_idno):
+        return jsonify({'status': 'error', 'message': 'You already have a pending reservation'}), 400
+
+    # Check if the student has sessions left
+    if sessions_left <= 0:
+        return jsonify({'status': 'error', 'message': 'You have no sessions left'}), 400
+
+    # Create the reservation (without decreasing sessions here)
+    if create_reservation(
+        student_idno=student_idno,
+        student_name=student_name,
+        lab_id=lab_id,
+        purpose=purpose,
+        reservation_date=reservation_date,
+        login_time=login_time,  # Logged-in time
+        status='Pending'
+    ):
+        # Emit a Socket.IO event to notify both admin and student
+        socketio.emit('new_reservation', {
+            'student_idno': student_idno,
+            'student_name': student_name,
+            'lab_id': lab_id,
+            'purpose': purpose,
+            'reservation_date': reservation_date,
+            'login_time': login_time,
+            'status': 'Pending'
+        })
+        return jsonify({'status': 'success', 'message': 'Reservation created successfully'}), 200
+    else:
+        return jsonify({'status': 'error', 'message': 'Failed to create reservation'}), 500
+
+
+    
+    
+@app.route('/sit-in-reservation/<int:reservation_id>', methods=['POST'])
+def sit_in_reservation(reservation_id):
+    try:
+        print(f"Attempting to approve reservation with ID: {reservation_id}")  # Print reservation ID
+        
+        # Fetch the reservation details
+        reservation = get_reservation_by_id(reservation_id)
+        if not reservation:
+            print(f"Reservation with ID {reservation_id} not found")
+            return jsonify({'success': False, 'message': 'Reservation not found'})
+        
+        print(f"Fetched reservation: {reservation}")  # Print reservation details
+        
+        # Update the reservation status to "Approved"
+        if update_reservation_status(reservation_id, 'Approved'):
+            print(f"Successfully updated reservation {reservation_id} status to 'Approved'")  # Print success message
+            # Emit a Socket.IO event to notify both admin and student
+            socketio.emit('reservation_approved', {
+                'reservation_id': reservation_id,
+                'status': 'Approved'
+            })
+            return jsonify({'success': True, 'message': 'Reservation approved successfully'})
+        else:
+            print(f"Failed to update reservation {reservation_id} status to 'Approved'")
+            return jsonify({'success': False, 'message': 'Failed to update reservation status'})
+    
+    except Exception as e:
+        print(f"Error in sit-in reservation for {reservation_id}: {str(e)}")  # Print the exception message
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/close-reservation/<int:reservation_id>', methods=['POST'])
+def close_reservation(reservation_id):
+    try:
+        print(f"Attempting to close reservation with ID: {reservation_id}")  # Print reservation ID
+        
+        # Fetch the reservation details
+        reservation = get_reservation_by_id(reservation_id)
+        if not reservation:
+            print(f"Reservation with ID {reservation_id} not found")
+            return jsonify({'success': False, 'message': 'Reservation not found'})
+        
+        print(f"Fetched reservation: {reservation}")  # Print reservation details
+        
+        # Check if 2 hours have passed since the reservation was made
+        reservation_time = datetime.strptime(reservation['login_time'], '%Y-%m-%d %H:%M:%S')
+        current_time = datetime.now()
+        time_difference = current_time - reservation_time
+        
+        print(f"Time difference (in seconds): {time_difference.total_seconds()}")  # Print time difference
+        
+        if time_difference.total_seconds() >= 7200:  # 2 hours = 7200 seconds
+            # Delete the reservation
+            print(f"Deleting reservation {reservation_id} as more than 2 hours have passed")
+            delete_reservation(reservation_id)
+            return jsonify({'success': True, 'message': 'Reservation deleted successfully (2 hours passed)'})
+        else:
+            print(f"Updating reservation {reservation_id} status to 'Disapproved'")  # Print action before updating status
+            # Update the reservation status to "Disapproved"
+            if update_reservation_status(reservation_id, 'Disapproved'):
+                # Emit a Socket.IO event to notify both admin and student
+                socketio.emit('reservation_updated', {
+                    'reservation_id': reservation_id,
+                    'status': 'Disapproved'
+                })
+                return jsonify({'success': True, 'message': 'Reservation disapproved successfully'})
+            else:
+                print(f"Failed to update reservation {reservation_id} status to 'Disapproved'")
+                return jsonify({'success': False, 'message': 'Failed to update reservation status'})
+    
+    except Exception as e:
+        print(f"Error in close reservation for {reservation_id}: {str(e)}")  # Print the exception message
+        return jsonify({'success': False, 'message': str(e)})
+
+
+
+@app.route('/logout-student/<int:reservation_id>', methods=['POST'])
+def logout_student(reservation_id):
+    try:
+        print(f"Attempting to log out reservation with ID: {reservation_id}")  # Debug print
+
+        # Fetch the reservation details
+        reservation = get_reservation_by_id(reservation_id)
+        if not reservation:
+            print(f"Reservation with ID {reservation_id} not found")  # Debug print
+            return jsonify({'success': False, 'message': 'Reservation not found'})
+
+        # Record the logged-out time
+        logout_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        print(f"Logout time recorded: {logout_time}")  # Debug print
+
+        # Update the reservation with logged-out time (status remains unchanged)
+        if update_reservation_logout(reservation_id, logout_time):
+            print(f"Reservation {reservation_id} updated successfully")  # Debug print
+
+            # Insert session history
+            insert_session_history(
+                student_idno=reservation['student_idno'],
+                login_time=reservation['login_time'],
+                logout_time=logout_time
+            )
+
+            # Deduct one session from the student's sessions_left
+            student = get_student_by_idno(reservation['student_idno'])
+            if student and student['sessions_left'] > 0:
+                student['sessions_left'] -= 1
+                update_student_sessions(student['idno'], student['sessions_left'])
+                print(f"Updated sessions_left for student {student['idno']} to {student['sessions_left']}")  # Debug print
+
+                # Emit a Socket.IO event to notify the student about the session update
+                socketio.emit('update_session_count', {
+                    'student_idno': student['idno'],
+                    'sessions_left': student['sessions_left']
+                }, room=student['idno'])  # Emit to the specific student's room
+
+            # Emit a Socket.IO event to notify both admin and student
+            socketio.emit('reservation_updated', {
+                'reservation_id': reservation_id,
+                'logout_time': logout_time,
+                'sessions_left': student['sessions_left'] if student else 0
+            })
+            return jsonify({'success': True, 'message': 'Student logged out successfully'})
+        else:
+            print(f"Failed to update reservation {reservation_id}")  # Debug print
+            return jsonify({'success': False, 'message': 'Failed to update reservation'})
+    except Exception as e:
+        print(f"Error in logout-student for {reservation_id}: {str(e)}")  # Debug print
+        return jsonify({'success': False, 'message': str(e)})
+
+
+
+def get_all_reservations(search_term='') -> list:
+    if search_term:
+        sql = """
+        SELECT r.id, r.student_idno, r.student_name, l.lab_name, r.purpose, 
+               r.reservation_date, r.login_time, r.logout_time, r.status
+        FROM reservations r
+        JOIN laboratories l ON r.lab_id = l.id
+        WHERE r.student_idno LIKE ? AND r.status = 'Pending'
+        """
+        return getprocess(sql, (f"%{search_term}%",))
+    else:
+        sql = """
+        SELECT r.id, r.student_idno, r.student_name, l.lab_name, r.purpose, 
+               r.reservation_date, r.login_time, r.logout_time, r.status
+        FROM reservations r
+        JOIN laboratories l ON r.lab_id = l.id
+        WHERE r.status = 'Pending'
+        """
+        return getprocess(sql)
+
+@app.route('/get_reservation_history')
+def get_reservation_history():
+    if 'student_idno' not in session:
+        print('Unauthorized access attempt. Student ID not in session.')
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    student_idno = session['student_idno']
+    print(f"Fetching reservation history for student ID: {student_idno}")  # Log student ID fetching
+
+    sql = """
+    SELECT r.id, l.lab_name, r.purpose, r.reservation_date, r.status, r.logout_time
+    FROM reservations r
+    JOIN laboratories l ON r.lab_id = l.id
+    WHERE r.student_idno = ? AND r.status IN ('Closed', 'Cancelled', 'Logged Out', 'Approved', 'Disapproved')
+    ORDER BY r.reservation_date DESC
+    """
+    
+    try:
+        # Attempt to fetch reservations from the database
+        reservations = getprocess(sql, (student_idno,))
+        print(f"Found {len(reservations)} reservations for student ID: {student_idno}")  # Log number of reservations found
+
+        return jsonify({"success": True, "data": reservations})  
+    except Exception as e:
+        # Catch any errors during the query process
+        print(f"Error fetching reservation history: {e}")  # Log any errors during fetch
+        return jsonify({"success": False, "message": "Error fetching reservation history"}), 500
+    
+
+@app.route('/get_reservations')
+def get_reservations():
+    if 'admin_username' not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    search_term = request.args.get('search', '').strip()
+    reservations = get_all_reservations(search_term)  # Fetch reservations with lab_name
+    reservation_list = []
+
+    for reservation in reservations:
+        # Fetch sessions_left for the student
+        student_idno = reservation['student_idno']
+        student = get_student_by_idno(student_idno)
+        sessions_left = student['sessions_left'] if student else 0
+
+        reservation_list.append({
+            "id": reservation['id'],
+            "student_idno": reservation['student_idno'],
+            "student_name": reservation['student_name'],
+            "lab_name": reservation['lab_name'],  # Use lab_name instead of lab_id
+            "purpose": reservation['purpose'],
+            "reservation_date": reservation['reservation_date'],
+            "login_time": reservation['login_time'],  # Use login_time instead of time_in
+            "logout_time": reservation['logout_time'],  # Use logout_time instead of time_out
+            "status": reservation['status'],
+            "sessions_left": sessions_left  # Add sessions_left to the response
+        })
+
+    return jsonify({"success": True, "data": reservation_list})
+
+@app.route('/get_currentsitin')
+def get_currentsitin():
+    if 'admin_username' not in session:
+        print("Unauthorized access attempt. Admin not logged in.")  # Debug print
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    try:
+        # Fetch reservations that are approved and have a login_time but no logout_time
+        sql = """
+        SELECT r.id, r.student_idno, r.student_name, l.lab_name, r.purpose, 
+               r.reservation_date, r.login_time, r.logout_time, r.status
+        FROM reservations r
+        JOIN laboratories l ON r.lab_id = l.id
+        WHERE r.status = 'Approved' AND r.logout_time IS NULL
+        """
+        reservations = getprocess(sql)
+        print(f"Fetched {len(reservations)} current sit-in reservations.")  # Debug print
+
+        reservation_list = []
+        for reservation in reservations:
+            # Fetch sessions_left for the student
+            student_idno = reservation['student_idno']
+            student = get_student_by_idno(student_idno)
+            sessions_left = student['sessions_left'] if student else 0
+
+            reservation_list.append({
+                "id": reservation['id'],
+                "student_idno": reservation['student_idno'],
+                "student_name": reservation['student_name'],
+                "lab_name": reservation['lab_name'],
+                "purpose": reservation['purpose'],
+                "reservation_date": reservation['reservation_date'],
+                "login_time": reservation['login_time'],
+                "logout_time": reservation['logout_time'],
+                "status": reservation['status'],
+                "sessions_left": sessions_left
+            })
+
+        return jsonify({"success": True, "data": reservation_list})
+    except Exception as e:
+        print(f"Error fetching current sit-in reservations: {e}")  # Debug print
+        return jsonify({"success": False, "message": "Error fetching current sit-in reservations"}), 500
+
+
+
+@app.route('/student_dashboard')
+def student_dashboard():
+    pagetitle = "Student Dashboard"
+    
+    # Ensure the user is logged in
+    if 'user_username' not in session:
+        flash("You need to login first", 'warning')
+        return redirect(url_for('login'))
+
+    # Retrieve student data based on the username stored in the session
+    student = get_student_by_username(session['user_username'])
+    if not student:
+        flash("Student not found", 'danger')
+        return redirect(url_for('login'))
+
+    # Fetch the lab names and current session information
+    labs = get_lab_names()  
+    current_session = get_total_session(student['idno'])
+
+    # Get the student's reservations
+    reservations = get_reservations_by_student_id(student['idno'])
+
+    return render_template(
+        'client/studentdashboard.html',
+        student=student,
+        pagetitle=pagetitle,
+        labs=labs,
+        idno=student['idno'],
+        current_session=current_session,
+        reservations=reservations 
+    )
+What i want is that when the logged out time is there in student the feedback will be clicked. and the table in history design in i provide you the css. and make sure the sessions. will be socket on and it will work on the student side. and all that i been inputed there should be on socket so that i won't refresh the page cause that's so annoying
