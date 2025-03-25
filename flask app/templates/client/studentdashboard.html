@@ -749,26 +749,28 @@ pre {
             </div>
           </div>
         </div>
+
+
         <div id="history" class="dashboard-section" style="display: none;">
           <h1>History</h1>
           <!-- History Table -->
           <table class="history-table">
-            <thead>
-              <tr>
-                <th>Lab Name</th>
-                <th>Purpose</th>
-                <th>Reservation Date</th>
-                <th>Status</th>
-                <th>Logout Time</th>
-                <th>Feedback Status</th> <!-- New column for feedback status -->
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody id="historyBody">
-              <!-- Reservation history rows will be dynamically populated here -->
-            </tbody>
+              <thead>
+                  <tr>
+                      <th>Lab Name</th>
+                      <th>Purpose</th>
+                      <th>Reservation Date</th>
+                      <th>Status</th>
+                      <th>Logout Time</th>
+                      <th>Feedback Status</th>
+                      <th>Action</th>
+                  </tr>
+              </thead>
+              <tbody id="historyBody">
+                  <!-- Reservation history rows will be dynamically populated here -->
+              </tbody>
           </table>
-        </div>
+      </div>
 
      <!-- Reservation Section -->
     <div id="reservations" class="dashboard-section">
@@ -1980,61 +1982,99 @@ document.addEventListener("DOMContentLoaded", function () {
     statusFilter.addEventListener("change", applyFilter);
 });
 
+// Listen for reservation updates
+socket.on('reservation_updated', function(data) {
+    // Update the specific reservation row
+    const row = document.querySelector(`tr[data-reservation-id="${data.reservation_id}"]`);
+    if (row) {
+        // Update status and logout time
+        row.querySelector('.status').textContent = data.status;
+        row.querySelector('.logout-time').textContent = data.logout_time;
+        
+        // Enable feedback button if applicable
+        const feedbackBtn = row.querySelector('.submit-feedback-btn');
+        if (feedbackBtn && data.feedback_available) {
+            feedbackBtn.disabled = false;
+            feedbackBtn.style.backgroundColor = '';
+            feedbackBtn.style.cursor = '';
+        }
+    } else {
+        // If row not found, refresh the whole table
+        fetchReservationHistory();
+    }
+    
+    // Show notification to student
+    Swal.fire({
+        title: 'Reservation Updated',
+        text: 'Your lab session has been logged out',
+        icon: 'info'
+    });
+});
+// Modified fetchReservationHistory with socket integration
 function fetchReservationHistory() {
-  fetch('/get_reservation_history')
-    .then(response => {
-      if (!response.ok) throw new Error('Network response was not ok');
-      return response.json();
-    })
-    .then(data => {
-      if (data.success) {
-        const historyBody = document.getElementById('historyBody');
-        historyBody.innerHTML = '';
+    fetch('/get_reservation_history')
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                updateHistoryTable(data.data);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching reservation history:', error);
+            alert('Error loading reservation history');
+        });
+}
 
-        data.data.forEach(reservation => {
-          const row = document.createElement('tr');
-          row.setAttribute('data-reservation-id', reservation.id);
 
-          // Enable feedback button if logged out OR approved and feedback not submitted
-          const canSubmitFeedback = (
+function updateHistoryTable(reservations) {
+    const historyBody = document.getElementById('historyBody');
+    historyBody.innerHTML = '';
+
+    if (reservations.length === 0) {
+        historyBody.innerHTML = '<tr><td colspan="7" class="no-data">No reservation history found</td></tr>';
+        return;
+    }
+
+    reservations.forEach(reservation => {
+        const canSubmitFeedback = (
             reservation.logout_time &&
             (reservation.status === 'Logged Out' || reservation.status === 'Approved') &&
             !reservation.feedback_submitted
-          );
+        );
 
-          row.innerHTML = `
+        const row = document.createElement('tr');
+        row.setAttribute('data-reservation-id', reservation.id);
+        row.innerHTML = `
             <td>${reservation.lab_name}</td>
             <td>${reservation.purpose}</td>
             <td>${reservation.reservation_date}</td>
-            <td>${reservation.status}</td>
+            <td class="status">${reservation.status}</td>
             <td class="logout-time">${reservation.logout_time || 'N/A'}</td>
             <td>${reservation.feedback_submitted ? '✅' : '❌'}</td>
             <td>
-              <button class="submit-feedback-btn" 
-                data-reservation-id="${reservation.id}"
-                ${canSubmitFeedback ? '' : 'disabled'}
-                style="${canSubmitFeedback ? '' : 'background-color: gray; cursor: not-allowed;'}"
-              >
-                Submit Feedback
-              </button>
+                <button class="submit-feedback-btn" 
+                    data-reservation-id="${reservation.id}"
+                    ${canSubmitFeedback ? '' : 'disabled'}
+                    style="${canSubmitFeedback ? '' : 'background-color: gray; cursor: not-allowed;'}"
+                >
+                    Submit Feedback
+                </button>
             </td>
-          `;
-          historyBody.appendChild(row);
-        });
+        `;
+        historyBody.appendChild(row);
+    });
 
-        // Attach event listeners dynamically
-        document.querySelectorAll('.submit-feedback-btn:not(:disabled)').forEach(button => {
-          button.addEventListener('click', function () {
+    // Attach event listeners to enabled buttons
+    document.querySelectorAll('.submit-feedback-btn:not(:disabled)').forEach(button => {
+        button.addEventListener('click', function() {
             openFeedbackModal(this.getAttribute('data-reservation-id'));
-          });
         });
-      }
-    })
-    .catch(error => {
-      console.error('Error fetching reservation history:', error);
-      alert('Error loading reservation history');
     });
 }
+
 
 // Event delegation for feedback buttons
 document.getElementById('historyBody').addEventListener('click', function (event) {
@@ -2317,5 +2357,48 @@ socket.on('new_sitin', function(reservation) {
     
     tableBody.prepend(newRow);
 });
+
+// Listen for new reservation events on student side
+socket.on(`student_${studentId}_new_reservation`, function(reservation) {
+    // If student is viewing history, update the table
+    if (currentView === 'history') {
+        addReservationToHistory(reservation);
+    }
+    
+    // Show notification
+    Swal.fire({
+        title: 'New Sit-In Created',
+        text: `You have been checked into ${reservation.lab_name}`,
+        icon: 'info',
+        timer: 3000
+    });
+});
+
+function addReservationToHistory(reservation) {
+    const historyBody = document.getElementById('historyBody');
+    const row = document.createElement('tr');
+    row.setAttribute('data-reservation-id', reservation.id);
+
+    row.innerHTML = `
+        <td>${reservation.lab_name}</td>
+        <td>${reservation.purpose}</td>
+        <td>${reservation.reservation_date}</td>
+        <td>${reservation.status}</td>
+        <td>N/A</td>
+        <td>Not Submitted</td>
+        <td>
+            <button class="submit-feedback-btn" disabled style="background-color: gray; cursor: not-allowed;">
+                Submit Feedback
+            </button>
+        </td>
+    `;
+    
+    // Add to the top of the table
+    if (historyBody.firstChild) {
+        historyBody.insertBefore(row, historyBody.firstChild);
+    } else {
+        historyBody.appendChild(row);
+    }
+}
 </script>
 {% endblock %}

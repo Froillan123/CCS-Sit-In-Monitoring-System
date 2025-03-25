@@ -319,66 +319,47 @@ def sit_in_reservation(reservation_id):
         print(f"Error in sit-in reservation for {reservation_id}: {str(e)}")  # Print the exception message
         return jsonify({'success': False, 'message': str(e)})
 
-
 @app.route('/logout-student/<int:reservation_id>', methods=['POST'])
 def logout_student(reservation_id):
+    if 'admin_username' not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
     try:
-        print(f"DEBUG: Initiating logout for reservation ID: {reservation_id}")
+        # Update reservation
+        sql = """
+        UPDATE reservations 
+        SET logout_time = ?, status = 'Logged Out'
+        WHERE id = ? AND status = 'Approved'
+        """
+        params = (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), reservation_id)
+        
+        if not postprocess(sql, params):
+            return jsonify({"success": False, "message": "Failed to log out student"}), 500
 
-        # Fetch the reservation details
-        reservation = get_reservation_by_id(reservation_id)
-        if not reservation:
-            print("DEBUG: Reservation not found")
-            return jsonify({'success': False, 'message': 'Reservation not found'}), 404
-        print(f"DEBUG: Retrieved reservation: {reservation}")
+        # Get the updated reservation
+        updated_reservation = getprocess(
+            "SELECT r.*, l.lab_name FROM reservations r JOIN laboratories l ON r.lab_id = l.id WHERE r.id = ?",
+            (reservation_id,)
+        )[0]
 
-        # Record the logged-out time
-        logout_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        print(f"DEBUG: Logout time recorded: {logout_time}")
-
-        # Get student info
-        student = get_student_by_idno(reservation['student_idno'])
-        if not student:
-            print("DEBUG: Student not found")
-            return jsonify({'success': False, 'message': 'Student not found'}), 404
-        print(f"DEBUG: Retrieved student info: {student}")
-
-        # Update reservation status and logout time
-        if not update_reservation_logout(reservation_id, logout_time):
-            print("DEBUG: Failed to update reservation logout time")
-            return jsonify({'success': False, 'message': 'Failed to update reservation'}), 500
-        print("DEBUG: Logout time updated in reservation")
-
-        # Insert session history without session_number
-        history_result = insert_session_history(
-            student_idno=reservation['student_idno'],
-            login_time=reservation['login_time'],
-            logout_time=logout_time
-        )
-        if not history_result:
-            print("DEBUG: Failed to save session history")
-            return jsonify({'success': False, 'message': 'Failed to save session history'}), 500
-        print("DEBUG: Session history recorded")
-
-        return jsonify({
-            'success': True,
-            'message': 'Student logged out successfully',
-            'reservation': {
-                'id': reservation_id,
-                'student_idno': reservation['student_idno'],
-                'student_name': reservation['student_name'],
-                'lab_name': reservation['lab_name'],
-                'purpose': reservation['purpose'],
-                'reservation_date': reservation['reservation_date'],
-                'login_time': reservation['login_time'],
-                'logout_time': logout_time,
-                'status': 'Logged Out',
-                'sessions_left': student['sessions_left']
-            }
+        # Emit socket events
+        socketio.emit('reservation_updated', {
+            'reservation_id': reservation_id,
+            'logout_time': updated_reservation['logout_time'],
+            'status': updated_reservation['status']
         })
+        
+        # Emit to student's personal channel if they're connected
+        socketio.emit(f'student_{updated_reservation["student_idno"]}_reservation_updated', {
+            'reservation_id': reservation_id,
+            'logout_time': updated_reservation['logout_time'],
+            'status': updated_reservation['status']
+        })
+
+        return jsonify({"success": True, "message": "Student logged out successfully"})
     except Exception as e:
-        print(f"DEBUG: Exception encountered: {str(e)}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        print(f"Error logging out student: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
 
 
 @app.route('/search_students')
@@ -465,18 +446,28 @@ def admin_create_sitin():
         (student_id,)
     )
 
-    # Return the created reservation
+    # Get the full reservation details with lab name
     new_reservation = getprocess(
-        "SELECT * FROM reservations WHERE student_idno = ? ORDER BY id DESC LIMIT 1",
+        """SELECT r.*, l.lab_name 
+           FROM reservations r 
+           JOIN laboratories l ON r.lab_id = l.id 
+           WHERE r.student_idno = ? 
+           ORDER BY r.id DESC LIMIT 1""",
         (student_id,)
     )[0]
+
+    # Add sessions_left to the response
+    new_reservation['sessions_left'] = student['sessions_left'] - 1
+
+    # Emit socket events
+    socketio.emit('new_sitin', new_reservation)  # For admin interface
+    socketio.emit(f'student_{student_id}_new_reservation', new_reservation)  # For student interface
 
     return jsonify({
         "success": True,
         "message": "Sit-in reservation created",
         "reservation": new_reservation
     })
-
 
 
 
@@ -624,6 +615,7 @@ def get_currentsitin():
         FROM reservations r
         JOIN laboratories l ON r.lab_id = l.id
         JOIN students s ON r.student_idno = s.idno
+        WHERE r.status = 'Approved' AND r.logout_time IS NULL
         ORDER BY r.login_time DESC
         """
         reservations = getprocess(sql)
@@ -631,6 +623,32 @@ def get_currentsitin():
         return jsonify({"success": True, "data": reservations})
     except Exception as e:
         print(f"Error fetching reservations: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+
+@app.route('/get_sitin_records')
+def get_sitin_records():
+    if 'admin_username' not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    try:
+        sql = """
+        SELECT r.id, r.student_idno, r.student_name, l.lab_name, r.purpose, 
+               r.reservation_date, r.login_time, r.logout_time, r.status,
+               r.session_number, s.sessions_left,
+               EXISTS(SELECT 1 FROM feedback WHERE reservation_id = r.id) as feedback_submitted
+        FROM reservations r
+        JOIN laboratories l ON r.lab_id = l.id
+        JOIN students s ON r.student_idno = s.idno
+        WHERE r.status = 'Logged Out' OR r.logout_time IS NOT NULL
+        ORDER BY r.login_time DESC
+        """
+        reservations = getprocess(sql)
+        
+        return jsonify({"success": True, "data": reservations})
+    except Exception as e:
+        print(f"Error fetching sit-in records: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
 

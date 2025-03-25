@@ -977,9 +977,11 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchFeedback(); // Fetch feedback data after adjusting rowsPerPage
 });
 
+// Admin Side JavaScript
 document.addEventListener('DOMContentLoaded', function () {
     // Fetch and display current sit-in reservations when the page loads
     fetchAndDisplayCurrentSitIn();
+    fetchAndDisplaySitInRecords();
 
     // Handle logout button clicks using event delegation
     document.addEventListener('click', function (event) {
@@ -989,22 +991,49 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-   // Listen for reservation updates (e.g., logout time)
-    socket.on('reservation_updated', function (data) {
-        const reservationRow = document.querySelector(`tr[data-reservation-id="${data.reservation_id}"]`);
-        if (reservationRow) {
-        const logoutTimeCell = reservationRow.querySelector('.logout-time');
-        const feedbackButton = reservationRow.querySelector('.submit-feedback-btn');
-    
-        if (data.logout_time) {
-            logoutTimeCell.textContent = data.logout_time;
-            feedbackButton.disabled = false;
-            feedbackButton.style.backgroundColor = ''; // Reset button style
-            feedbackButton.style.cursor = ''; // Reset button style
-        }
+    // Listen for new sit-in events
+    socket.on('new_sitin', function(reservation) {
+        // Only add to current sit-in if not logged out
+        if (reservation.status === 'Approved' && !reservation.logout_time) {
+            const tableBody = document.querySelector('#reservations-table tbody');
+            
+            const newRow = document.createElement('tr');
+            newRow.setAttribute('data-reservation-id', reservation.id);
+            
+            newRow.innerHTML = `
+                <td>${reservation.student_idno}</td>
+                <td>${reservation.student_name}</td>
+                <td>${reservation.lab_name}</td>
+                <td>${reservation.purpose}</td>
+                <td>${reservation.reservation_date}</td>
+                <td>${reservation.login_time}</td>
+                <td>N/A</td>
+                <td>Session ${reservation.session_number}</td>
+                <td>${reservation.status}</td>
+                <td>
+                    <button class="logout-btn" data-reservation-id="${reservation.id}">Logout</button>
+                </td>
+            `;
+            
+            tableBody.prepend(newRow);
         }
     });
 
+
+   // Listen for reservation updates (e.g., logout time)
+   socket.on('reservation_updated', function (data) {
+        // Update current sit-in table
+        const currentReservationRow = document.querySelector(`#reservations-table tbody tr[data-reservation-id="${data.reservation_id}"]`);
+        if (currentReservationRow) {
+            currentReservationRow.remove(); // Remove from current sit-in table
+        }
+        
+        // Update records table
+        fetchAndDisplaySitInRecords();
+    });
+
+
+    
     // Socket event listener for reservation approvals
     socket.on('reservation_approved', function (data) {
         const reservationId = data.reservation_id;
@@ -1017,6 +1046,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
+
+
 
 function handleLogout(reservationId) {
     Swal.fire({
@@ -1036,7 +1067,7 @@ function handleLogout(reservationId) {
             .then(data => {
                 if (data.success) {
                     Swal.fire('Success!', data.message, 'success');
-                    fetchAndDisplayCurrentSitIn(); // Refresh the table
+                    // Tables will be updated via socket events
                 } else {
                     Swal.fire('Error!', data.message, 'error');
                 }
@@ -1088,12 +1119,44 @@ function fetchAndDisplayCurrentSitIn() {
                 tableBody.innerHTML = '';
 
                 data.data.forEach(reservation => {
-                    const isLoggedOut = reservation.status === 'Logged Out';
-                    const sessionDisplay = reservation.session_number ? 
-                        `Session ${reservation.session_number}` : 'N/A';
-                    const sessionsLeftDisplay = reservation.sessions_left !== undefined ? 
-                        `${reservation.sessions_left} left` : 'N/A';
+                    const row = document.createElement('tr');
+                    row.setAttribute('data-reservation-id', reservation.id);
+                    row.innerHTML = `
+                        <td>${reservation.student_idno}</td>
+                        <td>${reservation.student_name}</td>
+                        <td>${reservation.lab_name}</td>
+                        <td>${reservation.purpose}</td>
+                        <td>${reservation.reservation_date}</td>
+                        <td>${reservation.login_time}</td>
+                        <td>N/A</td>
+                        <td>Session ${reservation.session_number}</td>
+                        <td>${reservation.status}</td>
+                        <td>
+                            <button class="logout-btn" data-reservation-id="${reservation.id}">Logout</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } else {
+                console.error('Failed to fetch current sit-ins:', data.message);
+                Swal.fire('Error', 'Failed to load current sit-ins', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching current sit-ins:', error);
+            Swal.fire('Error', 'Failed to load current sit-ins', 'error');
+        });
+}
 
+function fetchAndDisplaySitInRecords() {
+    fetch('/get_sitin_records')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const tableBody = document.querySelector('#records-table tbody');
+                tableBody.innerHTML = '';
+
+                data.data.forEach(reservation => {
                     const row = document.createElement('tr');
                     row.setAttribute('data-reservation-id', reservation.id);
                     row.innerHTML = `
@@ -1104,28 +1167,23 @@ function fetchAndDisplayCurrentSitIn() {
                         <td>${reservation.reservation_date}</td>
                         <td>${reservation.login_time}</td>
                         <td>${reservation.logout_time || 'N/A'}</td>
-                        <td>${sessionDisplay}</td>
+                        <td>Session ${reservation.session_number}</td>
                         <td>${reservation.status}</td>
-                        <td>
-                            <button class="logout-btn ${isLoggedOut ? 'disabled-btn' : ''}" 
-                                    data-reservation-id="${reservation.id}"
-                                    ${isLoggedOut ? 'disabled' : ''}>
-                                ${isLoggedOut ? 'Logged Out' : 'Logout'}
-                            </button>
-                        </td>
+                        <td>${reservation.feedback_submitted ? 'Submitted' : 'Not Submitted'}</td>
                     `;
                     tableBody.appendChild(row);
                 });
             } else {
-                console.error('Failed to fetch reservations:', data.message);
-                Swal.fire('Error', 'Failed to load reservations', 'error');
+                console.error('Failed to fetch sit-in records:', data.message);
+                Swal.fire('Error', 'Failed to load sit-in records', 'error');
             }
         })
         .catch(error => {
-            console.error('Error fetching reservations:', error);
-            Swal.fire('Error', 'Failed to load reservations', 'error');
+            console.error('Error fetching sit-in records:', error);
+            Swal.fire('Error', 'Failed to load sit-in records', 'error');
         });
 }
+
 
 socket.on('update_session_count', function (data) {
     if (data.student_idno === studentIdno) {
@@ -1374,29 +1432,71 @@ closeBtn.addEventListener('click', function() {
     });
   }
 
-  // Listen for new sit-in events to update the current sit-in list
+// Listen for new sit-in events to update both admin tables
 socket.on('new_sitin', function(reservation) {
-    // Add the new reservation to the current sit-in table
-    const tableBody = document.querySelector('#reservations-table tbody');
+    // Add to current sit-in table
+    const currentTableBody = document.querySelector('#reservations-table tbody');
+    const newRow = createReservationRow(reservation);
+    currentTableBody.prepend(newRow);
+
+    // If the student is already in records (unlikely but possible), remove them
+    const existingRecord = document.querySelector(`#records-table tbody tr[data-reservation-id="${reservation.id}"]`);
+    if (existingRecord) {
+        existingRecord.remove();
+    }
+});
+
+function createReservationRow(reservation) {
+    const row = document.createElement('tr');
+    row.setAttribute('data-reservation-id', reservation.id);
     
-    const newRow = document.createElement('tr');
-    newRow.setAttribute('data-reservation-id', reservation.id);
-    
-    newRow.innerHTML = `
+    row.innerHTML = `
         <td>${reservation.student_idno}</td>
         <td>${reservation.student_name}</td>
-        <td>${reservation.lab_id}</td>
+        <td>${reservation.lab_name}</td>
         <td>${reservation.purpose}</td>
         <td>${reservation.reservation_date}</td>
         <td>${reservation.login_time}</td>
-        <td class="logout-time">N/A</td>
-        <td class="status">${reservation.status}</td>
-        <td class="sessions-left">${reservation.sessions_left}</td>
+        <td>N/A</td>
+        <td>Session ${reservation.session_number}</td>
+        <td>${reservation.status}</td>
         <td>
             <button class="logout-btn" data-reservation-id="${reservation.id}">Logout</button>
         </td>
     `;
     
-    tableBody.prepend(newRow);
-});
+    return row;
+}
 
+// Student side - handle logout updates
+socket.on(`student_${studentId}_reservation_updated`, function(data) {
+    // Find the reservation in history table
+    const reservationRow = document.querySelector(`#historyBody tr[data-reservation-id="${data.reservation_id}"]`);
+    
+    if (reservationRow) {
+        // Update status and logout time
+        reservationRow.querySelector('td:nth-child(4)').textContent = data.status;
+        reservationRow.querySelector('td:nth-child(5)').textContent = data.logout_time;
+        
+        // Enable feedback button if logged out
+        if (data.status === 'Logged Out') {
+            const feedbackBtn = reservationRow.querySelector('.submit-feedback-btn');
+            feedbackBtn.disabled = false;
+            feedbackBtn.style.backgroundColor = '';
+            feedbackBtn.style.cursor = '';
+        }
+    } else if (currentView === 'history') {
+        // If row not found but we're on history page, refresh
+        fetchReservationHistory();
+    }
+    
+    // Show notification if not on history page
+    if (currentView !== 'history') {
+        Swal.fire({
+            title: 'Session Updated',
+            text: `Your session at ${data.lab_name} has been logged out`,
+            icon: 'info',
+            timer: 3000
+        });
+    }
+});
