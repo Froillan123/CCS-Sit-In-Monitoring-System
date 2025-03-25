@@ -2003,13 +2003,16 @@ socket.on('reservation_updated', function(data) {
         fetchReservationHistory();
     }
     
-    // Show notification to student
     Swal.fire({
-        title: 'Reservation Updated',
-        text: 'Your lab session has been logged out',
-        icon: 'info'
-    });
+    title: 'Reservation Updated',
+    text: 'Your lab session has been logged out',
+    icon: 'info',
+    customClass: {
+        popup: 'swal-default-size',
+    }
+  });
 });
+
 // Modified fetchReservationHistory with socket integration
 function fetchReservationHistory() {
     fetch('/get_reservation_history')

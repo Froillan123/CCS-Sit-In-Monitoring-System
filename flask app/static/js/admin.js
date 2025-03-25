@@ -1020,17 +1020,37 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
 
-   // Listen for reservation updates (e.g., logout time)
-   socket.on('reservation_updated', function (data) {
-        // Update current sit-in table
-        const currentReservationRow = document.querySelector(`#reservations-table tbody tr[data-reservation-id="${data.reservation_id}"]`);
-        if (currentReservationRow) {
-            currentReservationRow.remove(); // Remove from current sit-in table
+    socket.on('reservation_updated', function (data) {
+        const tableBody = document.querySelector('#reservations-table tbody');
+        const row = tableBody.querySelector(`tr[data-reservation-id="${data.reservation_id}"]`);
+    
+        if (row) {
+            row.remove(); // remove student row
         }
-        
-        // Update records table
+    
+        // ✅ Check if table is empty, then show the empty message
+        const hasRows = tableBody.querySelectorAll('tr').length > 0;
+    
+        if (!hasRows) {
+            const emptyRow = document.createElement('tr');
+            emptyRow.innerHTML = `
+                <td colspan="10" style="
+                    text-align: center;
+                    padding: 30px 40px;
+                    color: #888;
+                    font-size: 17px;
+                ">
+                    <i class="fas fa-chair" style="margin-right: 10px; color: #ccc; font-size: 18px;"></i>
+                    No student is currently sitting in.
+                </td>
+            `;
+            tableBody.appendChild(emptyRow);
+        }
+    
+        // Update other tables if needed
         fetchAndDisplaySitInRecords();
     });
+    
 
 
     
@@ -1110,14 +1130,15 @@ document.addEventListener('click', function(event) {
     }
 });
 
+
 function fetchAndDisplayCurrentSitIn() {
     fetch('/get_currentsitin')
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                const tableBody = document.querySelector('#reservations-table tbody');
-                tableBody.innerHTML = '';
+            const tableBody = document.querySelector('#reservations-table tbody');
+            tableBody.innerHTML = '';
 
+            if (data.success && data.data.length > 0) {
                 data.data.forEach(reservation => {
                     const row = document.createElement('tr');
                     row.setAttribute('data-reservation-id', reservation.id);
@@ -1130,7 +1151,7 @@ function fetchAndDisplayCurrentSitIn() {
                         <td>${reservation.login_time}</td>
                         <td>N/A</td>
                         <td>Session ${reservation.session_number}</td>
-                        <td>${reservation.status}</td>
+                        <td class="status">${reservation.status}</td>
                         <td>
                             <button class="logout-btn" data-reservation-id="${reservation.id}">Logout</button>
                         </td>
@@ -1138,8 +1159,21 @@ function fetchAndDisplayCurrentSitIn() {
                     tableBody.appendChild(row);
                 });
             } else {
-                console.error('Failed to fetch current sit-ins:', data.message);
-                Swal.fire('Error', 'Failed to load current sit-ins', 'error');
+                // Display "No student sitting in" row with styling and icon
+                const emptyRow = document.createElement('tr');
+                emptyRow.innerHTML = `
+                    <td colspan="10" style="
+                        text-align: center;
+                        padding: 30px 40px;
+                        color: #888;
+                        font-size: 17px;
+                        transition: all 0.3s ease;
+                    ">
+                        <i class="fas fa-chair" style="margin-right: 10px; color: #ccc; font-size: 18px;"></i>
+                        No student is currently sitting in.
+                    </td>
+                `;
+                tableBody.appendChild(emptyRow);
             }
         })
         .catch(error => {
@@ -1147,6 +1181,37 @@ function fetchAndDisplayCurrentSitIn() {
             Swal.fire('Error', 'Failed to load current sit-ins', 'error');
         });
 }
+
+// Optional: Add new rows in real-time when a new sit-in is approved
+socket.on('new_sitin', function (reservation) {
+    if (reservation.status === 'Approved' && !reservation.logout_time) {
+        const tableBody = document.querySelector('#reservations-table tbody');
+
+        // Remove "no student" row if it exists
+        const emptyRow = tableBody.querySelector('tr td[colspan]');
+        if (emptyRow) {
+            tableBody.innerHTML = '';
+        }
+
+        const newRow = document.createElement('tr');
+        newRow.setAttribute('data-reservation-id', reservation.id);
+        newRow.innerHTML = `
+            <td>${reservation.student_idno}</td>
+            <td>${reservation.student_name}</td>
+            <td>${reservation.lab_name}</td>
+            <td>${reservation.purpose}</td>
+            <td>${reservation.reservation_date}</td>
+            <td>${reservation.login_time}</td>
+            <td class="logout-time">N/A</td>
+            <td>Session ${reservation.session_number}</td>
+            <td class="status">${reservation.status}</td>
+            <td>
+                <button class="logout-btn" data-reservation-id="${reservation.id}">Logout</button>
+            </td>
+        `;
+        tableBody.prepend(newRow);
+    }
+});
 
 function fetchAndDisplaySitInRecords() {
     fetch('/get_sitin_records')
@@ -1167,9 +1232,6 @@ function fetchAndDisplaySitInRecords() {
                         <td>${reservation.reservation_date}</td>
                         <td>${reservation.login_time}</td>
                         <td>${reservation.logout_time || 'N/A'}</td>
-                        <td>Session ${reservation.session_number}</td>
-                        <td>${reservation.status}</td>
-                        <td>${reservation.feedback_submitted ? 'Submitted' : 'Not Submitted'}</td>
                     `;
                     tableBody.appendChild(row);
                 });

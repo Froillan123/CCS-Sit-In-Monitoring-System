@@ -254,6 +254,7 @@
                     <button id="nextStudentPage" onclick="nextPage()" disabled>Next</button>
                 </div>
             </div>
+            
         <!-- Current Sit-In Table -->
         <div id="sit-in" class="page-content" style="display: none;">
             <h2>Current Sit In</h2>
@@ -310,7 +311,6 @@
                                 <th>Reservation Date</th>
                                 <th>Login Time</th>
                                 <th>Logout Time</th>
-                                <th>Session Number</th>
                             </tr>
                         </thead>
                         <tbody id="reservationsTableBody">
@@ -334,9 +334,6 @@
                             <th>Reservation Date</th>
                             <th>Login Time</th>
                             <th>Logout Time</th>
-                            <th>Session</th>
-                            <th>Status</th>
-                            <th>Feedback</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -939,7 +936,6 @@ async function populateReservationsTable() {
                 <td>${formatDate(reservation.reservation_date)}</td>
                 <td>${formatTime(reservation.login_time)}</td>
                 <td>${formatTime(reservation.logout_time)}</td>
-                <td>${reservation.session_number || 'N/A'}</td>
             `;
             tableBody.appendChild(row);
         });
@@ -982,13 +978,13 @@ async function exportToCSV() {
         }
         
         // Create CSV header
-        let csv = 'Student ID,Student Name,Lab,Purpose,Reservation Date,Status,Login Time,Logout Time,Session Number\n';
+        let csv = 'Student ID,Student Name,Lab,Purpose,Reservation Date,Status,Login Time,Logout Time\n';
         
         // Add data rows
         reservations.forEach(reservation => {
             csv += `"${reservation.student_id || ''}","${reservation.student_name || ''}","${reservation.lab_name || ''}",`;
             csv += `"${reservation.purpose || ''}","${formatDate(reservation.reservation_date)}","${reservation.status || ''}",`;
-            csv += `"${formatTime(reservation.login_time)}","${formatTime(reservation.logout_time)}","${reservation.session_number || ''}"\n`;
+            csv += `"${formatTime(reservation.login_time)}","${formatTime(reservation.logout_time)}"`;
         });
         
         // Create download link
@@ -1028,7 +1024,6 @@ async function exportToPDF() {
             'Reservation Date',
             'Login Time',
             'Logout Time',
-            'Session'
         ];
         
         const data = reservations.map(reservation => [
@@ -1039,7 +1034,6 @@ async function exportToPDF() {
             formatDate(reservation.reservation_date),
             formatTime(reservation.login_time),
             formatTime(reservation.logout_time),
-            reservation.session_number || 'N/A'
         ]);
         
         // Add title and date
@@ -1097,7 +1091,6 @@ async function exportToExcel() {
                 formatDate(reservation.reservation_date),
                 formatTime(reservation.login_time),
                 formatTime(reservation.logout_time),
-                reservation.session_number || 'N/A'
             ])
         ];
         
@@ -1151,7 +1144,6 @@ async function printReport() {
                         <th>Reservation Date</th>
                         <th>Login Time</th>
                         <th>Logout Time</th>
-                        <th>Session</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1168,7 +1160,6 @@ async function printReport() {
                     <td>${formatDate(reservation.reservation_date)}</td>
                     <td>${formatTime(reservation.login_time)}</td>
                     <td>${formatTime(reservation.logout_time)}</td>
-                    <td>${reservation.session_number || 'N/A'}</td>
                 </tr>
             `;
         });
