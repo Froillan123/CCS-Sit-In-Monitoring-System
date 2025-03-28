@@ -1117,6 +1117,81 @@ def register():
     return render_template('client/register.html')
 
 
+@app.route('/add_student', methods=['POST'])
+def add_student():
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            
+            # Extract and validate data
+            required_fields = ['idno', 'lastname', 'firstname', 'course', 
+                              'year_level', 'username', 'password', 'repeat_password']
+            
+            if not all(data.get(field) for field in required_fields):
+                return jsonify({
+                    'success': False,
+                    'message': 'All required fields must be filled'
+                })
+
+            if data['password'] != data['repeat_password']:
+                return jsonify({
+                    'success': False,
+                    'message': 'Passwords do not match'
+                })
+
+            # Check for existing student
+            if get_student_by_id(data['idno']):
+                return jsonify({
+                    'success': False,
+                    'message': 'Student ID already exists'
+                })
+            
+            if data.get('email') and get_student_by_email(data['email']):
+                return jsonify({
+                    'success': False,
+                    'message': 'Email already exists'
+                })
+
+            # Prepare student data
+            student_data = {
+                'idno': data['idno'],
+                'lastname': data['lastname'],
+                'firstname': data['firstname'],
+                'midname': data.get('midname', ''),
+                'course': data['course'],
+                'year_level': data['year_level'],
+                'email': data.get('email', ''),
+                'username': data['username'],
+                'password': data['password'],
+                'profile_picture': 'default.png',  # Always set default
+                'sessions_left': 30 # Default sessions
+            }
+
+            # Add to database
+            if add_record('students', **student_data):
+                return jsonify({
+                    'success': True,
+                    'message': 'Student added successfully'
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': 'Failed to add student to database'
+                })
+
+        except Exception as e:
+            print(f"Error adding student: {str(e)}")
+            return jsonify({
+                'success': False,
+                'message': 'An error occurred while adding the student'
+            })
+
+    return jsonify({
+        'success': False,
+        'message': 'Invalid request method'
+    })
+
+
 @app.route('/get_labs', methods=['GET'])
 def get_labs():
     try:

@@ -223,6 +223,9 @@
                     <div class="search-filter">
                         <input type="text" id="studentSearch" placeholder="Search students..." 
                                oninput="loadStudents()" class="search-input">
+                               <button id="addStudentBtn" class="btn-add">
+                                <i class="ri-user-add-line"></i> Add Student
+                            </button>
                         <button id="resetAllSessions" class="btn-reset" onclick="resetAllSessions()">Reset All Sessions</button>
                     </div>
                 </div>
@@ -582,6 +585,114 @@
     </div>
 </div>
 
+<!-- Add Student Modal -->
+<div id="addStudentModal" class="modal-addstudent">
+    <div class="modal-addstudent-content">
+        <span class="modal-addstudent-close">&times;</span>
+        <div class="modal-addstudent-title">Add New Student</div>
+        <div class="modal-addstudent-body">
+            <form id="addStudentForm" class="modal-addstudent-form">
+                <div class="modal-addstudent-details">
+                    <!-- First row: 2 inputs (ID and Last Name) -->
+                    <div class="modal-addstudent-row">
+                        <div class="modal-addstudent-input">
+                            <span class="modal-addstudent-label">Student ID Number</span>
+                            <input type="text" id="modal_idno" name="idno" required>
+                        </div>
+                        
+                        <div class="modal-addstudent-input">
+                            <span class="modal-addstudent-label">Last Name</span>
+                            <input type="text" id="modal_lastname" name="lastname" required>
+                        </div>
+                    </div>
+                    
+                    <!-- Second row: 2 inputs (First Name and Middle Name) -->
+                    <div class="modal-addstudent-row">
+                        <div class="modal-addstudent-input">
+                            <span class="modal-addstudent-label">First Name</span>
+                            <input type="text" id="modal_firstname" name="firstname" required>
+                        </div>
+                        
+                        <div class="modal-addstudent-input">
+                            <span class="modal-addstudent-label">Middle Name</span>
+                            <input type="text" id="modal_midname" name="midname">
+                        </div>
+                    </div>
+                    
+                    <!-- Third row: Course and Year Level -->
+                    <div class="modal-addstudent-row">
+                        <div class="modal-addstudent-input">
+                            <span class="modal-addstudent-label">Course</span>
+                            <select id="modal_course" name="course" required>
+                                <option value="" disabled selected>Select Course</option>
+                                <option value="BSIT">BSIT - Bachelor of Science in Information Technology</option>
+                                <option value="BSCpE">BSCpE - Bachelor of Science in Computer Engineering</option>
+                                <option value="BSBA">BSBA - Bachelor of Science in Business Administration</option>
+                                <option value="BSCS">BSCS - Bachelor of Science in Computer Science</option>
+                                <option value="BSEd">BSEd - Bachelor of Secondary Education</option>
+                                <option value="BSHRM">BSHRM - Bachelor of Science in Hotel & Restaurant Management</option>
+                                <option value="BSN">BSN - Bachelor of Science in Nursing</option>
+                                <option value="BCE">BCE - Bachelor of Civil Engineering</option>
+                                <option value="BCrim">BCrim - Bachelor of Criminology</option>
+                                <option value="BAcc">BAcc - Bachelor of Accountancy</option>                               
+                            </select>
+                        </div>
+                        
+                        <div class="modal-addstudent-input">
+                            <span class="modal-addstudent-label">Year Level</span>
+                            <select id="modal_year_level" name="year_level" required>
+                                <option value="" disabled selected>Select Year Level</option>
+                                <option value="1">1st Year</option>
+                                <option value="2">2nd Year</option>
+                                <option value="3">3rd Year</option>
+                                <option value="4">4th Year</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Fourth row: Email and Username -->
+                    <div class="modal-addstudent-row">
+                        <div class="modal-addstudent-input">
+                            <span class="modal-addstudent-label">Email</span>
+                            <input type="email" id="modal_email" name="email">
+                        </div>
+                        
+                        <div class="modal-addstudent-input">
+                            <span class="modal-addstudent-label">Username</span>
+                            <input type="text" id="modal_username" name="username" required> 
+                        </div>
+                    </div>
+                    
+                    <!-- Fifth row: Password and Repeat Password -->
+                    <div class="modal-addstudent-row">
+                        <div class="modal-addstudent-input">
+                            <span class="modal-addstudent-label">Password</span>
+                            <div class="modal-addstudent-password">
+                                <input type="password" id="modal_password" name="password" required>
+                                <i id="modalPasswordEye" class="ri-eye-off-fill"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="modal-addstudent-input">
+                            <span class="modal-addstudent-label">Repeat Password</span>
+                            <div class="modal-addstudent-password">
+                                <input type="password" id="modal_repeat_password" name="repeat_password" required>
+                                <i id="modalRepeatPasswordEye" class="ri-eye-off-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-addstudent-footer">
+                    <button type="button" class="modal-addstudent-cancel">Cancel</button>
+                    <button type="submit" class="modal-addstudent-submit">
+                        <i class="ri-user-add-line"></i> Add Student
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
     </div>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
@@ -1249,7 +1360,135 @@ function renderStudentTable(students) {
     });
 }
 
-
+document.addEventListener('DOMContentLoaded', function() {
+    // DOM Elements
+    const addStudentBtn = document.getElementById('addStudentBtn');
+    const addStudentModal = document.getElementById('addStudentModal');
+    const closeModalBtn = document.querySelector('.modal-addstudent-close');
+    const cancelBtn = document.querySelector('.modal-addstudent-cancel');
+    const addStudentForm = document.getElementById('addStudentForm');
+    
+    // Modal open/close functions
+    function openAddStudentModal() {
+        addStudentModal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function closeAddStudentModal() {
+        addStudentModal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        addStudentForm.reset();
+    }
+    
+    // Event Listeners
+    addStudentBtn.addEventListener('click', openAddStudentModal);
+    closeModalBtn.addEventListener('click', closeAddStudentModal);
+    cancelBtn.addEventListener('click', closeAddStudentModal);
+    
+    // Password visibility toggle
+    document.getElementById('modalPasswordEye').addEventListener('click', function() {
+        const passwordInput = document.getElementById('modal_password');
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            this.classList.replace('ri-eye-off-fill', 'ri-eye-fill');
+        } else {
+            passwordInput.type = 'password';
+            this.classList.replace('ri-eye-fill', 'ri-eye-off-fill');
+        }
+    });
+    
+    document.getElementById('modalRepeatPasswordEye').addEventListener('click', function() {
+        const passwordInput = document.getElementById('modal_repeat_password');
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            this.classList.replace('ri-eye-off-fill', 'ri-eye-fill');
+        } else {
+            passwordInput.type = 'password';
+            this.classList.replace('ri-eye-fill', 'ri-eye-off-fill');
+        }
+    });
+    
+    // Form submission
+    addStudentForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Get form data
+        const formData = {
+            idno: document.getElementById('modal_idno').value.trim(),
+            lastname: document.getElementById('modal_lastname').value.trim(),
+            firstname: document.getElementById('modal_firstname').value.trim(),
+            midname: document.getElementById('modal_midname').value.trim(),
+            course: document.getElementById('modal_course').value,
+            year_level: document.getElementById('modal_year_level').value,
+            email: document.getElementById('modal_email').value.trim(),
+            username: document.getElementById('modal_username').value.trim(),
+            password: document.getElementById('modal_password').value,
+            repeat_password: document.getElementById('modal_repeat_password').value,
+            profile_picture: 'default.png'
+        };
+        
+        // Show loading state
+        const submitBtn = document.querySelector('.modal-addstudent-submit');
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> Processing...';
+        submitBtn.disabled = true;
+        
+        // Make AJAX request
+        fetch('/add_student', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    title: 'Success!',
+                    text: data.message,
+                    icon: 'success',
+                    confirmButtonColor: 'var(--first-color)',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    closeAddStudentModal();
+                    if (typeof loadStudents === 'function') {
+                        loadStudents();
+                    }
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: data.message,
+                    icon: 'error',
+                    confirmButtonColor: 'var(--first-color)',
+                    confirmButtonText: 'OK'
+                });
+            }
+        })
+        .catch(error => {
+            Swal.fire({
+                title: 'Error!',
+                text: 'An error occurred. Please try again.',
+                icon: 'error',
+                confirmButtonColor: 'var(--first-color)',
+                confirmButtonText: 'OK'
+            });
+            console.error('Error:', error);
+        })
+        .finally(() => {
+            submitBtn.innerHTML = originalBtnText;
+            submitBtn.disabled = false;
+        });
+    });
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', function(event) {
+        if (event.target === addStudentModal) {
+            closeAddStudentModal();
+        }
+    });
+});
     </script>
     <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 </body>
