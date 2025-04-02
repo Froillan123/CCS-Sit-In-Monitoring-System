@@ -491,7 +491,6 @@ def get_all_reservations(search_term='') -> list:
         """
         return getprocess(sql)
     
-
 @app.route('/get_all_reservations')
 def get_all_reservations():
     try:
@@ -501,6 +500,7 @@ def get_all_reservations():
                 r.student_idno as student_id,
                 r.student_name,
                 l.lab_name,
+                l.id as lab_id,  -- Changed from # to proper comment
                 r.purpose,
                 DATE(r.reservation_date) AS reservation_date,
                 r.status,
@@ -528,7 +528,7 @@ def get_all_reservations():
             'reservations': reservations
         })
     except Exception as e:
-        print(f"Error in get_all_reservations: {str(e)}")  # Debugging
+        print(f"Error in get_all_reservations: {str(e)}")
         return jsonify({
             'success': False,
             'message': str(e)
