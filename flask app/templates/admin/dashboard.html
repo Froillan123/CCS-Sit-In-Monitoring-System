@@ -287,15 +287,42 @@
             <div id="sit-in-report" class="page-content" style="display: none;">
                 <div class="report-header"> 
                     <h2>Sit-In Report</h2>
-
-                    <div class="lab-filter">
-                        <select id="labFilter" onchange="filterByLab()">
-                            <option value="all">All Laboratories</option>
-                            {% for lab in labs %}
-                            <option value="{{ lab.id }}">{{ lab.lab_name }}</option>
-                            {% endfor %}
-                        </select>
+                    
+                    <div class="report-filters">
+                        <div class="filter-group">
+                            <label for="labFilter">Laboratory:</label>
+                            <select id="labFilter">
+                                <option value="all">All Laboratories</option>
+                                {% for lab in labs %}
+                                <option value="{{ lab.id }}">{{ lab.lab_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="purposeFilter">Purpose:</label>
+                            <select id="purposeFilter">
+                                <option value="all">All Purposes</option>
+                                <option value="Research">Research</option>
+                                <option value="Meeting">Meeting</option>
+                                <option value="Coding">Coding</option>
+                                <option value="Assignment Work">Assignment Work</option>
+                                <option value="Project Development">Project Development</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group" style="display: none;">
+                            <label for="yearLevelFilter">Year Level:</label>
+                            <select id="yearLevelFilter">
+                                <option value="all">All Year Levels</option>
+                                <option value="1">1st Year</option>
+                                <option value="2">2nd Year</option>
+                                <option value="3">3rd Year</option>
+                                <option value="4">4th Year</option>
+                            </select>
+                        </div>
                     </div>
+                    
                     <div class="export-buttons">
                         <button class="btn btn-export csv">
                             <i class="fas fa-file-csv"></i> CSV
@@ -311,6 +338,7 @@
                         </button>
                     </div>
                 </div>
+                
                 
                 <div class="table-container">
                     <table id="reservationsTable" class="styled-table">
@@ -718,8 +746,13 @@
 let currentStudentPage = 1;
 // Add this global variable to track filtered data
 const studentsPerPage = 10;
-let filteredReservations = [];
 let allReservations = [];
+let filteredReservations = [];
+let currentFilters = {
+    lab: 'all',
+    purpose: 'all',
+    yearLevel: 'all'
+};
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize the page
@@ -1066,11 +1099,15 @@ async function fetchReservations() {
         throw error;
     }
 }
-
-// New function to render the table with given data
+// Render the filtered data to the table
 function renderReservationsTable(reservations) {
-    const tableBody = document.getElementById('reservationsTableBody');
-    tableBody.innerHTML = '';
+    const tbody = document.getElementById('reservationsTableBody');
+    tbody.innerHTML = '';
+    
+    if (reservations.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="no-data">No matching reservations found</td></tr>';
+        return;
+    }
     
     reservations.forEach(reservation => {
         const row = document.createElement('tr');
@@ -1083,9 +1120,10 @@ function renderReservationsTable(reservations) {
             <td>${formatTime(reservation.login_time)}</td>
             <td>${formatTime(reservation.logout_time)}</td>
         `;
-        tableBody.appendChild(row);
+        tbody.appendChild(row);
     });
 }
+
 async function populateReservationsTable() {
     const tableBody = document.getElementById('reservationsTableBody');
     
@@ -1116,31 +1154,95 @@ async function populateReservationsTable() {
     }
 }
 
-// Helper function to format date
+// Helper functions for date/time formatting
 function formatDate(dateString) {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString();
 }
 
-// Helper function to format time
 function formatTime(timeString) {
     if (!timeString) return 'N/A';
     const time = new Date(`1970-01-01T${timeString}Z`);
     return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
-// Fixed CSV export
+
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Set up event listeners for filters
+    document.getElementById('labFilter').addEventListener('change', applyFilters);
+    document.getElementById('purposeFilter').addEventListener('change', applyFilters);
+    document.getElementById('yearLevelFilter').addEventListener('change', applyFilters);
+    
+    // Set up export buttons
+    document.querySelector('.btn-export.csv').addEventListener('click', exportToCSV);
+    document.querySelector('.btn-export.pdf').addEventListener('click', exportToPDF);
+    document.querySelector('.btn-export.excel').addEventListener('click', exportToExcel);
+    document.querySelector('.btn-export.print').addEventListener('click', printReport);
+    
+    // Load initial data
+    loadReservations();
+});
+
+
+// Load reservations data
+async function loadReservations() {
+    try {
+        const response = await fetch('/get_all_reservations');
+        if (!response.ok) throw new Error('Failed to fetch reservations');
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Failed to load data');
+        
+        allReservations = data.reservations;
+        applyFilters(); // Apply default filters
+        
+    } catch (error) {
+        console.error('Error loading reservations:', error);
+        alert('Failed to load reservations: ' + error.message);
+    }
+}
+
+
+// Apply all active filters
+function applyFilters() {
+    // Get current filter values
+    currentFilters = {
+        lab: document.getElementById('labFilter').value,
+        purpose: document.getElementById('purposeFilter').value,
+        yearLevel: document.getElementById('yearLevelFilter').value
+    };
+    
+    // Apply filters
+    filteredReservations = allReservations.filter(reservation => {
+        // Lab filter
+        if (currentFilters.lab !== 'all' && String(reservation.lab_id) !== currentFilters.lab) {
+            return false;
+        }
+        
+        // Purpose filter
+        if (currentFilters.purpose !== 'all' && reservation.purpose !== currentFilters.purpose) {
+            return false;
+        }
+        
+        // Year level filter (assuming year_level is available in reservation data)
+        if (currentFilters.yearLevel !== 'all' && 
+            reservation.student_year_level && 
+            String(reservation.student_year_level) !== currentFilters.yearLevel) {
+            return false;
+        }
+        
+        return true;
+    });
+    
+    renderReservationsTable(filteredReservations);
+}
+// Export functions that respect current filters
 async function exportToCSV() {
     try {
-        const labFilter = document.getElementById('labFilter');
-        const selectedLabId = labFilter.value;
-        const selectedLabName = selectedLabId === 'all' ? 'All Laboratories' : labFilter.options[labFilter.selectedIndex].text;
-        
-        const reservations = filteredReservations.length ? filteredReservations : 
-                           (allReservations.length ? allReservations : await fetchReservations());
-        
-        if (reservations.length === 0) {
-            Swal.fire('No Data', 'There are no reservations to export', 'info');
+        if (filteredReservations.length === 0) {
+            alert('No data to export');
             return;
         }
         
@@ -1148,7 +1250,7 @@ async function exportToCSV() {
         let csv = 'Student ID,Student Name,Lab,Purpose,Reservation Date,Login Time,Logout Time\n';
         
         // Add data rows
-        reservations.forEach(reservation => {
+        filteredReservations.forEach(reservation => {
             csv += `"${reservation.student_id || ''}","${reservation.student_name || ''}","${reservation.lab_name || ''}",`;
             csv += `"${reservation.purpose || ''}","${formatDate(reservation.reservation_date)}",`;
             csv += `"${formatTime(reservation.login_time)}","${formatTime(reservation.logout_time)}"\n`;
@@ -1159,80 +1261,63 @@ async function exportToCSV() {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        
-        // Custom filename
-        let filename = `sit-in-report_${new Date().toISOString().slice(0, 10)}`;
-        if (selectedLabId !== 'all') {
-            filename += `_${selectedLabName.replace(/\s+/g, '-')}`;
-        }
-        filename += '.csv';
-        
-        link.download = filename;
+        link.download = generateExportFilename('csv');
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        
     } catch (error) {
-        console.error('Error:', error);
-        Swal.fire('Error', 'Failed to export to CSV: ' + error.message, 'error');
+        console.error('Error exporting to CSV:', error);
+        alert('Failed to export to CSV: ' + error.message);
     }
 }
 
-// Fixed PDF export
 async function exportToPDF() {
     try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        
-        const labFilter = document.getElementById('labFilter');
-        const selectedLabId = labFilter.value;
-        const selectedLabName = selectedLabId === 'all' ? 'All Laboratories' : labFilter.options[labFilter.selectedIndex].text;
-        
-        const reservations = filteredReservations.length ? filteredReservations : 
-                           (allReservations.length ? allReservations : await fetchReservations());
-        
-        if (reservations.length === 0) {
-            Swal.fire('No Data', 'There are no reservations to export', 'info');
+        if (filteredReservations.length === 0) {
+            alert('No data to export');
             return;
         }
         
-        // Prepare data for PDF
-        const headers = [
-            'Student ID',
-            'Student Name',
-            'Lab',
-            'Purpose',
-            'Reservation Date',
-            'Login Time',
-            'Logout Time',
-        ];
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
         
-        const data = reservations.map(reservation => [
+        // Add title and filters info
+        doc.setFontSize(16);
+        doc.text('Sit-In Report', 14, 15);
+        
+        doc.setFontSize(10);
+        let filtersText = 'Filters: ';
+        if (currentFilters.lab !== 'all') filtersText += `Lab: ${document.getElementById('labFilter').selectedOptions[0].text}, `;
+        if (currentFilters.purpose !== 'all') filtersText += `Purpose: ${currentFilters.purpose}, `;
+        if (currentFilters.yearLevel !== 'all') filtersText += `Year Level: ${currentFilters.yearLevel}, `;
+        
+        if (filtersText === 'Filters: ') {
+            filtersText = 'All Data';
+        } else {
+            filtersText = filtersText.slice(0, -2); // Remove last comma and space
+        }
+        
+        doc.text(filtersText, 14, 22);
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+        
+        // Prepare table data
+        const headers = ['Student ID', 'Name', 'Lab', 'Purpose', 'Date', 'Login', 'Logout'];
+        const data = filteredReservations.map(reservation => [
             reservation.student_id || 'N/A',
             reservation.student_name || 'N/A',
             reservation.lab_name || 'N/A',
             reservation.purpose || 'N/A',
             formatDate(reservation.reservation_date),
             formatTime(reservation.login_time),
-            formatTime(reservation.logout_time),
+            formatTime(reservation.logout_time)
         ]);
-        
-        // Add title and date
-        doc.setFontSize(16);
-        
-        let reportTitle = 'Sit-In Report';
-        if (selectedLabId !== 'all') {
-            reportTitle += ` - ${selectedLabName}`;
-        }
-        
-        doc.text(reportTitle, 14, 15);
-        doc.setFontSize(10);
-        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 22);
         
         // Add table
         doc.autoTable({
             head: [headers],
             body: data,
-            startY: 30,
+            startY: 35,
             styles: {
                 fontSize: 8,
                 cellPadding: 2,
@@ -1242,45 +1327,29 @@ async function exportToPDF() {
                 fillColor: [41, 128, 185],
                 textColor: 255,
                 fontStyle: 'bold'
-            },
-            alternateRowStyles: {
-                fillColor: [245, 245, 245]
             }
         });
         
         // Save the PDF
-        let filename = `sit-in-report_${new Date().toISOString().slice(0, 10)}`;
-        if (selectedLabId !== 'all') {
-            filename += `_${selectedLabName.replace(/\s+/g, '-')}`;
-        }
-        filename += '.pdf';
+        doc.save(generateExportFilename('pdf'));
         
-        doc.save(filename);
     } catch (error) {
-        console.error('Error:', error);
-        Swal.fire('Error', 'Failed to export to PDF: ' + error.message, 'error');
+        console.error('Error exporting to PDF:', error);
+        alert('Failed to export to PDF: ' + error.message);
     }
 }
 
-// Fixed Excel export
 async function exportToExcel() {
     try {
-        const labFilter = document.getElementById('labFilter');
-        const selectedLabId = labFilter.value;
-        const selectedLabName = selectedLabId === 'all' ? 'All Laboratories' : labFilter.options[labFilter.selectedIndex].text;
-        
-        const reservations = filteredReservations.length ? filteredReservations : 
-                           (allReservations.length ? allReservations : await fetchReservations());
-        
-        if (reservations.length === 0) {
-            Swal.fire('No Data', 'There are no reservations to export', 'info');
+        if (filteredReservations.length === 0) {
+            alert('No data to export');
             return;
         }
         
-        // Prepare data for Excel
+        // Prepare data
         const data = [
             ['Student ID', 'Student Name', 'Lab', 'Purpose', 'Reservation Date', 'Login Time', 'Logout Time'],
-            ...reservations.map(reservation => [
+            ...filteredReservations.map(reservation => [
                 reservation.student_id || 'N/A',
                 reservation.student_name || 'N/A',
                 reservation.lab_name || 'N/A',
@@ -1299,31 +1368,17 @@ async function exportToExcel() {
         XLSX.utils.book_append_sheet(wb, ws, 'Sit-In Report');
         
         // Generate Excel file
-        let filename = `sit-in-report_${new Date().toISOString().slice(0, 10)}`;
-        if (selectedLabId !== 'all') {
-            filename += `_${selectedLabName.replace(/\s+/g, '-')}`;
-        }
-        filename += '.xlsx';
+        XLSX.writeFile(wb, generateExportFilename('xlsx'));
         
-        XLSX.writeFile(wb, filename);
     } catch (error) {
-        console.error('Error:', error);
-        Swal.fire('Error', 'Failed to export to Excel: ' + error.message, 'error');
+        console.error('Error exporting to Excel:', error);
+        alert('Failed to export to Excel: ' + error.message);
     }
 }
-
-// Fixed print function
-async function printReport() {
+function printReport() {
     try {
-        const labFilter = document.getElementById('labFilter');
-        const selectedLabId = labFilter.value;
-        const selectedLabName = selectedLabId === 'all' ? 'All Laboratories' : labFilter.options[labFilter.selectedIndex].text;
-        
-        const reservations = filteredReservations.length ? filteredReservations : 
-                           (allReservations.length ? allReservations : await fetchReservations());
-        
-        if (reservations.length === 0) {
-            Swal.fire('No Data', 'There are no reservations to print', 'info');
+        if (filteredReservations.length === 0) {
+            alert('No data to print');
             return;
         }
         
@@ -1332,17 +1387,18 @@ async function printReport() {
             <style>
                 body { font-family: Arial, sans-serif; margin: 20px; }
                 h1 { color: #2980b9; margin-bottom: 5px; }
-                h2 { color: #555; margin-top: 0; font-size: 18px; }
+                .filters { margin-bottom: 15px; font-size: 14px; color: #555; }
                 table { width: 100%; border-collapse: collapse; margin-top: 20px; }
                 th { background-color: #2980b9; color: white; text-align: left; padding: 8px; }
                 td { padding: 8px; border-bottom: 1px solid #ddd; }
-                .header { margin-bottom: 20px; }
                 .footer { margin-top: 20px; font-size: 12px; color: #777; }
             </style>
             <div class="header">
                 <h1>Sit-In Report</h1>
-                ${selectedLabId !== 'all' ? `<h2>Laboratory: ${selectedLabName}</h2>` : ''}
-                <div class="footer">Generated on: ${new Date().toLocaleString()}</div>
+                <div class="filters">
+                    <strong>Filters:</strong> 
+                    ${getActiveFiltersText()}
+                </div>
             </div>
             <table>
                 <thead>
@@ -1360,7 +1416,7 @@ async function printReport() {
         `;
         
         // Add rows
-        reservations.forEach(reservation => {
+        filteredReservations.forEach(reservation => {
             printContent += `
                 <tr>
                     <td>${reservation.student_id || 'N/A'}</td>
@@ -1377,6 +1433,9 @@ async function printReport() {
         printContent += `
                 </tbody>
             </table>
+            <div class="footer">
+                Generated on: ${new Date().toLocaleString()}
+            </div>
         `;
         
         // Open print window
@@ -1389,11 +1448,59 @@ async function printReport() {
             printWindow.print();
             printWindow.close();
         }, 500);
+        
     } catch (error) {
-        console.error('Error:', error);
-        Swal.fire('Error', 'Failed to print report: ' + error.message, 'error');
+        console.error('Error printing report:', error);
+        alert('Failed to print report: ' + error.message);
     }
 }
+
+// Helper function to generate export filename with filters
+function generateExportFilename(extension) {
+    let filename = `sit-in-report_${new Date().toISOString().slice(0, 10)}`;
+    
+    // Add lab filter if applied
+    if (currentFilters.lab !== 'all') {
+        const labName = document.getElementById('labFilter').selectedOptions[0].text.replace(/\s+/g, '-');
+        filename += `_${labName}`;
+    }
+    
+    // Add purpose filter if applied
+    if (currentFilters.purpose !== 'all') {
+        filename += `_${currentFilters.purpose.replace(/\s+/g, '-')}`;
+    }
+    
+    // Add year level filter if applied
+    if (currentFilters.yearLevel !== 'all') {
+        filename += `_Y${currentFilters.yearLevel}`;
+    }
+    
+    return `${filename}.${extension}`;
+}
+
+// Helper function to get active filters text
+function getActiveFiltersText() {
+    let filtersText = '';
+    
+    if (currentFilters.lab !== 'all') {
+        filtersText += `Lab: ${document.getElementById('labFilter').selectedOptions[0].text}, `;
+    }
+    
+    if (currentFilters.purpose !== 'all') {
+        filtersText += `Purpose: ${currentFilters.purpose}, `;
+    }
+    
+    if (currentFilters.yearLevel !== 'all') {
+        filtersText += `Year Level: ${currentFilters.yearLevel}, `;
+    }
+    
+    if (filtersText === '') {
+        return 'All Data';
+    }
+    
+    return filtersText.slice(0, -2); // Remove last comma and space
+}
+
 
 // Student list functions (from your original code)
 async function loadStudents() {

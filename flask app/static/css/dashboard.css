@@ -1989,3 +1989,28 @@ tr[data-foul-language="true"] {
     background-color: white;
     font-family: 'Poppins', sans-serif;
 }
+
+.report-filters {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filter-group label {
+    font-weight: 500;
+    color: var(--text-gray);
+}
+
+.filter-group select {
+    padding: 0.5rem;
+    border: 1px solid var(--medium-gray);
+    border-radius: 4px;
+    min-width: 150px;
+}
