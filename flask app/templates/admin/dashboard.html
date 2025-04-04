@@ -223,9 +223,9 @@
                     <div class="search-filter">
                         <input type="text" id="studentSearch" placeholder="Search students..." 
                                oninput="loadStudents()" class="search-input">
-                               <button id="addStudentBtn" class="btn-add">
-                                <i class="ri-user-add-line"></i> Add Student
-                            </button>
+                        <button id="addStudentBtn" class="btn-add">
+                            <i class="ri-user-add-line"></i> Add Student
+                        </button>
                         <button id="resetAllSessions" class="btn-reset" onclick="resetAllSessions()">Reset All Sessions</button>
                     </div>
                 </div>
@@ -303,11 +303,18 @@
                             <label for="purposeFilter">Purpose:</label>
                             <select id="purposeFilter">
                                 <option value="all">All Purposes</option>
-                                <option value="Research">Research</option>
-                                <option value="Meeting">Meeting</option>
-                                <option value="Coding">Coding</option>
-                                <option value="Assignment Work">Assignment Work</option>
-                                <option value="Project Development">Project Development</option>
+                                <option value="Java Programming">Java Programming</option>
+                                <option value="C# Programming">C# Programming</option>
+                                <option value="Systems Integration & Architecture">Systems Integration & Architecture</option>
+                                <option value="Embedded Systems & IoT">Embedded Systems & IoT</option>
+                                <option value="Digital Logic & Design">Digital Logic & Design</option>
+                                <option value="Computer Application">Computer Application</option>
+                                <option value="Database">Database</option>
+                                <option value="Project Management">Project Management</option>
+                                <option value="Python Programming">Python Programming</option>
+                                <option value="Mobile Application">Mobile Application</option>
+                                <option value="Web Design">Web Design</option>
+                                <option value="PHP Programming">PHP Programming</option>
                             </select>
                         </div>
                         
@@ -552,11 +559,19 @@
             <label for="purposeSelect">Purpose:</label>
             <select id="purposeSelect" required>
                 <option value="" disabled selected>-- Select Purpose --</option>
-                <option value="Research">Research</option>
-                <option value="Meeting">Meeting</option>
-                <option value="Coding">Coding</option>
-                <option value="Assignment Work">Assignment Work</option>
-                <option value="Project Development">Project Development</option>
+                <option value="all">All Purposes</option>
+                <option value="Java Programming">Java Programming</option>
+                <option value="C# Programming">C# Programming</option>
+                <option value="Systems Integration & Architecture">Systems Integration & Architecture</option>
+                <option value="Embedded Systems & IoT">Embedded Systems & IoT</option>
+                <option value="Digital Logic & Design">Digital Logic & Design</option>
+                <option value="Computer Application">Computer Application</option>
+                <option value="Database">Database</option>
+                <option value="Project Management">Project Management</option>
+                <option value="Python Programming">Python Programming</option>
+                <option value="Mobile Application">Mobile Application</option>
+                <option value="Web Design">Web Design</option>
+                <option value="PHP Programming">PHP Programming</option>
             </select>
           </div>
           
@@ -1238,7 +1253,7 @@ function applyFilters() {
     
     renderReservationsTable(filteredReservations);
 }
-// Export functions that respect current filters
+// Updated exportToCSV function without filters
 async function exportToCSV() {
     try {
         if (filteredReservations.length === 0) {
@@ -1246,8 +1261,9 @@ async function exportToCSV() {
             return;
         }
         
-        // Create CSV header
-        let csv = 'Student ID,Student Name,Lab,Purpose,Reservation Date,Login Time,Logout Time\n';
+        // Create CSV content with header (removed filters info)
+        let csv = 'University of Cebu Main College of Computer Studies Computer Laboratory Sit-in Monitoring System Report\n\n';
+        csv += 'Student ID,Student Name,Lab,Purpose,Reservation Date,Login Time,Logout Time\n';
         
         // Add data rows
         filteredReservations.forEach(reservation => {
@@ -1261,7 +1277,7 @@ async function exportToCSV() {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = generateExportFilename('csv');
+        link.download = `sit-in-report_${new Date().toISOString().slice(0, 10)}.csv`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -1272,6 +1288,7 @@ async function exportToCSV() {
     }
 }
 
+// Updated exportToPDF function without filters
 async function exportToPDF() {
     try {
         if (filteredReservations.length === 0) {
@@ -1282,24 +1299,16 @@ async function exportToPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         
-        // Add title and filters info
-        doc.setFontSize(16);
-        doc.text('Sit-In Report', 14, 15);
+        // Add university header (simplified without filters)
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.text('University of Cebu Main', 14, 10);
+        doc.text('College of Computer Studies', 14, 16);
+        doc.text('Computer Laboratory Sit-in Monitoring System Report', 14, 22);
         
+        // Add generation date only
         doc.setFontSize(10);
-        let filtersText = 'Filters: ';
-        if (currentFilters.lab !== 'all') filtersText += `Lab: ${document.getElementById('labFilter').selectedOptions[0].text}, `;
-        if (currentFilters.purpose !== 'all') filtersText += `Purpose: ${currentFilters.purpose}, `;
-        if (currentFilters.yearLevel !== 'all') filtersText += `Year Level: ${currentFilters.yearLevel}, `;
-        
-        if (filtersText === 'Filters: ') {
-            filtersText = 'All Data';
-        } else {
-            filtersText = filtersText.slice(0, -2); // Remove last comma and space
-        }
-        
-        doc.text(filtersText, 14, 22);
-        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
         
         // Prepare table data
         const headers = ['Student ID', 'Name', 'Lab', 'Purpose', 'Date', 'Login', 'Logout'];
@@ -1317,7 +1326,7 @@ async function exportToPDF() {
         doc.autoTable({
             head: [headers],
             body: data,
-            startY: 35,
+            startY: 40, // Adjusted start position
             styles: {
                 fontSize: 8,
                 cellPadding: 2,
@@ -1331,7 +1340,7 @@ async function exportToPDF() {
         });
         
         // Save the PDF
-        doc.save(generateExportFilename('pdf'));
+        doc.save(`sit-in-report_${new Date().toISOString().slice(0, 10)}.pdf`);
         
     } catch (error) {
         console.error('Error exporting to PDF:', error);
@@ -1339,6 +1348,7 @@ async function exportToPDF() {
     }
 }
 
+// Updated exportToExcel function without filters
 async function exportToExcel() {
     try {
         if (filteredReservations.length === 0) {
@@ -1346,8 +1356,10 @@ async function exportToExcel() {
             return;
         }
         
-        // Prepare data
+        // Prepare data with header (simplified)
         const data = [
+            ['University of Cebu Main College of Computer Studies Computer Laboratory Sit-in Monitoring System Report'],
+            [''],
             ['Student ID', 'Student Name', 'Lab', 'Purpose', 'Reservation Date', 'Login Time', 'Logout Time'],
             ...filteredReservations.map(reservation => [
                 reservation.student_id || 'N/A',
@@ -1363,18 +1375,23 @@ async function exportToExcel() {
         // Create worksheet
         const ws = XLSX.utils.aoa_to_sheet(data);
         
+        // Merge header cells
+        if (!ws['!merges']) ws['!merges'] = [];
+        ws['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } });
+        
         // Create workbook
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Sit-In Report');
         
         // Generate Excel file
-        XLSX.writeFile(wb, generateExportFilename('xlsx'));
+        XLSX.writeFile(wb, `sit-in-report_${new Date().toISOString().slice(0, 10)}.xlsx`);
         
     } catch (error) {
         console.error('Error exporting to Excel:', error);
         alert('Failed to export to Excel: ' + error.message);
     }
 }
+// Updated printReport function without filters
 function printReport() {
     try {
         if (filteredReservations.length === 0) {
@@ -1382,23 +1399,22 @@ function printReport() {
             return;
         }
         
-        // Create print window content
+        // Create print window content (simplified)
         let printContent = `
             <style>
                 body { font-family: Arial, sans-serif; margin: 20px; }
-                h1 { color: #2980b9; margin-bottom: 5px; }
-                .filters { margin-bottom: 15px; font-size: 14px; color: #555; }
+                .header { text-align: center; margin-bottom: 15px; }
+                .university-header { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+                .report-title { font-size: 14px; margin-bottom: 15px; }
                 table { width: 100%; border-collapse: collapse; margin-top: 20px; }
                 th { background-color: #2980b9; color: white; text-align: left; padding: 8px; }
                 td { padding: 8px; border-bottom: 1px solid #ddd; }
-                .footer { margin-top: 20px; font-size: 12px; color: #777; }
+                .footer { margin-top: 20px; font-size: 12px; color: #777; text-align: center; }
             </style>
             <div class="header">
-                <h1>Sit-In Report</h1>
-                <div class="filters">
-                    <strong>Filters:</strong> 
-                    ${getActiveFiltersText()}
-                </div>
+                <div class="university-header">University of Cebu Main</div>
+                <div class="university-header">College of Computer Studies</div>
+                <div class="report-title">Computer Laboratory Sit-in Monitoring System Report</div>
             </div>
             <table>
                 <thead>
@@ -1536,7 +1552,6 @@ async function loadStudents() {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center error">Failed to load students</td></tr>';
     }
 }
-
 function renderStudentTable(students) {
     const tbody = document.getElementById('studentTableBody');
     tbody.innerHTML = '';
@@ -1555,13 +1570,53 @@ function renderStudentTable(students) {
             <td>${student.year_level}</td>
             <td>${student.sessions_left}</td>
             <td class="actions">
-                <button class="btn-edit" onclick="editStudent(${student.id})">Edit</button>
-                <button class="btn-delete" onclick="deleteStudent(${student.id})">Delete</button>
+                <button class="btn-edit" onclick="editStudent(${student.id})">
+                    <i class="ri-edit-line"></i> Edit
+                </button>
+                <button class="btn-reset" onclick="resetStudentSessions('${student.id}')">
+                    <i class="ri-refresh-line"></i> Reset
+                </button>
+                <button class="btn-delete" onclick="deleteStudent(${student.id})">
+                    <i class="ri-delete-bin-line"></i> Delete
+                </button>
             </td>
         `;
         tbody.appendChild(tr);
     });
 }
+
+
+function resetStudentSessions(studentId) {
+    Swal.fire({
+        title: 'Reset Student Sessions?',
+        text: 'This will reset the student\'s sessions to the default value (usually 30).',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, reset it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/api/students/${studentId}/reset-sessions`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccess(data.message);
+                    loadStudents(); // Refresh the student list
+                } else {
+                    showError(data.message);
+                }
+            })
+            .catch(error => {
+                showError('Failed to reset sessions');
+                console.error('Error:', error);
+            });
+        }
+    });
+}
+
 
 document.addEventListener('DOMContentLoaded', function() {
     // DOM Elements

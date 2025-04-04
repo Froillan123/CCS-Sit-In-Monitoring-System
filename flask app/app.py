@@ -325,18 +325,38 @@ def logout_student(reservation_id):
         return jsonify({"success": False, "message": "Unauthorized"}), 401
 
     try:
-        # Update reservation
+        # Get the current reservation details first
+        reservation = get_reservation_by_id(reservation_id)
+        if not reservation:
+            return jsonify({"success": False, "message": "Reservation not found"}), 404
+
+        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Update reservation with logout time and status
         sql = """
         UPDATE reservations 
         SET logout_time = ?, status = 'Logged Out'
         WHERE id = ? AND status = 'Approved'
         """
-        params = (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), reservation_id)
+        params = (current_time, reservation_id)
         
         if not postprocess(sql, params):
             return jsonify({"success": False, "message": "Failed to log out student"}), 500
 
-        # Get the updated reservation
+        # Calculate duration in seconds
+        login_time = datetime.strptime(reservation['login_time'], '%Y-%m-%d %H:%M:%S')
+        logout_time = datetime.strptime(current_time, '%Y-%m-%d %H:%M:%S')
+        duration_seconds = int((logout_time - login_time).total_seconds())
+
+        # Record in session history - now passing all parameters correctly
+        insert_session_history(
+            student_idno=reservation['student_idno'],
+            login_time=reservation['login_time'],
+            logout_time=current_time,
+            duration=duration_seconds
+        )
+
+        # Get the updated reservation with lab name
         updated_reservation = getprocess(
             "SELECT r.*, l.lab_name FROM reservations r JOIN laboratories l ON r.lab_id = l.id WHERE r.id = ?",
             (reservation_id,)
@@ -349,7 +369,6 @@ def logout_student(reservation_id):
             'status': updated_reservation['status']
         })
         
-        # Emit to student's personal channel if they're connected
         socketio.emit(f'student_{updated_reservation["student_idno"]}_reservation_updated', {
             'reservation_id': reservation_id,
             'logout_time': updated_reservation['logout_time'],
@@ -357,6 +376,7 @@ def logout_student(reservation_id):
         })
 
         return jsonify({"success": True, "message": "Student logged out successfully"})
+
     except Exception as e:
         print(f"Error logging out student: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
@@ -395,6 +415,44 @@ def search_students():
     return jsonify({"success": True, "data": student_list})
 
 
+@app.route('/api/students/<int:student_id>/reset-sessions', methods=['POST'])
+def reset_student_sessions(student_id):
+    try:
+        # Fetch the student from the database using the helper
+        sql = "SELECT * FROM students WHERE id = ?"
+        student = getprocess(sql, (student_id,))
+
+        if not student:
+            return jsonify({
+                'success': False,
+                'message': 'Student not found'
+            }), 404
+
+        student = student[0]  # Get the first (and only) record
+
+        DEFAULT_SESSIONS = 30  # Or get this from config
+
+        # Update student sessions using the helper
+        update_sql = "UPDATE students SET sessions_left = ? WHERE id = ?"
+        postprocess(update_sql, (DEFAULT_SESSIONS, student_id))
+
+        # Notify the student if they're online
+        socketio.emit('update_session_count', {
+            'student_idno': student['idno'],
+            'sessions_left': DEFAULT_SESSIONS
+        }, room=student['idno'])
+
+        return jsonify({
+            'success': True,
+            'message': f'Sessions reset to {DEFAULT_SESSIONS} for student {student["idno"]}'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error resetting sessions: {str(e)}'
+        }), 500
+
+        
 @app.route('/admin_create_sitin', methods=['POST'])
 def admin_create_sitin():
     if 'admin_username' not in session:

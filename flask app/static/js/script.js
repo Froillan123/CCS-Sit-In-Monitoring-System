@@ -214,7 +214,6 @@ window.addEventListener('resize', updateChartForSmallScreens);
 // Initial check for screen size
 updateChartForSmallScreens();
 
-
 async function fetchActivityBreakdown() {
     try {
         console.log("Fetching activity breakdown data...");
@@ -225,8 +224,22 @@ async function fetchActivityBreakdown() {
         const data = await response.json();
         console.log("Received data:", data);
 
-        // Define default activities and count from database
-        const activityLabels = ["Research", "Meeting", "Coding", "Assignment Work", "Project Development"];
+        // Define activities from the provided option values
+        const activityLabels = [
+            "Java Programming",
+            "C# Programming",
+            "Systems Integration & Architecture",
+            "Embedded Systems & IoT",
+            "Digital Logic & Design",
+            "Computer Application",
+            "Database",
+            "Project Management",
+            "Python Programming",
+            "Mobile Application",
+            "Web Design",
+            "PHP Programming"
+        ];
+        
         const activityCounts = activityLabels.map(label => data[label] || 0); // Default to 0 if missing
 
         // Check if all counts are zero
@@ -266,11 +279,18 @@ async function fetchActivityBreakdown() {
                     datasets: [{
                         data: activityCounts,
                         backgroundColor: [
-                            '#3498db', // Blue for Research
-                            '#9b59b6', // Purple for Meetings
-                            '#e74c3c', // Red for Coding
-                            '#f1c40f', // Yellow for Assignment Work
-                            '#e67e22'  // Orange for Project Development
+                            '#3498db', // Blue
+                            '#9b59b6', // Purple
+                            '#e74c3c', // Red
+                            '#f1c40f', // Yellow
+                            '#e67e22', // Orange
+                            '#1abc9c', // Turquoise
+                            '#2ecc71', // Green
+                            '#34495e', // Dark blue
+                            '#d35400', // Pumpkin
+                            '#7f8c8d', // Gray
+                            '#16a085', // Green sea
+                            '#c0392b'  // Dark red
                         ],
                         borderColor: '#fff',
                         borderWidth: 2,

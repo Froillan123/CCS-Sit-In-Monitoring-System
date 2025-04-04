@@ -263,22 +263,20 @@ def update_student_sessions(student_idno, sessions_left):
     return postprocess(sql, (sessions_left, student_idno))
 
 
-def insert_session_history(student_idno, login_time, logout_time):
-    """Insert a record into session history without session number"""
+def insert_session_history(student_idno, login_time, logout_time, duration=None):
+    """Insert a record into session history with optional duration"""
     print(f"DEBUG: Inserting session history for student {student_idno}")
-
-    # Calculate duration if both times are available
-    duration = None
-    if login_time and logout_time:
+    
+    # If duration not provided, calculate it
+    if duration is None and login_time and logout_time:
         try:
             login = datetime.strptime(login_time, '%Y-%m-%d %H:%M:%S')
             logout = datetime.strptime(logout_time, '%Y-%m-%d %H:%M:%S')
             duration = str(logout - login)
         except ValueError as e:
             print(f"Duration calculation error: {e}")
-            pass
+            duration = None
 
-    # SQL without session_number
     sql = """
     INSERT INTO session_history 
     (student_idno, login_time, logout_time, duration)
@@ -290,7 +288,6 @@ def insert_session_history(student_idno, login_time, logout_time):
     result = postprocess(sql, params)
     print(f"Insert result: {result}")
     return result
-
 
 
 def increment_daily_sitin(student_idno):
@@ -314,6 +311,8 @@ def increment_daily_sitin(student_idno):
             "INSERT INTO daily_sitins (program, sitin_date, count) VALUES (?, ?, 1)",
             (program, today)
         )
+
+
 
 def get_todays_sitin_counts():
     today = datetime.now().strftime('%Y-%m-%d')
@@ -371,9 +370,6 @@ def update_reservation_logout(reservation_id, logout_time):
         print(f"Error updating reservation logout time: {e}")
         return False
 
-def insert_session_history(student_idno, login_time, logout_time):
-    sql = "INSERT INTO session_history (student_idno, login_time, logout_time) VALUES (?, ?, ?)"
-    return postprocess(sql, (student_idno, login_time, logout_time))
 
 def update_student_sessions(student_idno, sessions_left):
     sql = "UPDATE students SET sessions_left = ? WHERE idno = ?"
@@ -393,9 +389,16 @@ def create_reservation(student_idno: str, student_name: str, lab_id: str,
 
 def get_student_session_history(student_idno: str, limit: int = 30) -> list:
     sql = """
-        SELECT * FROM session_history
+        SELECT 
+            id,
+            student_idno,
+            login_time,
+            logout_time,
+            duration,
+            strftime('%H:%M:%S', datetime(duration, 'unixepoch')) as formatted_duration
+        FROM session_history
         WHERE student_idno = ?
-        ORDER BY id 
+        ORDER BY login_time DESC
         LIMIT ?
     """
     return getprocess(sql, (student_idno, limit))
