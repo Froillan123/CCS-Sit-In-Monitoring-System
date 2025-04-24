@@ -39,13 +39,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const menuBtn = document.getElementById('menu-btn');
     const closeBtn = document.getElementById('close-btn');
 
-    menuBtn.addEventListener('click', () => {
-        sideMenu.style.display = 'block';
-    });
+    if (menuBtn && sideMenu) {
+        menuBtn.addEventListener('click', () => {
+            sideMenu.style.display = 'block';
+        });
+    }
 
-    closeBtn.addEventListener('click', () => {
-        sideMenu.style.display = 'none';
-    });
+    if (closeBtn && sideMenu) {
+        closeBtn.addEventListener('click', () => {
+            sideMenu.style.display = 'none';
+        });
+    }
 
     const passwordAccess = (passwordFieldId, eyeIconId) => {
       const input = document.getElementById(passwordFieldId);
@@ -188,31 +192,33 @@ const config = {
 };
 
 // Render the chart
-const labUsageChart = new Chart(
-  document.getElementById('labUsageChart'),
-  config
-);
+const labUsageChartElement = document.getElementById('labUsageChart');
+let labUsageChart;
 
-// Adjust chart for smaller screens
-const updateChartForSmallScreens = () => {
-  const isSmallScreen = window.innerWidth <= 980;
+if (labUsageChartElement) {
+  labUsageChart = new Chart(labUsageChartElement, config);
+  
+  // Adjust chart for smaller screens
+  const updateChartForSmallScreens = () => {
+    const isSmallScreen = window.innerWidth <= 980;
 
-  if (isSmallScreen) {
+    if (isSmallScreen) {
       labUsageChart.options.scales.x.display = false; // Hide x-axis labels
       labUsageChart.options.scales.y.title.display = false; // Hide y-axis title
-  } else {
+    } else {
       labUsageChart.options.scales.x.display = true; // Show x-axis labels
       labUsageChart.options.scales.y.title.display = true; // Show y-axis title
-  }
+    }
 
-  labUsageChart.update(); // Update the chart
-};
+    labUsageChart.update(); // Update the chart
+  };
 
-// Add event listener for window resize
-window.addEventListener('resize', updateChartForSmallScreens);
+  // Add event listener for window resize
+  window.addEventListener('resize', updateChartForSmallScreens);
 
-// Initial check for screen size
-updateChartForSmallScreens();
+  // Initial check for screen size
+  updateChartForSmallScreens();
+}
 
 async function fetchActivityBreakdown() {
     try {

@@ -1,5 +1,5 @@
- /* Root Variables */
- :root {
+/* Root Variables */
+:root {
     --first-color: hsl(273, 77%, 65%);
     --second-color: hsl(273, 77%, 75%);
     --dark-color: hsl(273, 30%, 15%);
@@ -186,6 +186,75 @@ aside .logo {
 aside .sidebar {
     flex-grow: 1; /* Pushes logout button to bottom */
     padding: 1rem;
+    overflow-y: auto; /* Enable vertical scrolling */
+    scrollbar-width: thin; /* For Firefox */
+    scrollbar-color: var(--first-color) var(--sidebar-bg); /* For Firefox */
+    position: relative; /* For fade effect positioning */
+    max-height: calc(100vh - 210px); /* Limit height to prevent affecting admin section */
+}
+
+/* Fade effect at the bottom to indicate scrollability */
+aside .sidebar::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 30px;
+    background: linear-gradient(to top, var(--sidebar-bg) 0%, transparent 100%);
+    pointer-events: none; /* Allows clicking through the fade */
+    opacity: 0; /* Hidden by default */
+    transition: opacity 0.3s ease;
+}
+
+/* Show fade effect only when content is scrollable */
+aside .sidebar.scrollable::after {
+    opacity: 1;
+}
+
+/* Custom scrollbar for sidebar content - dashboard to analytics only */
+aside .sidebar::-webkit-scrollbar {
+    width: 6px; /* Thin scrollbar */
+    display: none; /* Hide by default */
+}
+
+/* Only show scrollbar on hover if content is scrollable */
+aside .sidebar.scrollable:hover::-webkit-scrollbar {
+    display: block; /* Show on hover when content is scrollable */
+}
+
+aside .sidebar::-webkit-scrollbar-track {
+    background: var(--sidebar-bg); /* Match sidebar background */
+    border-radius: 3px; /* Smaller border radius for the track */
+}
+
+aside .sidebar::-webkit-scrollbar-thumb {
+    background-color: var(--first-color); /* Thumb color */
+    border-radius: 3px; /* Rounded corners for the thumb */
+    border: none; /* No border around the thumb */
+}
+
+aside .sidebar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--second-color); /* Lighter color on hover */
+}
+
+/* Target only dashboard to analytics sections */
+aside .sidebar a[data-page="dashboard"],
+aside .sidebar a[data-page="sit-in"],
+aside .sidebar a[data-page="sit-in-report"],
+aside .sidebar a[data-page="records"],
+aside .sidebar a[data-page="announcements"],
+aside .sidebar a[data-page="feedback"],
+aside .sidebar a[data-page="statistics"],
+aside .sidebar a[data-page="daily-analytics"] {
+    /* Ensure these links are visible with scrollbar */
+    display: flex;
+}
+
+/* Hide scrollbar for admin section links (any link with admin in the data-page) */
+aside .sidebar a[data-page*="admin"] {
+    /* Special handling for admin links if needed */
+    scroll-margin-top: 2rem; /* Ensures admin sections have margin when scrolled to */
 }
 
 aside .sidebar a {
@@ -1241,146 +1310,98 @@ margin-right: 0.5rem;
 }
 
 
-/* Search Student Modal */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-  }
-  
-  .modal-content {
-    margin: 5% auto;
-    padding: 20px;
-    border-radius: 8px;
-    width: 90%;
-    max-width: 600px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    position: relative;
-  }
-  
-  .close-modal {
-    position: absolute;
-    top: 10px;
-    right: 20px;
-    font-size: 28px;
-    font-weight: bold;
-    color: #aaa;
-    cursor: pointer;
-  }
-  
-  .close-modal:hover {
-    color: #333;
-  }
-  
-  .search-container {
-    position: relative;
-    margin-bottom: 20px;
-  }
-  
-  #studentSearchInput {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 16px;
-  }
-  
-  .search-results {
-    display: none;
-    position: absolute;
-    width: 100%;
-    max-height: 300px;
-    overflow-y: auto;
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    z-index: 10;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  .search-result-item {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
-    color: #000;
-  }
-  
-  .search-result-item:hover {
-    background-color: #f5f5f5;
-  }
-  
-  .no-results, .error {
-    padding: 10px;
-    color: #666;
-  }
-  
-  .student-info {
-    background: #f9f9f9;
-    padding: 15px;
-    border-radius: 4px;
-    margin-bottom: 20px;
-    color: #000;
-  }
-  
-  .form-group {
-    margin-bottom: 15px;
-  }
-  
-  .form-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 500;
-  }
-  
-  .form-group select {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-  }
-  
-  .submit-btn {
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 16px;
-    width: 100%;
-  }
-  
-  .submit-btn:hover {
-    background-color: #45a049;
-  }
-  
-  .submit-btn:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-  }
-  
-  .spinner {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-radius: 50%;
-    border-top-color: #fff;
-    animation: spin 1s ease-in-out infinite;
-    margin-right: 8px;
-  }
-  
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
+/* Updated Search Student Modal Styles */
+#studentSearchInput {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #2c3e50;
+  font-size: 16px;
+  background-color: #1a2530;
+  color: #ffffff;
+  transition: all 0.3s ease;
+}
 
+#studentSearchInput:focus {
+  border-color: var(--first-color);
+  box-shadow: 0 0 8px rgba(138, 43, 226, 0.5);
+  outline: none;
+}
 
-  .disabled-btn {
+.search-results {
+  display: none;
+  position: absolute;
+  width: 100%;
+  max-height: 300px;
+  overflow-y: auto;
+  background: #2c3e50;
+  border: 1px solid #1a2530;
+  border-radius: 4px;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  margin-top: 2px;
+}
+
+.search-result-item {
+  padding: 12px 15px;
+  border-bottom: 1px solid #34495e;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  color: #ecf0f1;
+}
+
+.search-result-item:hover {
+  background-color: var(--first-color);
+  color: white;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.searching, .no-results, .error {
+  padding: 15px;
+  text-align: center;
+  color: #ecf0f1;
+}
+
+.searching {
+  font-style: italic;
+}
+
+.error {
+  color: #e74c3c;
+}
+
+#selectedStudentInfo {
+  background: #2c3e50;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  border: 1px solid #34495e;
+  animation: fadeIn 0.3s ease;
+  color: #ecf0f1;
+}
+
+#selectedStudentInfo h3 {
+  color: #ecf0f1;
+  font-size: 18px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #34495e;
+  padding-bottom: 8px;
+}
+
+.student-info p {
+  margin: 8px 0;
+  color: var(--sidebar-bg);
+}
+
+.student-info strong {
+  font-weight: 600;
+  color: var(--sidebar-bg);
+}
+
+.disabled-btn {
     background-color: #cccccc !important;
     color: #666666 !important;
     cursor: not-allowed !important;
@@ -2013,5 +2034,421 @@ tr[data-foul-language="true"] {
     border: 1px solid var(--medium-gray);
     border-radius: 4px;
     min-width: 150px;
+}
+
+.student-info {
+  background: #f5f5f5;
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  color: #000;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.form-group select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.submit-btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  width: 100%;
+}
+
+.submit-btn:hover {
+  background-color: #45a049;
+}
+
+.submit-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Hide chart on dashboard */
+#dashboard .charts {
+  display: none !important;
+}
+
+/* Style the search student modal with dark theme */
+#searchStudentModal {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+#searchStudentModal .modal-content {
+  background-color: #2c3e50;
+  color: #ecf0f1;
+  border: 1px solid #34495e;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+}
+
+#searchStudentModal h2 {
+  color: #ecf0f1;
+  border-bottom: 1px solid #34495e;
+  padding-bottom: 10px;
+}
+
+#searchStudentModal .close-modal {
+  color: #ecf0f1;
+}
+
+#searchStudentModal .close-modal:hover {
+  color: var(--first-color);
+}
+
+#searchStudentModal .submit-btn {
+  background-color: var(--first-color);
+  color: white;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+#searchStudentModal .submit-btn:hover {
+  background-color: #7c35de;
+  transform: translateY(-2px);
+}
+
+/* Lab Resources Styles */
+.resource-upload-section,
+.resources-list-section {
+    background-color: var(--sidebar-bg);
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    margin-bottom: 2rem;
+    box-shadow: var(--box-shadow);
+}
+
+.resource-upload-section {
+    text-align: right;
+}
+
+.btn-resource-action {
+    background-color: var(--first-color);
+    color: var(--white-color);
+    border: none;
+    padding: 1rem 1.5rem;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    font-size: 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.btn-resource-action:hover {
+    background-color: var(--second-color);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+}
+
+.resources-list-section h3 {
+    color: var(--first-color);
+    margin-bottom: 1.5rem;
+    font-size: 1.4rem;
+    border-bottom: 2px solid var(--first-color);
+    padding-bottom: 0.5rem;
+    display: inline-block;
+}
+
+.btn-resource-submit {
+    background-color: var(--first-color);
+    color: var(--white-color);
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 1rem;
+}
+
+.btn-resource-submit:hover {
+    background-color: var(--second-color);
+}
+
+.btn-resource-cancel {
+    background-color: #6c757d;
+    color: var(--white-color);
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 1rem;
+    margin-right: 1rem;
+}
+
+.btn-resource-cancel:hover {
+    background-color: #5a6268;
+}
+
+.resource-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
+.resources-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.resources-table th,
+.resources-table td {
+    padding: 1.2rem;
+    text-align: left;
+    border-bottom: 1px solid var(--sidebar-hover);
+}
+
+.resources-table th {
+    background-color: var(--first-color);
+    color: var(--white-color);
+    position: sticky;
+    top: 0;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+}
+
+.resources-table tbody tr {
+    transition: background-color 0.3s ease;
+}
+
+.resources-table tbody tr:hover {
+    background-color: var(--sidebar-hover);
+}
+
+.resource-actions {
+    display: flex;
+    gap: 0.8rem;
+}
+
+.resource-link-btn,
+.resource-delete-btn {
+    padding: 0.6rem 1rem;
+    border-radius: var(--border-radius);
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.resource-link-btn {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.resource-link-btn:hover {
+    background-color: #3e8e41;
+    transform: translateY(-2px);
+}
+
+.resource-delete-btn {
+    background-color: #f44336;
+    color: white;
+}
+
+.resource-delete-btn:hover {
+    background-color: #d32f2f;
+    transform: translateY(-2px);
+}
+
+/* Resource Upload Modal */
+.resource-upload-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    overflow-y: auto;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.resource-modal-content {
+    background-color: var(--dark-color);
+    margin: 5% auto;
+    width: 600px;
+    max-width: 90%;
+    border-radius: 15px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    animation: modalSlideDown 0.4s ease-out;
+    border: 1px solid var(--sidebar-hover);
+}
+
+@keyframes modalSlideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.resource-modal-header {
+    background-color: var(--first-color);
+    color: white;
+    padding: 1.5rem;
+    position: relative;
+}
+
+.resource-modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.resource-modal-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    font-size: 1.8rem;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.resource-modal-close:hover {
+    color: #f8f9fa;
+    transform: rotate(90deg);
+}
+
+.resource-modal-body {
+    padding: 1.5rem;
+}
+
+.resource-modal-body .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.resource-modal-body .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--sidebar-text);
+}
+
+.resource-modal-body .form-group input,
+.resource-modal-body .form-group textarea {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid var(--sidebar-hover);
+    border-radius: 0.5rem;
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    font-size: 1rem;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.resource-modal-body .form-group input:focus,
+.resource-modal-body .form-group textarea:focus {
+    border-color: var(--first-color);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.2);
+}
+
+.resource-modal-body .form-group textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+/* Responsive design for resources section */
+@media (max-width: 768px) {
+    .resources-table th,
+    .resources-table td {
+        padding: 1rem;
+    }
+    
+    .btn-resource-submit,
+    .btn-resource-cancel {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .resource-form-actions {
+        flex-direction: column;
+    }
+    
+    .btn-resource-cancel {
+        margin-right: 0;
+        margin-bottom: 1rem;
+        order: 2;
+    }
+    
+    .btn-resource-submit {
+        order: 1;
+        margin-bottom: 1rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .resources-table {
+        display: block;
+        overflow-x: auto;
+    }
+    
+    .resource-modal-content {
+        width: 95%;
+    }
 }
 

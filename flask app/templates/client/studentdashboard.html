@@ -411,6 +411,47 @@ pre {
         height: 2rem;
     }
 }
+
+.points-card {
+    background-color: var(--background-color);
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.points-history-card {
+    background-color: var(--background-color);
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    background-color: var(--first-color);
+    color: white;
+    padding: 15px 20px;
+}
+
+.card-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.card-body {
+    padding: 20px;
+}
+
+
+
+.positive {
+    color: green;
+    font-weight: bold;
+}
+
+.negative {
+    color: red;
+    font-weight: bold;
+}
 </style>
       <!-- Dashboard Container -->
           <div class="dashboard-wrapper">
@@ -437,6 +478,11 @@ pre {
                 <a href="#" data-section="history"><i class="fas fa-history"></i><span>History</span></a>
                 <a href="#" data-section="reservations"><i class="fas fa-calendar-alt"></i><span>Reservations</span></a>
                 <a href="#" data-section="sessions"><i class="fas fa-eye"></i><span>View Session</span></a>
+                <a href="#" data-section="lab-resources">
+                    <i class="fas fa-folder-open"></i>
+                    <span>Lab Resources</span>
+                </a>
+
               </div>
 
               <div class="log-out-small-size">
@@ -772,6 +818,8 @@ pre {
           </table>
       </div>
 
+
+
      <!-- Reservation Section -->
     <div id="reservations" class="dashboard-section">
       <div class="view-reservations-button" style="display: none;">
@@ -876,119 +924,203 @@ pre {
               <button id="next-page" disabled>Next</button>
             </div>
           </div>
-
-
-
         </div>
 
-        <div class="chat-icon" onclick="toggleChat()">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="24" height="24">
-              <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
-          </svg>
+
+          <div id="lab-resources" class="dashboard-section" style="display: none;">
+            <h1>Lab Resources</h1>
+            <div class="resources-container">
+              <div class="section-header">
+                <h3>Browse Lab Resources</h3>
+                <p>Access valuable materials shared by your instructors and lab administrators.</p>
+              </div>
+              
+              <div class="resources-grid">
+                <!-- Resources will be dynamically loaded here -->
+                <div class="resources-loading">
+                  <div class="spinner"></div>
+                  <span>Loading resources...</span>
+                </div>
+              </div>
+              
+              <div class="no-resources-message">
+                <i class="fas fa-book"></i>
+                <h3>No Resources Available</h3>
+                <p>Your lab administrators haven't uploaded any resources yet. Check back later!</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resource Modal (This will only be shown when clicking on a resource) -->
+          <div class="resource-modal" style="display: none;">
+            <div class="resource-modal-content">
+              <div class="resource-modal-header">
+                <h2 class="resource-title"></h2>
+                <span class="resource-modal-close">&times;</span>
+              </div>
+              <div class="resource-modal-body">
+                <p class="resource-description"></p>
+                <div class="resource-modal-details">
+                  <div>
+                    <span class="meta-label">Uploaded:</span>
+                    <span class="resource-date"></span>
+                  </div>
+                  <div>
+                    <span class="meta-label">By:</span>
+                    <span class="resource-uploader"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="resource-modal-actions">
+                <a href="#" target="_blank" class="resource-view-btn">
+                  <i class="fas fa-external-link-alt"></i> Open Resource
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-icon" onclick="toggleChat()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="24" height="24">
+                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+            </svg>
+        </div>
+
+    
+
+
+        <div class="chat-modal" id="chatModal">
+          <div class="chat-modal-header">
+            <h3><i class="fas fa-robot bot-icon"></i>CCS BOT</h3>
+              <span class="close-btn" onclick="toggleChat()">
+                <i class="fas fa-times" style="font-size: 2rem;"></i>
+              </span>
+          </div>
+          <div class="chat-modal-body">
+              <div class="chat-messages" id="chatMessages">
+                  <!-- Chat messages will appear here -->
+              </div>
+              <div class="chat-input">
+                  <input type="text" placeholder="Type a message..." id="chatInput" onkeypress="handleKeyPress(event)">
+                  <button onclick="sendMessage()">Send</button>
+              </div>
+          </div>
       </div>
 
-
-      <div class="chat-modal" id="chatModal">
-        <div class="chat-modal-header">
-          <h3><i class="fas fa-robot bot-icon"></i>CCS BOT</h3>
-            <span class="close-btn" onclick="toggleChat()">
-              <i class="fas fa-times" style="font-size: 2rem;"></i>
-            </span>
+      <div id="feedbackModal" class="feedback-modal">
+        <div class="feedback-modal-overlay"></div>
+        <div class="feedback-modal-content">
+          <span class="feedback-modal-close">&times;</span>
+          <h2>Submit Feedback</h2>
+          <form id="feedbackForm">
+            <input type="hidden" id="reservationId">
+            <div class="feedback-form-group">
+              <label for="feedbackText">Your Feedback</label>
+              <textarea id="feedbackText" placeholder="Write your feedback here..." required></textarea>
+            </div>
+            <div class="feedback-form-group">
+              <label>Rating</label>
+              <div class="feedback-star-rating">
+                <span class="feedback-star" data-value="1">&#9733;</span>
+                <span class="feedback-star" data-value="2">&#9733;</span>
+                <span class="feedback-star" data-value="3">&#9733;</span>
+                <span class="feedback-star" data-value="4">&#9733;</span>
+                <span class="feedback-star" data-value="5">&#9733;</span>
+              </div>
+              <input type="hidden" id="rating" name="rating" required>
+            </div>
+            <button type="submit" class="feedback-submit-btn">Submit Feedback</button>
+          </form>
         </div>
-        <div class="chat-modal-body">
-            <div class="chat-messages" id="chatMessages">
-                <!-- Chat messages will appear here -->
-            </div>
-            <div class="chat-input">
-                <input type="text" placeholder="Type a message..." id="chatInput" onkeypress="handleKeyPress(event)">
-                <button onclick="sendMessage()">Send</button>
-            </div>
-        </div>
-    </div>
-    <div id="feedbackModal" class="feedback-modal">
-      <div class="feedback-modal-overlay"></div>
-      <div class="feedback-modal-content">
-        <span class="feedback-modal-close">&times;</span>
-        <h2>Submit Feedback</h2>
-        <form id="feedbackForm">
-          <input type="hidden" id="reservationId">
-          <div class="feedback-form-group">
-            <label for="feedbackText">Your Feedback</label>
-            <textarea id="feedbackText" placeholder="Write your feedback here..." required></textarea>
-          </div>
-          <div class="feedback-form-group">
-            <label>Rating</label>
-            <div class="feedback-star-rating">
-              <span class="feedback-star" data-value="1">&#9733;</span>
-              <span class="feedback-star" data-value="2">&#9733;</span>
-              <span class="feedback-star" data-value="3">&#9733;</span>
-              <span class="feedback-star" data-value="4">&#9733;</span>
-              <span class="feedback-star" data-value="5">&#9733;</span>
-            </div>
-            <input type="hidden" id="rating" name="rating" required>
-          </div>
-          <button type="submit" class="feedback-submit-btn">Submit Feedback</button>
-        </form>
       </div>
-    </div>
 
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
 <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='client/js/studentpoints.js') }}"></script>
+<script src="{{ url_for('static', filename='js/student.js') }}"></script>
 <script>
 
+// Define current student ID for the points system and resource editing
+const currentStudentId = "{{ session.student_idno }}";
+const currentUserId = "{{ session.user_id }}";
 
-const socketURL =
-        window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? 'http://localhost:5000' // Local WebSocket URL
-            : 'https://ccs-sit-in-monitoring-system.onrender.com'; // Render WebSocket URL
+// Socket.io setup with better error handling
+let socket;
+try {
+    const socketURL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:5000' // Local WebSocket URL
+        : 'https://ccs-sit-in-monitoring-system.onrender.com'; // Render WebSocket URL
 
-    const socket = io(socketURL, {
-        transports: ['websocket'],
-        upgrade: false,
+    socket = io(socketURL, {
+        transports: ['websocket', 'polling'], // Fallback to polling if websocket fails
+        upgrade: true,
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
+        timeout: 5000
     });
+    
+    socket.on('connect', function() {
+        console.log('WebSocket connected to', socketURL);
+    });
+    
+    socket.on('disconnect', function() {
+        console.log('WebSocket disconnected');
+    });
+    
+    socket.on('connect_error', function(error) {
+        console.error('WebSocket connection error:', error);
+        // Continue without real-time updates
+    });
+} catch (e) {
+    console.error('Failed to initialize Socket.IO, continuing without real-time updates:', e);
+}
 
-     // Listen for new reservation updates
- socket.on('new_reservation', function (data) {
+// Listen for new reservation updates - with error handling
+if (socket) {
+    socket.on('new_reservation', function(data) {
         // If the reservation belongs to the current student, update the UI
-        if (data.student_idno === session.student_idno) {
+        if (data.student_idno === currentStudentId) {
             const reservationsBody = document.getElementById('reservationsBody');
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${data.student_idno}</td>
-                <td>${data.student_name}</td>
-                <td>${data.lab_id}</td>
-                <td>${data.purpose}</td>
-                <td>${data.reservation_date}</td>
-                <td>${data.logged_in}</td>
-                <td>${data.logged_out}</td>
-                <td>${data.status}</td>
-            `;
-            reservationsBody.appendChild(row);
+            if (reservationsBody) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${data.student_idno}</td>
+                    <td>${data.student_name}</td>
+                    <td>${data.lab_id}</td>
+                    <td>${data.purpose}</td>
+                    <td>${data.reservation_date}</td>
+                    <td>${data.logged_in}</td>
+                    <td>${data.logged_out}</td>
+                    <td>${data.status}</td>
+                `;
+                reservationsBody.appendChild(row);
+            }
         }
     });
 
- // Listen for reservation updates (e.g., logout time)
-socket.on('reservation_updated', function (data) {
-  const reservationRow = document.querySelector(`tr[data-reservation-id="${data.reservation_id}"]`);
-  if (reservationRow) {
-    const logoutTimeCell = reservationRow.querySelector('.logout-time');
-    const feedbackButton = reservationRow.querySelector('.submit-feedback-btn');
+    // Listen for reservation updates (e.g., logout time)
+    socket.on('reservation_updated', function(data) {
+        const reservationRow = document.querySelector(`tr[data-reservation-id="${data.reservation_id}"]`);
+        if (reservationRow) {
+            const logoutTimeCell = reservationRow.querySelector('.logout-time');
+            const feedbackButton = reservationRow.querySelector('.submit-feedback-btn');
 
-    if (data.logout_time && data.status === 'Logged Out') {
-      logoutTimeCell.textContent = data.logout_time;
-      feedbackButton.disabled = false;
-      feedbackButton.style.backgroundColor = ''; // Reset button style
-      feedbackButton.style.cursor = ''; // Reset button style
-    }
-  }
-});
-    
+            if (data.logout_time && data.status === 'Logged Out' && logoutTimeCell) {
+                logoutTimeCell.textContent = data.logout_time;
+                if (feedbackButton) {
+                    feedbackButton.disabled = false;
+                    feedbackButton.style.backgroundColor = ''; // Reset button style
+                    feedbackButton.style.cursor = ''; // Reset button style
+                }
+            }
+        }
+    });
+}
+
+
 document.addEventListener('DOMContentLoaded', function () {
   // Section Toggling Logic
   const links = document.querySelectorAll('.sidebar-links a');
@@ -1000,6 +1132,7 @@ document.addEventListener('DOMContentLoaded', function () {
       section.style.display = section.id === sectionId ? 'block' : 'none';
     });
     localStorage.setItem('activeDashboardSection', sectionId);
+    
   }
 
   // Function to set the active link
@@ -2410,5 +2543,12 @@ function addReservationToHistory(reservation) {
         historyBody.appendChild(row);
     }
 }
+
+
+
+
+
+
+
 </script>
 {% endblock %}

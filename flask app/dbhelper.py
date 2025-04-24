@@ -476,3 +476,141 @@ def update_reservation_logout(reservation_id, logout_time):
     """Update a reservation with logout time and status"""
     sql = "UPDATE reservations SET logout_time = ?, status = 'Logged Out' WHERE id = ?"
     return postprocess(sql, (logout_time, reservation_id))
+
+# Function to create the student points tables if they don't exist
+def create_points_tables():
+    db = connect(database)
+    cursor = db.cursor()
+    try:
+        # Create student_points table if it doesn't exist
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS student_points (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_idno TEXT NOT NULL,
+            points INTEGER NOT NULL DEFAULT 0,
+            last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (student_idno) REFERENCES students(idno) ON DELETE CASCADE
+        )
+        ''')
+        
+        # Create points_history table if it doesn't exist
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS points_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_idno TEXT NOT NULL,
+            points_change INTEGER NOT NULL,
+            reason TEXT NOT NULL,
+            awarded_by TEXT NOT NULL,
+            awarded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (student_idno) REFERENCES students(idno) ON DELETE CASCADE
+        )
+        ''')
+        
+        db.commit()
+        return True
+    except Exception as e:
+        print(f"Error creating points tables: {e}")
+        return False
+    finally:
+        cursor.close()
+        db.close()
+
+# Function to add points to a student
+def add_points_to_student(student_idno, points, reason, awarded_by):
+    # First, check if student has a points record
+    current_points = getprocess(
+        "SELECT points FROM student_points WHERE student_idno = ?", 
+        (student_idno,)
+    )
+    
+    if not current_points:
+        # Create new record
+        postprocess(
+            "INSERT INTO student_points (student_idno, points) VALUES (?, ?)",
+            (student_idno, points)
+        )
+        new_points = points
+    else:
+        # Update existing record
+        new_points = current_points[0]['points'] + points
+        postprocess(
+            "UPDATE student_points SET points = ?, last_updated = CURRENT_TIMESTAMP WHERE student_idno = ?",
+            (new_points, student_idno)
+        )
+    
+    # Add to points history
+    postprocess(
+        """INSERT INTO points_history 
+        (student_idno, points_change, reason, awarded_by) 
+        VALUES (?, ?, ?, ?)""",
+        (student_idno, points, reason, awarded_by)
+    )
+    
+    return new_points
+
+# Function to convert points to sessions (3 points = 1 session)
+def convert_points_to_sessions(student_idno):
+    # Get current points
+    current_points_result = getprocess(
+        "SELECT points FROM student_points WHERE student_idno = ?", 
+        (student_idno,)
+    )
+    
+    if not current_points_result:
+        return 0, 0
+    
+    current_points = current_points_result[0]['points']
+    sessions_to_add = current_points // 3
+    
+    # Key change: Don't reset/update points at all - keep points accumulating
+    # Only add the sessions if points are sufficient
+    if sessions_to_add > 0:
+        # Add sessions to student
+        postprocess(
+            "UPDATE students SET sessions_left = sessions_left + ? WHERE idno = ?",
+            (sessions_to_add, student_idno)
+        )
+        
+        # Add record to points history for the conversion
+        postprocess(
+            """INSERT INTO points_history 
+            (student_idno, points_change, reason, awarded_by) 
+            VALUES (?, ?, ?, ?)""",
+            (student_idno, -sessions_to_add * 3, "Converted to sessions", "system")
+        )
+        
+        # Now subtract the points that were used for conversion
+        new_points = current_points - (sessions_to_add * 3)
+        postprocess(
+            "UPDATE student_points SET points = ?, last_updated = CURRENT_TIMESTAMP WHERE student_idno = ?",
+            (new_points, student_idno)
+        )
+        
+        return sessions_to_add, new_points
+    
+    return 0, current_points
+
+# Function to get student points leaderboard
+def get_points_leaderboard(limit=10):
+    sql = """
+    SELECT 
+        s.idno as student_idno,
+        s.firstname || ' ' || s.lastname as student_name,
+        s.course,
+        s.year_level,
+        COALESCE(sp.points, 0) as total_points
+    FROM students s
+    LEFT JOIN student_points sp ON s.idno = sp.student_idno
+    ORDER BY total_points DESC, s.lastname, s.firstname
+    LIMIT ?
+    """
+    return getprocess(sql, (limit,))
+
+# Function to check if a student has been awarded points for a reservation
+def has_points_for_reservation(student_idno, reservation_id):
+    sql = """
+    SELECT 1 FROM reservations 
+    WHERE id = ? AND student_idno = ? AND points_awarded = 1
+    """
+    result = getprocess(sql, (reservation_id, student_idno))
+    return len(result) > 0

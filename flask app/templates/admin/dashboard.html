@@ -12,7 +12,207 @@
     <link rel='stylesheet' href="{{ url_for('static', filename='css/dashboard.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='images/dashboard.png') }}" type="image/x-icon">
     <style>
+        /* Leaderboard Styles */
+        .leaderboard-section {
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
         
+        .leaderboard-title {
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            color: #fff;
+            font-weight: 600;
+        }
+        
+        .leaderboard-title i {
+            margin-right: 0.8rem;
+            color: #FFD700;
+            font-size: 1.8rem;
+        }
+        
+        .leaderboard-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            justify-items: center;
+        }
+        
+        .leaderboard-card {
+            width: 90%;
+            max-width: 300px;
+            background: linear-gradient(135deg, #2c3e50, #1a2530);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            color: white;
+        }
+        
+        .leaderboard-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .leaderboard-card.first {
+            background: linear-gradient(135deg, #4e54c8, #8f94fb);
+            border: 2px solid #FFD700;
+            transform: scale(1.05);
+            z-index: 3;
+        }
+        
+        .leaderboard-card.second {
+            background: linear-gradient(135deg, #0f2027, #203a43);
+            border: 2px solid #C0C0C0;
+            z-index: 2;
+        }
+        
+        .leaderboard-card.third {
+            background: linear-gradient(135deg, #373b44, #4286f4);
+            border: 2px solid #CD7F32;
+            z-index: 1;
+        }
+        
+        .rank-badge {
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 0.4rem 1rem;
+            border-bottom-right-radius: 10px;
+            font-weight: bold;
+            font-size: 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .rank-badge.first {
+            background-color: #FFD700;
+            color: #333;
+        }
+        
+        .rank-badge.second {
+            background-color: #C0C0C0;
+            color: #333;
+        }
+        
+        .rank-badge.third {
+            background-color: #CD7F32;
+            color: white;
+        }
+        
+        .student-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 0.5rem auto 1rem;
+            object-fit: cover;
+            border: 4px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .student-name {
+            font-weight: 600;
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+            color: white;
+        }
+        
+        .student-course {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1rem;
+            margin-bottom: 0.8rem;
+        }
+        
+        .points-badge {
+            background: linear-gradient(135deg, #FC466B, #3F5EFB);
+            color: white;
+            padding: 0.4rem 1rem;
+            border-radius: 50px;
+            font-weight: 600;
+            display: inline-block;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+            letter-spacing: 0.5px;
+        }
+        
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .leaderboard-table th,
+        .leaderboard-table td {
+            padding: 1rem 1.2rem;
+            text-align: left;
+            color: white;
+        }
+        
+        .leaderboard-table th {
+            background: rgba(0, 0, 0, 0.3);
+            font-weight: 600;
+            font-size: 1rem;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .leaderboard-table tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: background 0.3s ease;
+        }
+        
+        .leaderboard-table tr:last-child {
+            border-bottom: none;
+        }
+        
+        .leaderboard-table tr:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        /* For Award Points Button */
+        .btn-award-points {
+            background: linear-gradient(135deg, #11998e, #38ef7d);
+            color: white;
+            border: none;
+            padding: 0.6rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+        
+        .btn-award-points:hover {
+            background: linear-gradient(135deg, #0f8a7f, #32d86d);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.15);
+        }
+        
+        .btn-award-points:disabled {
+            background: #4a5568;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 2rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -75,6 +275,11 @@
                 <i class="ri-file-list-line"></i>
                 Sit In Records
             </a>
+            <a href="#" data-page="lab-resources" style="display: flex; align-items: center; gap: 8px;">
+                <i class="ri-folder-open-line"></i>
+                <span>Lab Resources</span>
+            </a>
+            
             <a href="#" data-page="announcements">
                 <i class="ri-megaphone-line"></i>
                 Announcements
@@ -199,6 +404,39 @@
                             <h3>Total Laboratories</h3>
                             <p>12</p>
                         </div>
+                </div>
+
+                <!-- Student Points Leaderboard -->
+                <div class="leaderboard-section">
+                    <div class="leaderboard-title">
+                        <i class="fas fa-trophy"></i> Points Leaderboard
+                    </div>
+                    
+                    <!-- Top 3 Students Cards -->
+                    <div class="leaderboard-grid" id="leaderboard-top-3">
+                        <!-- Cards will be populated dynamically -->
+                        <div class="leaderboard-card loading">
+                            <div class="loader"></div>
+                            <p>Loading top students...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Rest of Leaderboard Table -->
+                    <table class="leaderboard-table" id="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Student ID</th>
+                                <th>Name</th>
+                                <th>Course</th>
+                                <th>Year</th>
+                                <th>Points</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Will be populated dynamically -->
+                        </tbody>
+                    </table>
                 </div>
 
                 <!-- Charts -->
@@ -381,12 +619,82 @@
                             <th>Reservation Date</th>
                             <th>Login Time</th>
                             <th>Logout Time</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         <!-- Rows will be populated dynamically -->
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- Page Content: Lab Resources -->
+        <div id="lab-resources" class="page-content" style="display: none;">
+            <h2><i class="ri-folder-open-line"></i> Lab Resources</h2>
+            <p>Upload and manage lab resources for students.</p>
+
+            <!-- Resource Upload Button -->
+            <div class="resource-upload-section">
+                <button id="openResourceModalBtn" class="btn-resource-action">
+                    <i class="ri-upload-cloud-line"></i> Upload New Resource
+                </button>
+            </div>
+
+            <!-- Resources List -->
+            <div class="resources-list-section">
+                <h3>Uploaded Resources</h3>
+                <div class="resources-table-container">
+                    <table class="resources-table">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Description</th>
+                                <th>Link</th>
+                                <th>Uploaded</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resourcesTableBody">
+                            <!-- Resources will be loaded here -->
+                            <tr class="loading-row">
+                                <td colspan="5">Loading resources...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resource Upload Modal -->
+        <div id="resourceUploadModal" class="resource-upload-modal">
+            <div class="resource-modal-content">
+                <div class="resource-modal-header">
+                    <h2><i class="ri-upload-cloud-line"></i> Upload New Resource</h2>
+                    <span class="resource-modal-close">&times;</span>
+                </div>
+                <div class="resource-modal-body">
+                    <form id="resourceUploadForm">
+                        <div class="form-group">
+                            <label for="resourceTitle">Resource Title</label>
+                            <input type="text" id="resourceTitle" name="resourceTitle" placeholder="Enter a descriptive title" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="resourceContent">Description</label>
+                            <textarea id="resourceContent" name="resourceContent" placeholder="Provide details about this resource" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="resourceLink">Resource Link</label>
+                            <input type="url" id="resourceLink" name="resourceLink" placeholder="https://example.com/resource.pdf" required>
+                        </div>
+                        <div class="resource-form-actions">
+                            <button type="button" class="btn-resource-cancel">Cancel</button>
+                            <button type="submit" class="btn-resource-submit">
+                                <i class="ri-upload-line"></i> Upload Resource
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
 
@@ -1570,9 +1878,7 @@ function renderStudentTable(students) {
             <td>${student.year_level}</td>
             <td>${student.sessions_left}</td>
             <td class="actions">
-                <button class="btn-edit" onclick="editStudent(${student.id})">
-                    <i class="ri-edit-line"></i> Edit
-                </button>
+                <button class="btn-edit" onclick="editStudent(${student.id})">Edit</button>
                 <button class="btn-reset" onclick="resetStudentSessions('${student.id}')">
                     <i class="ri-refresh-line"></i> Reset
                 </button>

@@ -1,25 +1,98 @@
 import eventlet
 eventlet.monkey_patch()
-from flask import Flask, render_template, redirect, url_for, session, request, flash, jsonify, Response
-from dbhelper import *
+from flask import Flask, render_template, redirect, url_for, session, request, flash, jsonify, Response, stream_with_context
 from flask_socketio import SocketIO, emit
+from werkzeug.utils import secure_filename
 import os
 import time
-from datetime import timedelta, datetime
-from flask_cors import CORS
+import threading
+import string
+import secrets
+import random
 import json
+import sqlite3
+import datetime
+import re
+# from profanity_check import predict_prob  # Commented out due to compatibility issues
+from better_profanity import profanity
+from werkzeug.exceptions import BadRequest
+from datetime import datetime, timedelta
+from cryptography.fernet import Fernet
+from flask_cors import CORS
 import openai
 from threading import Thread
-from prompts import get_response 
+from prompts import get_response
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 from Crypto.Random import get_random_bytes
 import base64
-from better_profanity import profanity
-from werkzeug.exceptions import BadRequest
+from functools import wraps
+
+# Import dbhelper functions
+from dbhelper import *
 
 profanity.load_censor_words()
 
+app = Flask(__name__)
+CORS(app)
+app.config["SESSION_COOKIE_NAME"] = "main_app_session"
+app.config['UPLOAD_FOLDER'] = 'static/images'
+app.secret_key = Fernet.generate_key()
+socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins="*")
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
+app.config['JSON_SORT_KEYS'] = False
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB limit
+
+# Simple in-memory cache
+class SimpleCache:
+    def __init__(self):
+        self._cache = {}
+        
+    def get(self, key):
+        return self._cache.get(key)
+        
+    def set(self, key, value, timeout=None):
+        self._cache[key] = value
+        
+    def delete(self, key):
+        if key in self._cache:
+            del self._cache[key]
+
+# Initialize cache
+cache = SimpleCache()
+
+# Create points tables if they don't exist
+create_points_tables()
+
+# Create lab resources table if it doesn't exist
+def create_lab_resources_table():
+    try:
+        conn = sqlite3.connect('student.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS lab_resources (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            link TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            created_by TEXT NOT NULL
+        )''')
+        conn.commit()
+        print("Lab resources table created or already exists")
+    except Exception as e:
+        print(f"Error creating lab resources table: {e}")
+    finally:
+        if conn:
+            conn.close()
+
+# Create lab resources table
+create_lab_resources_table()
+
+# Delete old reservations thread
+delete_thread = threading.Thread(target=delete_old_reservations)
+delete_thread.daemon = True
+delete_thread.start()
 
 KEY_IV_FILE = "key_iv.dat"
 
@@ -35,22 +108,6 @@ else:
     with open(KEY_IV_FILE, "rb") as f:
         AES_KEY = base64.b64decode(f.readline().strip())
         AES_IV = base64.b64decode(f.readline().strip())
-
-app = Flask(__name__)
-CORS(app)
-
-app.config["SESSION_COOKIE_NAME"] = "main_app_session"
-app.config['UPLOAD_FOLDER'] = 'static/images'
-app.secret_key = os.urandom(24)
-socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins="*")
-app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
-app.config['JSON_SORT_KEYS'] = False
-
-# client = openai.OpenAI(
-#     api_key="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",
-#     base_url="https://openrouter.ai/api/v1"
-# )
-
 
 def get_db_connection():
     conn = sqlite3.connect('student.db')
@@ -694,7 +751,7 @@ def get_sitin_records():
         sql = """
         SELECT r.id, r.student_idno, r.student_name, l.lab_name, r.purpose, 
                r.reservation_date, r.login_time, r.logout_time, r.status,
-               r.session_number, s.sessions_left,
+               r.session_number, s.sessions_left, r.points_awarded,
                EXISTS(SELECT 1 FROM feedback WHERE reservation_id = r.id) as feedback_submitted
         FROM reservations r
         JOIN laboratories l ON r.lab_id = l.id
@@ -754,7 +811,7 @@ def submit_feedback():
         if not all([reservation_id, feedback_text, rating]):
             return jsonify({'success': False, 'message': 'All fields are required'}), 400
 
-        # Check for foul language
+        # Check for foul language using better_profanity instead of profanity_check
         contains_profanity = profanity.contains_profanity(feedback_text)
         censored_text = profanity.censor(feedback_text)
 
@@ -775,10 +832,11 @@ def submit_feedback():
         # Save feedback (including profanity flag)
         conn.execute(
             '''INSERT INTO feedback 
-            (reservation_id, lab, student_idno, feedback_text, rating, contains_profanity) 
-            VALUES (?, ?, ?, ?, ?, ?)''',
+            (reservation_id, lab, student_idno, feedback_text, rating, contains_profanity, original_text) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)''',
             (reservation_id, reservation['lab_name'], reservation['student_idno'], 
-             censored_text, rating, contains_profanity)
+             censored_text, rating, contains_profanity, 
+             feedback_text if contains_profanity else censored_text)
         )
         conn.commit()
         conn.close()
@@ -911,7 +969,24 @@ def update_profile():
 @app.route('/api/students', methods=['GET'])
 def get_all_students():
     try:
-        # Get pagination parameters with defaults
+        # Check if we're looking for a specific student by ID number
+        idno = request.args.get('idno', default='', type=str)
+        if idno:
+            # Query for a specific student by ID number
+            query = """
+                SELECT id, idno, lastname, firstname, midname, course, year_level, 
+                       sessions_left, profile_picture
+                FROM students
+                WHERE idno = ?
+            """
+            students = getprocess(query, (idno,))
+            return jsonify({
+                'success': True,
+                'students': students,
+                'total': len(students)
+            })
+        
+        # Otherwise handle pagination as before
         page = request.args.get('page', default=1, type=int)
         per_page = request.args.get('per_page', default=10, type=int)
         search = request.args.get('search', default='', type=str)
@@ -925,7 +1000,8 @@ def get_all_students():
         
         # Base query
         query = """
-            SELECT id, idno, lastname, firstname, midname, course, year_level, sessions_left
+            SELECT id, idno, lastname, firstname, midname, course, year_level, 
+                   sessions_left, profile_picture
             FROM students
             WHERE idno LIKE ? OR lastname LIKE ? OR firstname LIKE ? OR course LIKE ?
             LIMIT ? OFFSET ?
@@ -969,7 +1045,7 @@ def get_student(student_id):
                 'success': False, 
                 'message': f'Student with ID {student_id} not found'
             }), 404
-            
+                
         return jsonify({
             'success': True,
             'student': students[0]  # Return single student object
@@ -1706,6 +1782,461 @@ def emit_active_users():
     active_users = list(active_users_dict.keys()) 
     print(f"Emitting active users: {active_users}") 
     socketio.emit('update_active_users', active_users)
+
+@app.route('/get_leaderboard', methods=['GET'])
+def get_leaderboard():
+    try:
+        # Only fetch top 5 students for the leaderboard
+        leaderboard = get_points_leaderboard(limit=5)
+        
+        return jsonify({
+            "success": True,
+            "leaderboard": leaderboard
+        })
+
+    except Exception as e:
+        print(f"Error fetching leaderboard: {str(e)}")
+        return jsonify({
+            "success": False, 
+            "message": "Failed to fetch leaderboard data",
+            "leaderboard": []
+        }), 500
+
+@app.route('/award_points', methods=['POST'])
+def award_points():
+    """Award 1 point to a student for a completed session"""
+    if 'admin_username' not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    data = request.get_json()
+    student_idno = data.get('student_idno')
+    reservation_id = data.get('reservation_id')
+    reason = data.get('reason', 'Reward for lab session')
+
+    if not student_idno:
+        return jsonify({"success": False, "message": "Student ID required"}), 400
+
+    try:
+        # Check if points already awarded for this reservation
+        if reservation_id:
+            points_awarded = getprocess(
+                "SELECT 1 FROM points_history WHERE reason = ? AND student_idno = ?",
+                (f"Reward for reservation {reservation_id}", student_idno)
+            )
+            if points_awarded:
+                return jsonify({
+                    "success": False, 
+                    "message": "Points already awarded for this session"
+                }), 400
+        
+        # Award 1 point
+        new_points = add_points_to_student(
+            student_idno=student_idno,
+            points=1,
+            reason=f"Reward for reservation {reservation_id}" if reservation_id else reason,
+            awarded_by=session['admin_username']
+        )
+
+        # Mark reservation as having points awarded if applicable
+        if reservation_id:
+            postprocess(
+                "UPDATE reservations SET points_awarded = 1 WHERE id = ?",
+                (reservation_id,)
+            )
+
+        return jsonify({
+            "success": True,
+            "message": "Successfully awarded 1 point",
+            "total_points": new_points
+        })
+
+    except Exception as e:
+        print(f"Error awarding points: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/convert_points', methods=['POST'])
+def convert_points():
+    """Convert available points to sessions (3 points = 1 session)"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    try:
+        # Get student ID associated with this user
+        student = getprocess(
+            "SELECT idno FROM students WHERE user_id = ?",
+            (user_id,)
+        )
+        if not student:
+            return jsonify({"success": False, "message": "Student not found"}), 404
+        
+        student_idno = student[0]['idno']
+        
+        # Perform conversion
+        sessions_added, remaining_points = convert_points_to_sessions(student_idno)
+        
+        if sessions_added == 0:
+            return jsonify({
+                "success": False,
+                "message": "Not enough points to convert (need at least 3)",
+                "current_points": remaining_points
+            }), 400
+
+        return jsonify({
+            "success": True,
+            "message": f"Converted {sessions_added * 3} points to {sessions_added} session(s)",
+            "sessions_added": sessions_added,
+            "remaining_points": remaining_points
+        })
+
+    except Exception as e:
+        print(f"Error converting points: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/points_balance', methods=['GET'])
+def points_balance():
+    """Get current points balance"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    try:
+        # Get student points via user_id
+        points_data = getprocess(
+            """SELECT sp.points 
+               FROM student_points sp
+               JOIN students s ON sp.student_idno = s.idno
+               WHERE s.user_id = ?""",
+            (user_id,)
+        )
+        
+        if not points_data:
+            return jsonify({
+                "success": True,
+                "points": 0,
+                "message": "No points record found"
+            })
+        
+        return jsonify({
+            "success": True,
+            "points": points_data[0]['points']
+        })
+
+    except Exception as e:
+        print(f"Error getting points balance: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/get_student_points', methods=['GET'])
+def get_student_points():
+    try:
+        # Get current user ID
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'success': False, 'error': 'User not logged in'})
+        
+        # Connect to the database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get current points for the student
+        cursor.execute("SELECT points FROM users WHERE id = ?", (user_id,))
+        result = cursor.fetchone()
+        
+        if result:
+            points = result[0]
+            return jsonify({'success': True, 'points': points})
+        else:
+            return jsonify({'success': False, 'error': 'User not found'})
+    
+    except Exception as e:
+        print(f"Error getting student points: {str(e)}")
+        return jsonify({'success': False, 'error': 'Failed to retrieve student points'})
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/points_history', methods=['GET'])
+def points_history():
+    """Get points transaction history"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+
+    try:
+        history = getprocess(
+            """SELECT 
+                  ph.points_change as points,
+                  ph.reason,
+                  ph.awarded_by,
+                  ph.date
+               FROM points_history ph
+               JOIN students s ON ph.student_idno = s.idno
+               WHERE s.user_id = ?
+               ORDER BY ph.date DESC""",
+            (user_id,)
+        )
+        
+        return jsonify({
+            "success": True,
+            "history": history or []
+        })
+
+    except Exception as e:
+        print(f"Error getting points history: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/create_lab_resource', methods=['POST'])
+def create_lab_resource():
+    try:
+        # Make sure user is admin
+        if session.get('admin_username') is None:
+            return jsonify({"success": False, "message": "Unauthorized access"}), 401
+        
+        data = request.json
+        title = data.get('title')
+        content = data.get('content')
+        link = data.get('link')
+        
+        # Validate input
+        if not all([title, content, link]):
+            return jsonify({"success": False, "message": "All fields are required"}), 400
+        
+        # Add to database
+        postprocess(
+            """INSERT INTO lab_resources (title, content, link, created_by) 
+               VALUES (?, ?, ?, ?)""",
+            (title, content, link, session.get('admin_username'))
+        )
+        
+        # Notify clients of new resource via Socket.IO
+        socketio.emit('new_lab_resource', {
+            'title': title,
+            'content': content,
+            'link': link,
+            'created_by': session.get('admin_username'),
+            'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        })
+        
+        return jsonify({"success": True, "message": "Lab resource created successfully"})
+    
+    except Exception as e:
+        print(f"Error creating lab resource: {str(e)}")
+        return jsonify({"success": False, "message": f"Failed to create lab resource: {str(e)}"}), 500
+
+@app.route('/get_lab_resources', methods=['GET'])
+def get_lab_resources():
+    """Get lab resources for admin panel"""
+    try:
+        # For admin panel, always get fresh data
+        resources = getprocess(
+            """SELECT id, title, content, link, created_at, created_by 
+               FROM lab_resources 
+               ORDER BY created_at DESC"""
+        )
+        
+        # Format resources consistently
+        for resource in resources:
+            if 'created_at' in resource and resource['created_at'] and not isinstance(resource['created_at'], str):
+                resource['created_at'] = resource['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+        
+        return jsonify({"success": True, "resources": resources or []})
+    
+    except Exception as e:
+        print(f"Error fetching lab resources: {str(e)}")
+        return jsonify({
+            "success": False, 
+            "message": f"Failed to fetch lab resources: {str(e)}",
+            "resources": []
+        }), 500
+
+@app.route('/delete_lab_resource/<int:resource_id>', methods=['DELETE'])
+def delete_lab_resource(resource_id):
+    try:
+        # Make sure user is admin
+        if session.get('admin_username') is None:
+            return jsonify({"success": False, "message": "Unauthorized access"}), 401
+        
+        # Delete the resource
+        postprocess(
+            "DELETE FROM lab_resources WHERE id = ?",
+            (resource_id,)
+        )
+        
+        # Notify clients of deletion via Socket.IO
+        socketio.emit('lab_resource_deleted', {
+            'resource_id': resource_id
+        })
+        
+        return jsonify({"success": True, "message": "Lab resource deleted successfully"})
+    
+    except Exception as e:
+        print(f"Error deleting lab resource: {str(e)}")
+        return jsonify({"success": False, "message": f"Failed to delete lab resource: {str(e)}"}), 500
+
+@app.route('/edit_resource/<int:resource_id>', methods=['GET', 'POST'])
+def edit_resource(resource_id):
+    try:
+        # Check if user is a student or admin
+        if not (session.get('student_idno') or session.get('admin_username')):
+            return redirect(url_for('login'))
+        
+        # If it's a POST request, update the resource
+        if request.method == 'POST':
+            # Only admins can edit resources
+            if not session.get('admin_username'):
+                return jsonify({"success": False, "message": "Unauthorized access"}), 401
+            
+            data = request.json
+            title = data.get('title')
+            content = data.get('content')
+            link = data.get('link')
+            
+            # Validate input
+            if not all([title, content, link]):
+                return jsonify({"success": False, "message": "All fields are required"}), 400
+            
+            # Update the resource
+            postprocess(
+                """UPDATE lab_resources 
+                   SET title = ?, content = ?, link = ?
+                   WHERE id = ?""",
+                (title, content, link, resource_id)
+            )
+            
+            # Notify clients of updated resource via Socket.IO
+            socketio.emit('resource_updated', {
+                'resource_id': resource_id,
+                'title': title,
+                'content': content,
+                'link': link,
+                'updated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            })
+            
+            if session.get('admin_username'):
+                return redirect(url_for('dashboard'))
+            else:
+                return redirect(url_for('student_dashboard'))
+        
+        # GET request - retrieve the resource
+        resource = getprocess(
+            """SELECT id, title, content, link, created_at, created_by 
+               FROM lab_resources 
+               WHERE id = ?""",
+            (resource_id,),
+            fetch_one=True
+        )
+        
+        if not resource:
+            flash("Resource not found", "error")
+            if session.get('admin_username'):
+                return redirect(url_for('dashboard'))
+            else:
+                return redirect(url_for('student_dashboard'))
+        
+        # If it's a regular user, show the edit form
+        template = 'admin/edit_resource.html' if session.get('admin_username') else 'client/edit_resource.html'
+        return render_template(template, resource=resource)
+    
+    except Exception as e:
+        print(f"Error editing lab resource: {str(e)}")
+        flash(f"An error occurred: {str(e)}", "error")
+        if session.get('admin_username'):
+            return redirect(url_for('dashboard'))
+        else:
+            return redirect(url_for('student_dashboard'))
+
+@app.route('/api/get_lab_resources', methods=['GET'])
+def api_get_lab_resources():
+    """
+    Get all lab resources with optimized data format for the student dashboard
+    """
+    try:
+        print("API endpoint /api/get_lab_resources called")
+        
+        # Query the database for resources
+        resources = getprocess(
+            """SELECT id, title, content, link, created_at as timestamp, created_by as uploader 
+               FROM lab_resources 
+               ORDER BY created_at DESC"""
+        )
+        
+        # Process resources to ensure proper formatting
+        formatted_resources = []
+        
+        if resources:
+            for resource in resources:
+                # Ensure dates are properly formatted
+                if 'timestamp' in resource and resource['timestamp']:
+                    # Convert datetime to string if it's not already
+                    if not isinstance(resource['timestamp'], str):
+                        resource['timestamp'] = resource['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+                
+                # Limit content length for performance
+                if 'content' in resource and len(resource['content']) > 500:
+                    resource['content'] = resource['content'][:500] + '...'
+                    
+                formatted_resources.append(resource)
+        
+        # Create the response
+        response_data = {
+            "success": True, 
+            "resources": formatted_resources,
+            "count": len(formatted_resources)
+        }
+        
+        print(f"Returning {len(formatted_resources)} resources")
+        return jsonify(response_data)
+    
+    except Exception as e:
+        print(f"Error fetching lab resources: {str(e)}")
+        return jsonify({
+            "success": False, 
+            "message": f"Failed to fetch lab resources: {str(e)}",
+            "resources": []
+        }), 500
+
+@app.route('/create-sample-resource', methods=['GET'])
+def create_sample_resource():
+    """Create a sample resource for testing"""
+    try:
+        # Add a sample resource to the database
+        postprocess(
+            """INSERT INTO lab_resources (title, content, link, created_by) 
+               VALUES (?, ?, ?, ?)""",
+            (
+                "Sample Programming Resource", 
+                "This is a sample resource to help students with programming concepts. It includes tutorials and examples to help you understand key concepts.", 
+                "https://github.com/microsoft/vscode", 
+                "Admin"
+            )
+        )
+        
+        # Add another sample resource
+        postprocess(
+            """INSERT INTO lab_resources (title, content, link, created_by) 
+               VALUES (?, ?, ?, ?)""",
+            (
+                "Data Structures Guide", 
+                "A comprehensive guide to understanding data structures and algorithms. This resource covers arrays, linked lists, trees, and graphs with practical examples.", 
+                "https://www.geeksforgeeks.org/data-structures/", 
+                "Admin"
+            )
+        )
+        
+        # Notify clients of new resources via Socket.IO
+        socketio.emit('new_lab_resource', {
+            'title': "Sample Resources Added",
+            'content': "Sample resources have been added for testing",
+            'link': "#",
+            'created_by': "System",
+            'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        })
+        
+        return "Sample resources created successfully. <a href='/student_dashboard'>Go to dashboard</a>"
+    
+    except Exception as e:
+        print(f"Error creating sample resources: {str(e)}")
+        return f"Failed to create sample resources: {str(e)}"
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

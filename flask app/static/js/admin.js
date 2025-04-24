@@ -24,6 +24,28 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // Sidebar scrollbar detection
+    function checkSidebarScrollable() {
+        const sidebar = document.querySelector('aside .sidebar');
+        if (sidebar) {
+            // Check if content is scrollable
+            const isScrollable = sidebar.scrollHeight > sidebar.clientHeight;
+            
+            // Add or remove 'scrollable' class based on condition
+            if (isScrollable) {
+                sidebar.classList.add('scrollable');
+            } else {
+                sidebar.classList.remove('scrollable');
+            }
+        }
+    }
+    
+    // Check on page load
+    checkSidebarScrollable();
+    
+    // Check when window is resized
+    window.addEventListener('resize', checkSidebarScrollable);
+
     // SPA Behavior (unchanged)
     const sidebarLinks = document.querySelectorAll('.sidebar a');
     const bottomNavLinks = document.querySelectorAll('.bottom-nav a');
@@ -60,6 +82,34 @@ document.addEventListener('DOMContentLoaded', function () {
                 link.classList.add('active');
             }
         });
+        
+        // Check if sidebar is scrollable after changing page
+        checkSidebarScrollable();
+
+        // Refresh page-specific data
+        if (page === 'dashboard') {
+            // Refresh the leaderboard data
+            if (typeof fetchLeaderboard === 'function') {
+                fetchLeaderboard();
+            }
+            // Update active users count
+            updateUserCount();
+        } else if (page === 'sit-in') {
+            // Fetch current sit-ins
+            fetchAndDisplayCurrentSitIn();
+        } else if (page === 'records') {
+            // Fetch sit-in records
+            fetchAndDisplaySitInRecords();
+        } else if (page === 'announcements') {
+            // Fetch announcements
+            fetchAnnouncements();
+        } else if (page === 'feedback') {
+            // Fetch feedback data
+            fetchFeedback();
+        } else if (page === 'lab-resources') {
+            // Fetch lab resources
+            fetchLabResources();
+        }
     }
 
     // Add event listeners to sidebar links (unchanged)
@@ -1009,7 +1059,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td>${reservation.login_time}</td>
                 <td>N/A</td>
                 <td>Session ${reservation.session_number}</td>
-                <td>${reservation.status}</td>
+                <td class="status">${reservation.status}</td>
                 <td>
                     <button class="logout-btn" data-reservation-id="${reservation.id}">Logout</button>
                 </td>
@@ -1213,28 +1263,28 @@ socket.on('new_sitin', function (reservation) {
     }
 });
 
+// Global variables for sit-in records pagination
+let sitInRecordsData = [];
+let sitInRecordsCurrentPage = 1;
+let sitInRecordsPerPage = 5;
+
 function fetchAndDisplaySitInRecords() {
     fetch('/get_sitin_records')
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const tableBody = document.querySelector('#records-table tbody');
-                tableBody.innerHTML = '';
-
-                data.data.forEach(reservation => {
-                    const row = document.createElement('tr');
-                    row.setAttribute('data-reservation-id', reservation.id);
-                    row.innerHTML = `
-                        <td>${reservation.student_idno}</td>
-                        <td>${reservation.student_name}</td>
-                        <td>${reservation.lab_name}</td>
-                        <td>${reservation.purpose}</td>
-                        <td>${reservation.reservation_date}</td>
-                        <td>${reservation.login_time}</td>
-                        <td>${reservation.logout_time || 'N/A'}</td>
-                    `;
-                    tableBody.appendChild(row);
-                });
+                // Store all records for pagination
+                sitInRecordsData = data.data;
+                
+                // Display the current page
+                displaySitInRecordsPage(sitInRecordsCurrentPage);
+                
+                // Create pagination controls if they don't exist
+                if (!document.getElementById('sit-in-records-pagination')) {
+                    createSitInRecordsPagination();
+                } else {
+                    updateSitInRecordsPagination();
+                }
             } else {
                 console.error('Failed to fetch sit-in records:', data.message);
                 Swal.fire('Error', 'Failed to load sit-in records', 'error');
@@ -1246,215 +1296,436 @@ function fetchAndDisplaySitInRecords() {
         });
 }
 
+function displaySitInRecordsPage(page) {
+                const tableBody = document.querySelector('#records-table tbody');
+                tableBody.innerHTML = '';
 
-socket.on('update_session_count', function (data) {
-    if (data.student_idno === studentIdno) {
-      const sessionsLeftElement = document.getElementById('sessions-left');
-      if (sessionsLeftElement) {
-        sessionsLeftElement.textContent = data.sessions_left;
-      }
-    }
-  });
-
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize search student modal
-    initSearchStudentModal();
+    // Calculate start and end indices
+    const startIndex = (page - 1) * sitInRecordsPerPage;
+    const endIndex = Math.min(startIndex + sitInRecordsPerPage, sitInRecordsData.length);
     
-    // Initialize other modals
-    initSearchModal();
-    initEditModal();
-});
-  
-function initSearchStudentModal() {
-    const modal = document.getElementById('searchStudentModal');
-    const searchInput = document.getElementById('studentSearchInput');
+    // Slice the data for the current page
+    const pageData = sitInRecordsData.slice(startIndex, endIndex);
+    
+    if (pageData.length === 0) {
+        const emptyRow = document.createElement('tr');
+        emptyRow.innerHTML = `
+            <td colspan="8" style="text-align: center; padding: 20px;">
+                No records found.
+            </td>
+        `;
+        tableBody.appendChild(emptyRow);
+        return;
+    }
+    
+    pageData.forEach(reservation => {
+                    const row = document.createElement('tr');
+                    row.setAttribute('data-reservation-id', reservation.id);
+                    row.innerHTML = `
+                        <td>${reservation.student_idno}</td>
+                        <td>${reservation.student_name}</td>
+                        <td>${reservation.lab_name}</td>
+                        <td>${reservation.purpose}</td>
+                        <td>${reservation.reservation_date}</td>
+                        <td>${reservation.login_time}</td>
+                        <td>${reservation.logout_time || 'N/A'}</td>
+            <td>
+                <button class="btn-award-points" data-idno="${reservation.student_idno}" 
+                    data-reservation-id="${reservation.id}"
+                    ${reservation.points_awarded ? 'disabled' : ''}>
+                    ${reservation.points_awarded ? 'Points Awarded' : 'Award Points'}
+                </button>
+            </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+
+    // Add event listeners to all award buttons
+    document.querySelectorAll('.btn-award-points').forEach(button => {
+        button.addEventListener('click', function() {
+            if (!this.disabled) {
+                const studentIdno = this.getAttribute('data-idno');
+                const reservationId = this.getAttribute('data-reservation-id');
+                awardPointsToStudent(studentIdno, this, reservationId);
+            }
+        });
+    });
+    
+    // Update current page
+    sitInRecordsCurrentPage = page;
+}
+
+function createSitInRecordsPagination() {
+    const tableContainer = document.querySelector('#records .table-container');
+    
+    // Create pagination container
+    const paginationDiv = document.createElement('div');
+    paginationDiv.id = 'sit-in-records-pagination';
+    paginationDiv.className = 'pagination-controls';
+    
+    // Create prev button
+    const prevButton = document.createElement('button');
+    prevButton.id = 'sit-in-records-prev';
+    prevButton.textContent = 'Previous';
+    prevButton.addEventListener('click', () => {
+        if (sitInRecordsCurrentPage > 1) {
+            displaySitInRecordsPage(sitInRecordsCurrentPage - 1);
+            updateSitInRecordsPagination();
+        }
+    });
+    
+    // Create page info
+    const pageInfo = document.createElement('span');
+    pageInfo.id = 'sit-in-records-page-info';
+    
+    // Create next button
+    const nextButton = document.createElement('button');
+    nextButton.id = 'sit-in-records-next';
+    nextButton.textContent = 'Next';
+    nextButton.addEventListener('click', () => {
+        const totalPages = Math.ceil(sitInRecordsData.length / sitInRecordsPerPage);
+        if (sitInRecordsCurrentPage < totalPages) {
+            displaySitInRecordsPage(sitInRecordsCurrentPage + 1);
+            updateSitInRecordsPagination();
+        }
+    });
+    
+    // Append elements
+    paginationDiv.appendChild(prevButton);
+    paginationDiv.appendChild(pageInfo);
+    paginationDiv.appendChild(nextButton);
+    
+    // Append pagination to container
+    tableContainer.after(paginationDiv);
+    
+    // Update pagination controls
+    updateSitInRecordsPagination();
+}
+
+function updateSitInRecordsPagination() {
+    const totalPages = Math.ceil(sitInRecordsData.length / sitInRecordsPerPage);
+    const pageInfo = document.getElementById('sit-in-records-page-info');
+    const prevButton = document.getElementById('sit-in-records-prev');
+    const nextButton = document.getElementById('sit-in-records-next');
+    
+    if (pageInfo && prevButton && nextButton) {
+        pageInfo.textContent = `Page ${sitInRecordsCurrentPage} of ${totalPages}`;
+        prevButton.disabled = sitInRecordsCurrentPage === 1;
+        nextButton.disabled = sitInRecordsCurrentPage === totalPages;
+    }
+}
+
+function awardPointsToStudent(studentIdno, buttonElement, reservationId) {
+    Swal.fire({
+        title: 'Award Points',
+        text: 'Give this student 1 point for their lab session?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Award 1 Point',
+        cancelButtonText: 'Cancel',
+        showLoaderOnConfirm: true,
+        preConfirm: () => {
+            return fetch('/award_points', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    student_idno: studentIdno,
+                    reservation_id: reservationId,
+                    reason: 'Reward for lab session'
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(response.statusText);
+                }
+                return response.json();
+            })
+            .catch(error => {
+                Swal.showValidationMessage(
+                    `Request failed: ${error}`
+                );
+            });
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+    }).then((result) => {
+        if (result.isConfirmed) {
+            let message = '1 point awarded to student.';
+            
+            if (result.value.sessions_added > 0) {
+                message += ` Student earned ${result.value.sessions_added} additional session(s) from points.`;
+            }
+            
+            Swal.fire(
+                'Success!',
+                message,
+                'success'
+            );
+            
+            // Disable the button and update text
+            if (buttonElement) {
+                buttonElement.disabled = true;
+                buttonElement.textContent = 'Points Awarded';
+                buttonElement.classList.add('disabled');
+            }
+            
+            // Mark this reservation as having points awarded in the data array
+            const reservation = sitInRecordsData.find(r => r.id === parseInt(reservationId));
+            if (reservation) {
+                reservation.points_awarded = true;
+            }
+            
+            // Update the leaderboard if we're on the dashboard page
+            if (document.getElementById('leaderboard-top-3')) {
+                fetchLeaderboard();
+            }
+        }
+    });
+}
+
+// Function to fetch and display the student points leaderboard
+function fetchLeaderboard() {
+    fetch('/get_leaderboard')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update the top 3 cards section
+                const top3Container = document.getElementById('leaderboard-top-3');
+                const leaderboardTable = document.querySelector('#leaderboard-table tbody');
+                
+                // Clear previous content
+                top3Container.innerHTML = '';
+                leaderboardTable.innerHTML = '';
+                
+                // Check if we have any results
+                if (data.leaderboard.length === 0) {
+                    top3Container.innerHTML = '<p class="no-data">No student points data available yet.</p>';
+                    return;
+                }
+                
+                // Get the top 3 students for cards (or less if we have fewer students)
+                const top3 = data.leaderboard.slice(0, Math.min(3, data.leaderboard.length));
+                
+                // Create the top 3 cards - rearrange them to put #1 in the center if we have 3 students
+                if (top3.length === 3) {
+                    // Create in order: 2nd (left), 1st (center), 3rd (right)
+                    createLeaderboardCard(top3[1], 2, top3Container); // 2nd place (left)
+                    createLeaderboardCard(top3[0], 1, top3Container); // 1st place (center)
+                    createLeaderboardCard(top3[2], 3, top3Container); // 3rd place (right)
+                } else {
+                    // If we have fewer than 3, just display them in order
+                    top3.forEach((student, index) => {
+                        createLeaderboardCard(student, index + 1, top3Container);
+                    });
+                }
+                
+                // Populate the table with ranks 4-5 only (or less if we have fewer students)
+                const tableData = data.leaderboard.slice(3, 5); // Only ranks 4-5
+                
+                tableData.forEach((student, index) => {
+                    const rank = index + 4; // Start at rank 4
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${rank}</td>
+                        <td>${student.student_idno}</td>
+                        <td>${student.student_name}</td>
+                        <td>${student.course}</td>
+                        <td>${student.year_level}</td>
+                        <td><span class="points-badge">${student.total_points}</span></td>
+                    `;
+                    leaderboardTable.appendChild(row);
+                });
+                
+                // Hide the table if there are no students beyond top 3
+                if (tableData.length === 0) {
+                    document.querySelector('.leaderboard-table').style.display = 'none';
+                } else {
+                    document.querySelector('.leaderboard-table').style.display = 'table';
+                }
+            } else {
+                console.error('Failed to fetch leaderboard:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching leaderboard:', error);
+        });
+}
+
+// Helper function to create a leaderboard card
+function createLeaderboardCard(student, rank, container) {
+    // Determine CSS class based on rank
+    let rankClass = '';
+    let rankText = '';
+    
+    switch(rank) {
+        case 1:
+            rankClass = 'first';
+            rankText = '1st';
+            break;
+        case 2:
+            rankClass = 'second';
+            rankText = '2nd';
+            break;
+        case 3:
+            rankClass = 'third';
+            rankText = '3rd';
+            break;
+        default:
+            rankClass = '';
+            rankText = `${rank}th`;
+    }
+    
+    // Create the card
+    const card = document.createElement('div');
+    card.className = `leaderboard-card ${rankClass}`;
+    
+    // Fetch the student's profile picture
+    fetch(`/api/students?idno=${student.student_idno}`)
+        .then(response => response.json())
+        .then(data => {
+            let profilePic = '/static/images/default.png'; // Default profile picture
+            
+            // If we successfully got student data with a profile picture
+            if (data.success && data.students && data.students.length > 0) {
+                const studentData = data.students[0];
+                if (studentData.profile_picture) {
+                    profilePic = `/static/images/${studentData.profile_picture}`;
+                }
+            }
+            
+            // Update the card HTML with the profile picture
+            card.innerHTML = `
+                <div class="rank-badge ${rankClass}">${rankText}</div>
+                <img src="${profilePic}" alt="${student.student_name}" class="student-avatar" 
+                     onerror="this.src='/static/images/default.png'">
+                <div class="student-name">${student.student_name}</div>
+                <div class="student-course">${student.course} - Year ${student.year_level}</div>
+                <div class="points-badge">${student.total_points} points</div>
+            `;
+        })
+        .catch(error => {
+            console.error('Error fetching student profile:', error);
+            
+            // Fallback to default image if fetch fails
+            card.innerHTML = `
+                <div class="rank-badge ${rankClass}">${rankText}</div>
+                <img src="/static/images/default.png" alt="${student.student_name}" class="student-avatar">
+                <div class="student-name">${student.student_name}</div>
+                <div class="student-course">${student.course} - Year ${student.year_level}</div>
+                <div class="points-badge">${student.total_points} points</div>
+            `;
+        });
+    
+    container.appendChild(card);
+}
+
+// Student search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const studentSearchInput = document.getElementById('studentSearchInput');
     const searchResults = document.getElementById('searchResults');
     const selectedStudentInfo = document.getElementById('selectedStudentInfo');
+    const selectedStudentId = document.getElementById('selectedStudentId');
+    const selectedStudentName = document.getElementById('selectedStudentName');
+    const selectedStudentCourse = document.getElementById('selectedStudentCourse');
+    const selectedStudentSessions = document.getElementById('selectedStudentSessions');
+    const selectedStudentIdInput = document.getElementById('selectedStudentIdInput');
+    const searchStudentModal = document.getElementById('searchStudentModal');
     const sitInForm = document.getElementById('sitInForm');
-    const closeBtn = modal.querySelector('.close-modal'); // Get close button specific to this modal
-    
-    // Open modal when search student link is clicked
-    document.querySelector('[data-bs-target="#searchStudentModal"]').addEventListener('click', function(e) {
-        e.preventDefault();
-        modal.style.display = 'block';
-        document.body.classList.add('modal-open');
-        searchInput.focus();
-    });
-    
-    // Close modal when close button is clicked
-    closeBtn.addEventListener('click', function() {
-        modal.style.display = 'none';
-        document.body.classList.remove('modal-open');
-        resetSearchModal();
-    });
-    
-    // Close when clicking outside modal
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal) {
-            modal.style.display = 'none';
-            document.body.classList.remove('modal-open');
-            resetSearchModal();
-        }
-    });
-    
-    // Prevent clicks inside modal content from closing the modal
-    modal.querySelector('.modal-content').addEventListener('click', function(e) {
-        e.stopPropagation();
-    });
-    
-    // Search as you type with debounce
-    let searchTimeout;
-    searchInput.addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
+
+    if (studentSearchInput) {
+        let debounceTimer;
+
+        // Add event listener for student search
+        studentSearchInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
             const searchTerm = this.value.trim();
-            if (searchTerm.length >= 2) {
-                searchStudents(searchTerm);
-            } else {
+            
+            if (searchTerm.length < 2) {
                 searchResults.innerHTML = '';
                 searchResults.style.display = 'none';
+                return;
             }
-        }, 300);
-    });
-    
-    // Handle form submission
-    sitInForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        createSitInReservation();
-    });
-}
-  
-
-
-function initSearchModal() {
-    const modal = document.getElementById('searchModal');
-    const closeBtn = modal.querySelector('.close-modal'); // Get close button specific to this modal
-
-}
-
-// Close modal when close button is clicked
-closeBtn.addEventListener('click', function() {
-    modal.style.display = 'none';
-    document.body.classList.remove('modal-open');
-});
-
-    // Close when clicking outside modal
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal) {
-            modal.style.display = 'none';
-            document.body.classList.remove('modal-open');
-        }
-    });
-
-        // Prevent clicks inside modal content from closing the modal
-        modal.querySelector('.modal-content').addEventListener('click', function(e) {
-            e.stopPropagation();
-        });
-        
-
-        function initEditModal() {
-            const modal = document.getElementById('editModal');
-            const closeBtn = modal.querySelector('.close-modal'); // Get close button specific to this modal
             
-            // Close modal when close button is clicked
-            closeBtn.addEventListener('click', function() {
-                modal.style.display = 'none';
-                document.body.classList.remove('modal-open');
-            });
-            
-            // Close when clicking outside modal
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) {
-                    modal.style.display = 'none';
-                    document.body.classList.remove('modal-open');
-                }
-            });
-            
-            // Prevent clicks inside modal content from closing the modal
-            modal.querySelector('.modal-content').addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
-        }
-
-        
-
-  function searchStudents(searchTerm) {
-    const searchResults = document.getElementById('searchResults');
-    
+            // Debounce the search to avoid too many requests
+            debounceTimer = setTimeout(() => {
+                // Show loading indicator
+                searchResults.innerHTML = '<div class="searching">Searching...</div>';
+                searchResults.style.display = 'block';
+                
+                // Fetch student data
     fetch(`/search_students?q=${encodeURIComponent(searchTerm)}`)
       .then(response => response.json())
       .then(data => {
-        if (data.success && data.data.length > 0) {
           searchResults.innerHTML = '';
+                        
+                        if (data.success && data.data.length > 0) {
           data.data.forEach(student => {
             const resultItem = document.createElement('div');
             resultItem.className = 'search-result-item';
             resultItem.innerHTML = `
-              <p><strong>${student.idno}</strong> - ${student.lastname}, ${student.firstname}</p>
-              <p>${student.course} - Year ${student.year_level}</p>
+                                    <strong>${student.idno}</strong> - 
+                                    ${student.firstname} ${student.lastname}
+                                    (${student.course}, Year ${student.year_level})
             `;
+                                
+                                // Add click event to select student
             resultItem.addEventListener('click', function() {
-              selectStudent(student);
-            });
+                                    // Display selected student info
+                                    selectedStudentId.textContent = student.idno;
+                                    selectedStudentName.textContent = `${student.firstname} ${student.lastname}`;
+                                    selectedStudentCourse.textContent = `${student.course} (Year ${student.year_level})`;
+                                    selectedStudentSessions.textContent = student.sessions_left;
+                                    selectedStudentIdInput.value = student.idno;
+                                    
+                                    // Show the student info section
+                                    selectedStudentInfo.style.display = 'block';
+                                    
+                                    // Hide search results
+                                    searchResults.style.display = 'none';
+                                    
+                                    // Clear search input
+                                    studentSearchInput.value = '';
+                                });
+                                
             searchResults.appendChild(resultItem);
           });
-          searchResults.style.display = 'block';
         } else {
           searchResults.innerHTML = '<div class="no-results">No students found</div>';
-          searchResults.style.display = 'block';
         }
+                        
+                        searchResults.style.display = 'block';
       })
       .catch(error => {
         console.error('Error searching students:', error);
         searchResults.innerHTML = '<div class="error">Error searching students</div>';
         searchResults.style.display = 'block';
       });
-  }
-  
-  function selectStudent(student) {
-    const selectedStudentInfo = document.getElementById('selectedStudentInfo');
-    const searchResults = document.getElementById('searchResults');
-    
-    // Display selected student info
-    document.getElementById('selectedStudentId').textContent = student.idno;
-    document.getElementById('selectedStudentName').textContent = `${student.lastname}, ${student.firstname}`;
-    document.getElementById('selectedStudentCourse').textContent = `${student.course} - Year ${student.year_level}`;
-    document.getElementById('selectedStudentSessions').textContent = student.sessions_left;
-    
-    // Set hidden input value
-    document.getElementById('selectedStudentIdInput').value = student.idno;
-    
-    // Hide search results and show selected student info
+            }, 300); // 300ms debounce
+        });
+        
+        // Close search results when clicking outside
+        document.addEventListener('click', function(e) {
+            if (e.target !== studentSearchInput && e.target !== searchResults) {
     searchResults.style.display = 'none';
-    selectedStudentInfo.style.display = 'block';
-    
-    // Clear search input
-    document.getElementById('studentSearchInput').value = '';
-  }
-  
-  function resetSearchModal() {
-    document.getElementById('studentSearchInput').value = '';
-    document.getElementById('searchResults').innerHTML = '';
-    document.getElementById('searchResults').style.display = 'none';
-    document.getElementById('selectedStudentInfo').style.display = 'none';
-    document.getElementById('sitInForm').reset();
-  }
-  
-  function createSitInReservation() {
-    const studentId = document.getElementById('selectedStudentIdInput').value;
-    const lab = document.getElementById('labSelect').value;
+            }
+        });
+        
+        // Handle the sit-in form submission
+        if (sitInForm) {
+            sitInForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const studentId = selectedStudentIdInput.value;
+                const labId = document.getElementById('labSelect').value;
     const purpose = document.getElementById('purposeSelect').value;
-    const submitBtn = document.querySelector('#sitInForm button[type="submit"]');
     
-    if (!studentId || !lab || !purpose) {
+                if (!studentId || !labId || !purpose) {
       Swal.fire('Error', 'Please fill all required fields', 'error');
       return;
     }
     
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner"></span> Processing...';
-    
+                // Create a sit-in for the student
     fetch('/admin_create_sitin', {
       method: 'POST',
       headers: {
@@ -1462,103 +1733,350 @@ closeBtn.addEventListener('click', function() {
       },
       body: JSON.stringify({
         student_id: studentId,
-        lab: lab,
+                        lab: labId,
         purpose: purpose
-      })
+                    }),
     })
     .then(response => response.json())
     .then(data => {
       if (data.success) {
-        Swal.fire('Success', 'Sit-in reservation created successfully', 'success').then(() => {
-          // Close modal and reset
-          document.getElementById('searchStudentModal').style.display = 'none';
-          resetSearchModal();
-          
-          // Refresh current sit-in list
+                        Swal.fire('Success', 'Student successfully sat in', 'success');
+                        
+                        // Close the modal
+                        const closeModalBtn = searchStudentModal.querySelector('.close-modal');
+                        if (closeModalBtn) closeModalBtn.click();
+                        
+                        // Refresh the current sit-in list if we're on that page
+                        if (window.location.hash === '#sit-in') {
           fetchAndDisplayCurrentSitIn();
-          
-          // Emit socket event to update all clients
-          socket.emit('new_sitin', data.reservation);
-        });
+                        }
+                        
+                        // Reset the form
+                        selectedStudentInfo.style.display = 'none';
+                        sitInForm.reset();
       } else {
-        Swal.fire('Error', data.message || 'Failed to create reservation', 'error');
+                        Swal.fire('Error', data.message || 'Failed to sit in student', 'error');
       }
     })
     .catch(error => {
-      console.error('Error:', error);
-      Swal.fire('Error', 'An error occurred while creating reservation', 'error');
-    })
-    .finally(() => {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Sit In';
-    });
-  }
-
-// Listen for new sit-in events to update both admin tables
-socket.on('new_sitin', function(reservation) {
-    // Add to current sit-in table
-    const currentTableBody = document.querySelector('#reservations-table tbody');
-    const newRow = createReservationRow(reservation);
-    currentTableBody.prepend(newRow);
-
-    // If the student is already in records (unlikely but possible), remove them
-    const existingRecord = document.querySelector(`#records-table tbody tr[data-reservation-id="${reservation.id}"]`);
-    if (existingRecord) {
-        existingRecord.remove();
+                    console.error('Error creating sit-in:', error);
+                    Swal.fire('Error', 'Failed to sit in student', 'error');
+                });
+            });
+        }
     }
 });
 
-function createReservationRow(reservation) {
+// Handle Search Student link click
+document.addEventListener('DOMContentLoaded', function() {
+    const searchStudentLink = document.querySelector('a[data-bs-target="#searchStudentModal"]');
+    const searchStudentModal = document.getElementById('searchStudentModal');
+    
+    if (searchStudentLink && searchStudentModal) {
+        searchStudentLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            searchStudentModal.style.display = 'block';
+        });
+        
+        // Close modal when clicking the X
+        const closeBtn = searchStudentModal.querySelector('.close-modal');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function() {
+                searchStudentModal.style.display = 'none';
+                // Reset the form data
+                const selectedStudentInfo = document.getElementById('selectedStudentInfo');
+                if (selectedStudentInfo) selectedStudentInfo.style.display = 'none';
+                
+                const sitInForm = document.getElementById('sitInForm');
+                if (sitInForm) sitInForm.reset();
+            });
+        }
+        
+        // Close modal when clicking outside of it
+        window.addEventListener('click', function(e) {
+            if (e.target === searchStudentModal) {
+                searchStudentModal.style.display = 'none';
+            }
+        });
+    }
+});
+
+// Lab Resources Functionality
+function fetchLabResources() {
+    fetch('/get_lab_resources')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayLabResources(data.resources);
+            } else {
+                console.error('Failed to fetch lab resources:', data.message);
+                document.getElementById('resourcesTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="5" class="error">Error loading resources: ${data.message}</td>
+                    </tr>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching lab resources:', error);
+            document.getElementById('resourcesTableBody').innerHTML = `
+                <tr>
+                    <td colspan="5" class="error">Failed to load resources. Please try again later.</td>
+                </tr>
+            `;
+        });
+}
+
+function displayLabResources(resources) {
+    const resourcesTableBody = document.getElementById('resourcesTableBody');
+    
+    if (!resources || resources.length === 0) {
+        resourcesTableBody.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align: center;">No resources uploaded yet.</td>
+            </tr>
+        `;
+        return;
+    }
+    
+    resourcesTableBody.innerHTML = '';
+    
+    resources.forEach(resource => {
+        const date = new Date(resource.created_at).toLocaleString();
     const row = document.createElement('tr');
-    row.setAttribute('data-reservation-id', reservation.id);
+        row.setAttribute('data-resource-id', resource.id);
+        
+        const truncatedContent = resource.content.length > 50 
+            ? resource.content.substring(0, 50) + '...' 
+            : resource.content;
+            
+        const truncatedLink = resource.link.length > 40
+            ? resource.link.substring(0, 40) + '...'
+            : resource.link;
     
     row.innerHTML = `
-        <td>${reservation.student_idno}</td>
-        <td>${reservation.student_name}</td>
-        <td>${reservation.lab_name}</td>
-        <td>${reservation.purpose}</td>
-        <td>${reservation.reservation_date}</td>
-        <td>${reservation.login_time}</td>
-        <td>N/A</td>
-        <td>Session ${reservation.session_number}</td>
-        <td>${reservation.status}</td>
-        <td>
-            <button class="logout-btn" data-reservation-id="${reservation.id}">Logout</button>
+            <td>${resource.title}</td>
+            <td title="${resource.content}">${truncatedContent}</td>
+            <td title="${resource.link}">${truncatedLink}</td>
+            <td>${date}<br><small>by ${resource.created_by}</small></td>
+            <td>
+                <div class="resource-actions">
+                    <a href="${resource.link}" target="_blank" class="resource-link-btn">
+                        <i class="ri-external-link-line"></i> Open
+                    </a>
+                    <button class="resource-delete-btn" data-resource-id="${resource.id}">
+                        <i class="ri-delete-bin-line"></i> Delete
+                    </button>
+                </div>
         </td>
     `;
     
-    return row;
+        resourcesTableBody.appendChild(row);
+    });
+    
+    // Add event listeners to delete buttons
+    addResourceDeleteListeners();
 }
 
-// Student side - handle logout updates
-socket.on(`student_${studentId}_reservation_updated`, function(data) {
-    // Find the reservation in history table
-    const reservationRow = document.querySelector(`#historyBody tr[data-reservation-id="${data.reservation_id}"]`);
-    
-    if (reservationRow) {
-        // Update status and logout time
-        reservationRow.querySelector('td:nth-child(4)').textContent = data.status;
-        reservationRow.querySelector('td:nth-child(5)').textContent = data.logout_time;
-        
-        // Enable feedback button if logged out
-        if (data.status === 'Logged Out') {
-            const feedbackBtn = reservationRow.querySelector('.submit-feedback-btn');
-            feedbackBtn.disabled = false;
-            feedbackBtn.style.backgroundColor = '';
-            feedbackBtn.style.cursor = '';
+function addResourceDeleteListeners() {
+    document.querySelectorAll('.resource-delete-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const resourceId = this.getAttribute('data-resource-id');
+            deleteLabResource(resourceId);
+        });
+    });
+}
+
+function deleteLabResource(resourceId) {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "This resource will be permanently deleted.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/delete_lab_resource/${resourceId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire(
+                        'Deleted!',
+                        'The lab resource has been deleted.',
+                        'success'
+                    );
+                    // No need to refresh manually, socket will handle it
+                } else {
+                    Swal.fire(
+                        'Error!',
+                        data.message || 'Failed to delete resource',
+                        'error'
+                    );
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting resource:', error);
+                Swal.fire(
+                    'Error!',
+                    'An unexpected error occurred',
+                    'error'
+                );
+            });
         }
-    } else if (currentView === 'history') {
-        // If row not found but we're on history page, refresh
-        fetchReservationHistory();
-    }
+    });
+}
+
+// Initialize Lab Resources functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const resourceUploadForm = document.getElementById('resourceUploadForm');
+    const resourceUploadModal = document.getElementById('resourceUploadModal');
+    const openResourceModalBtn = document.getElementById('openResourceModalBtn');
+    const closeResourceModalBtn = document.querySelector('.resource-upload-modal .resource-modal-close');
+    const cancelResourceBtn = document.querySelector('.btn-resource-cancel');
     
-    // Show notification if not on history page
-    if (currentView !== 'history') {
-        Swal.fire({
-            title: 'Session Updated',
-            text: `Your session at ${data.lab_name} has been logged out`,
-            icon: 'info',
-            timer: 3000
+    // Open modal when the upload button is clicked
+    if (openResourceModalBtn) {
+        openResourceModalBtn.addEventListener('click', function() {
+            if (resourceUploadModal) {
+                resourceUploadModal.style.display = 'block';
+                // Focus on the first field
+                document.getElementById('resourceTitle').focus();
+            }
         });
     }
+    
+    // Close modal when the close button is clicked
+    if (closeResourceModalBtn) {
+        closeResourceModalBtn.addEventListener('click', function() {
+            if (resourceUploadModal) {
+                resourceUploadModal.style.display = 'none';
+                // Reset form
+                if (resourceUploadForm) resourceUploadForm.reset();
+            }
+        });
+    }
+    
+    // Close modal when Cancel button is clicked
+    if (cancelResourceBtn) {
+        cancelResourceBtn.addEventListener('click', function() {
+            if (resourceUploadModal) {
+                resourceUploadModal.style.display = 'none';
+                // Reset form
+                if (resourceUploadForm) resourceUploadForm.reset();
+            }
+        });
+    }
+    
+    // Close modal when clicking outside the content
+    window.addEventListener('click', function(event) {
+        if (event.target === resourceUploadModal) {
+            resourceUploadModal.style.display = 'none';
+            // Reset form
+            if (resourceUploadForm) resourceUploadForm.reset();
+        }
+    });
+    
+    if (resourceUploadForm) {
+        resourceUploadForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('resourceTitle').value.trim();
+            const content = document.getElementById('resourceContent').value.trim();
+            const link = document.getElementById('resourceLink').value.trim();
+            
+            if (!title || !content || !link) {
+        Swal.fire({
+                    title: 'Error',
+                    text: 'All fields are required',
+                    icon: 'error',
+                    confirmButtonColor: '#8a2be2'
+                });
+                return;
+            }
+            
+            // Validate URL format
+            try {
+                new URL(link);
+            } catch (_) {
+                Swal.fire({
+                    title: 'Invalid URL',
+                    text: 'Please enter a valid URL',
+                    icon: 'error',
+                    confirmButtonColor: '#8a2be2'
+                });
+                return;
+            }
+            
+            // Show loading state
+            const submitBtn = resourceUploadForm.querySelector('.btn-resource-submit');
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="ri-loader-4-line"></i> Uploading...';
+            
+            fetch('/create_lab_resource', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ title, content, link })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Reset button state
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+                
+                if (data.success) {
+                    // Close modal
+                    resourceUploadModal.style.display = 'none';
+                    // Reset form
+                    resourceUploadForm.reset();
+                    
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'Lab resource has been uploaded',
+                        icon: 'success',
+                        confirmButtonColor: '#8a2be2'
+                    });
+                    
+                    // No need to refresh manually, socket will handle it
+                } else {
+                    Swal.fire({
+                        title: 'Error',
+                        text: data.message || 'Failed to upload resource',
+                        icon: 'error',
+                        confirmButtonColor: '#8a2be2'
+                    });
+                }
+            })
+            .catch(error => {
+                // Reset button state
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+                
+                console.error('Error uploading resource:', error);
+                Swal.fire({
+                    title: 'Error',
+                    text: 'An unexpected error occurred',
+                    icon: 'error',
+                    confirmButtonColor: '#8a2be2'
+                });
+            });
+        });
+    }
+    
+    // Socket.IO listeners for real-time updates
+    socket.on('new_lab_resource', function(resource) {
+        console.log('New lab resource received:', resource);
+        fetchLabResources(); // Refresh the resources list
+    });
+    
+    socket.on('lab_resource_deleted', function(data) {
+        console.log('Lab resource deleted:', data);
+        fetchLabResources(); // Refresh the resources list
+    });
 });
