@@ -273,6 +273,7 @@ function displayLeaderboard(leaderboardData) {
             <th>Student</th>
             <th>Course</th>
             <th>Points</th>
+            <th>Sit-ins</th>
         </tr>
     `;
     leaderboardTable.appendChild(thead);
@@ -294,6 +295,7 @@ function displayLeaderboard(leaderboardData) {
             <td>${student.student_name}</td>
             <td>${student.course} - Year ${student.year_level}</td>
             <td><span class="points-badge">${student.total_points}</span></td>
+            <td><span class="sitin-badge">${student.sitin_count}</span></td>
         `;
         
         tbody.appendChild(row);

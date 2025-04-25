@@ -1521,7 +1521,7 @@ function fetchLeaderboard() {
                 }
                 
                 // Populate the table with ranks 4-5 only (or less if we have fewer students)
-                const tableData = data.leaderboard.slice(3, 5); // Only ranks 4-5
+                const tableData = data.leaderboard.slice(3, 5);
                 
                 tableData.forEach((student, index) => {
                     const rank = index + 4; // Start at rank 4
@@ -1533,6 +1533,7 @@ function fetchLeaderboard() {
                         <td>${student.course}</td>
                         <td>${student.year_level}</td>
                         <td><span class="points-badge">${student.total_points}</span></td>
+                        <td><span class="sitin-badge">${student.sitin_count}</span></td>
                     `;
                     leaderboardTable.appendChild(row);
                 });
@@ -1602,6 +1603,7 @@ function createLeaderboardCard(student, rank, container) {
                 <div class="student-name">${student.student_name}</div>
                 <div class="student-course">${student.course} - Year ${student.year_level}</div>
                 <div class="points-badge">${student.total_points} points</div>
+                <div class="sitin-badge">${student.sitin_count} sit-ins</div>
             `;
         })
         .catch(error => {
@@ -1614,6 +1616,7 @@ function createLeaderboardCard(student, rank, container) {
                 <div class="student-name">${student.student_name}</div>
                 <div class="student-course">${student.course} - Year ${student.year_level}</div>
                 <div class="points-badge">${student.total_points} points</div>
+                <div class="sitin-badge">${student.sitin_count} sit-ins</div>
             `;
         });
     

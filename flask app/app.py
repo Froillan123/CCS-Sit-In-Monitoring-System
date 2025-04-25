@@ -1829,13 +1829,16 @@ def award_points():
                     "message": "Points already awarded for this session"
                 }), 400
         
-        # Award 1 point
-        new_points = add_points_to_student(
+        # Award 1 point (auto-conversion happens in add_points_to_student)
+        total_points = add_points_to_student(
             student_idno=student_idno,
             points=1,
             reason=f"Reward for reservation {reservation_id}" if reservation_id else reason,
             awarded_by=session['admin_username']
         )
+
+        # Check if conversion happened
+        sessions_added = total_points // 3
 
         # Mark reservation as having points awarded if applicable
         if reservation_id:
@@ -1846,13 +1849,15 @@ def award_points():
 
         return jsonify({
             "success": True,
-            "message": "Successfully awarded 1 point",
-            "total_points": new_points
+            "message": "Successfully awarded 1 point" + (f", total {sessions_added} session(s) awarded" if sessions_added > 0 else ""),
+            "total_points": total_points,
+            "sessions_added": sessions_added
         })
 
     except Exception as e:
         print(f"Error awarding points: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
+
 
 @app.route('/convert_points', methods=['POST'])
 def convert_points():

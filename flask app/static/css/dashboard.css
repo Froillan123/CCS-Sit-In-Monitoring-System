@@ -527,7 +527,7 @@ min-height: 100px;
 /* Analytics Grid */
 .analytics-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr); /* 2 columns for larger screens */
+    grid-template-columns: repeat(1fr); /* 2 columns for larger screens */
     gap: 1.5rem; /* Spacing between cards */
     margin-bottom: 2rem; /* Bottom margin */
     margin-top: 2rem;
@@ -1023,6 +1023,36 @@ margin-right: 0.5rem;
     background-color: var(--sidebar-bg);
     margin: 1rem 0;
     padding: 1rem;
+}
+
+/* Scrollable sit-in-report table container */
+#sit-in-report .table-container {
+    max-height: 80vh;
+    overflow-y: auto;
+    margin-bottom: 20px;
+}
+
+/* Fixed headers for sit-in-report table */
+#sit-in-report table {
+    position: relative;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+#sit-in-report table thead {
+    background-color: var(--first-color);
+}
+
+#sit-in-report table thead th {
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4);
+}
+
+/* Ensure table cells don't overlap */
+#sit-in-report table th,
+#sit-in-report table td {
+    width: auto;
+    min-width: 120px;
+    box-sizing: border-box;
 }
 
 /* Table Styling */

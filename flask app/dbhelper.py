@@ -515,7 +515,7 @@ def create_points_tables():
         cursor.close()
         db.close()
 
-# Function to add points to a student
+# dbhelper.py
 def add_points_to_student(student_idno, points, reason, awarded_by):
     # First, check if student has a points record
     current_points = getprocess(
@@ -546,9 +546,25 @@ def add_points_to_student(student_idno, points, reason, awarded_by):
         (student_idno, points, reason, awarded_by)
     )
     
+    # Check if points reached a multiple of 3 and auto-convert
+    sessions_added = new_points // 3
+    if sessions_added > 0:
+        # Add sessions to student
+        postprocess(
+            "UPDATE students SET sessions_left = sessions_left + ? WHERE idno = ?",
+            (sessions_added, student_idno)
+        )
+        
+        # Add conversion record to history
+        postprocess(
+            """INSERT INTO points_history 
+            (student_idno, points_change, reason, awarded_by) 
+            VALUES (?, ?, ?, ?)""",
+            (student_idno, -(sessions_added * 3), "Auto-converted to sessions", "system")
+        )
+    
     return new_points
 
-# Function to convert points to sessions (3 points = 1 session)
 def convert_points_to_sessions(student_idno):
     # Get current points
     current_points_result = getprocess(
@@ -562,8 +578,6 @@ def convert_points_to_sessions(student_idno):
     current_points = current_points_result[0]['points']
     sessions_to_add = current_points // 3
     
-    # Key change: Don't reset/update points at all - keep points accumulating
-    # Only add the sessions if points are sufficient
     if sessions_to_add > 0:
         # Add sessions to student
         postprocess(
@@ -571,22 +585,15 @@ def convert_points_to_sessions(student_idno):
             (sessions_to_add, student_idno)
         )
         
-        # Add record to points history for the conversion
+        # Add to history
         postprocess(
             """INSERT INTO points_history 
             (student_idno, points_change, reason, awarded_by) 
             VALUES (?, ?, ?, ?)""",
-            (student_idno, -sessions_to_add * 3, "Converted to sessions", "system")
+            (student_idno, -(sessions_to_add * 3), "Manual conversion to sessions", "user")
         )
         
-        # Now subtract the points that were used for conversion
-        new_points = current_points - (sessions_to_add * 3)
-        postprocess(
-            "UPDATE student_points SET points = ?, last_updated = CURRENT_TIMESTAMP WHERE student_idno = ?",
-            (new_points, student_idno)
-        )
-        
-        return sessions_to_add, new_points
+        return sessions_to_add, current_points
     
     return 0, current_points
 
@@ -604,7 +611,13 @@ def get_points_leaderboard(limit=10):
     ORDER BY total_points DESC, s.lastname, s.firstname
     LIMIT ?
     """
-    return getprocess(sql, (limit,))
+    leaderboard = getprocess(sql, (limit,))
+    
+    # Add sit-in counts for each student in the leaderboard
+    for student in leaderboard:
+        student['sitin_count'] = get_student_sitin_count(student['student_idno'])
+    
+    return leaderboard
 
 # Function to check if a student has been awarded points for a reservation
 def has_points_for_reservation(student_idno, reservation_id):
@@ -614,3 +627,13 @@ def has_points_for_reservation(student_idno, reservation_id):
     """
     result = getprocess(sql, (reservation_id, student_idno))
     return len(result) > 0
+
+# Function to count the number of sit-ins a student has completed
+def get_student_sitin_count(student_idno):
+    sql = """
+    SELECT COUNT(*) as sitin_count
+    FROM reservations 
+    WHERE student_idno = ? AND status = 'Logged Out'
+    """
+    result = getprocess(sql, (student_idno,))
+    return result[0]['sitin_count'] if result else 0
