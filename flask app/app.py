@@ -400,6 +400,11 @@ def logout_student(reservation_id):
         if not postprocess(sql, params):
             return jsonify({"success": False, "message": "Failed to log out student"}), 500
 
+        # Decrease student's sessions_left by 1
+        student_idno = reservation['student_idno']
+        if not postprocess("UPDATE students SET sessions_left = sessions_left - 1 WHERE idno = ?", (student_idno,)):
+            print(f"Warning: Failed to decrement sessions_left for student {student_idno}")
+
         # Calculate duration in seconds
         login_time = datetime.strptime(reservation['login_time'], '%Y-%m-%d %H:%M:%S')
         logout_time = datetime.strptime(current_time, '%Y-%m-%d %H:%M:%S')
@@ -419,20 +424,30 @@ def logout_student(reservation_id):
             (reservation_id,)
         )[0]
 
+        # Get the student's updated sessions_left
+        student = getprocess("SELECT sessions_left FROM students WHERE idno = ?", (student_idno,))[0]
+        updated_sessions_left = student['sessions_left']
+
         # Emit socket events
         socketio.emit('reservation_updated', {
             'reservation_id': reservation_id,
             'logout_time': updated_reservation['logout_time'],
-            'status': updated_reservation['status']
+            'status': updated_reservation['status'],
+            'sessions_left': updated_sessions_left
         })
         
         socketio.emit(f'student_{updated_reservation["student_idno"]}_reservation_updated', {
             'reservation_id': reservation_id,
             'logout_time': updated_reservation['logout_time'],
-            'status': updated_reservation['status']
+            'status': updated_reservation['status'],
+            'sessions_left': updated_sessions_left
         })
 
-        return jsonify({"success": True, "message": "Student logged out successfully"})
+        return jsonify({
+            "success": True, 
+            "message": "Student logged out successfully",
+            "sessions_left": updated_sessions_left
+        })
 
     except Exception as e:
         print(f"Error logging out student: {e}")
@@ -555,12 +570,6 @@ def admin_create_sitin():
     if not postprocess(sql, params):
         return jsonify({"success": False, "message": "Failed to create reservation"}), 500
 
-    # Decrease sessions left
-    postprocess(
-        "UPDATE students SET sessions_left = sessions_left - 1 WHERE idno = ?",
-        (student_id,)
-    )
-
     # Get the full reservation details with lab name
     new_reservation = getprocess(
         """SELECT r.*, l.lab_name 
@@ -572,7 +581,7 @@ def admin_create_sitin():
     )[0]
 
     # Add sessions_left to the response
-    new_reservation['sessions_left'] = student['sessions_left'] - 1
+    new_reservation['sessions_left'] = student['sessions_left']
 
     # Emit socket events
     socketio.emit('new_sitin', new_reservation)  # For admin interface
@@ -1830,16 +1839,19 @@ def award_points():
                 }), 400
         
         # Award 1 point (auto-conversion happens in add_points_to_student)
-        total_points = add_points_to_student(
+        result = add_points_to_student(
             student_idno=student_idno,
             points=1,
             reason=f"Reward for reservation {reservation_id}" if reservation_id else reason,
             awarded_by=session['admin_username']
         )
-
-        # Check if conversion happened
-        sessions_added = total_points // 3
-
+        
+        # Extract values from the result dictionary
+        new_points = result['new_points']
+        additional_sessions = result['additional_sessions']
+        remaining_points = result['remaining_points']
+        sessions_left = result['total_sessions']
+        
         # Mark reservation as having points awarded if applicable
         if reservation_id:
             postprocess(
@@ -1847,11 +1859,19 @@ def award_points():
                 (reservation_id,)
             )
 
+        # Prepare success message
+        message = "Successfully awarded 1 point."
+        if additional_sessions > 0:
+            message += f" Earned {additional_sessions} new session(s)!"
+        message += f" {remaining_points} points remaining."
+
         return jsonify({
             "success": True,
-            "message": "Successfully awarded 1 point" + (f", total {sessions_added} session(s) awarded" if sessions_added > 0 else ""),
-            "total_points": total_points,
-            "sessions_added": sessions_added
+            "message": message,
+            "points": new_points,
+            "remaining_points": remaining_points,
+            "sessions_added": additional_sessions,
+            "sessions_left": sessions_left
         })
 
     except Exception as e:
@@ -1878,20 +1898,26 @@ def convert_points():
         student_idno = student[0]['idno']
         
         # Perform conversion
-        sessions_added, remaining_points = convert_points_to_sessions(student_idno)
+        result = convert_points_to_sessions(student_idno)
+        
+        sessions_added = result['sessions_added']
+        remaining_points = result['remaining_points']
+        total_sessions = result['total_sessions']
         
         if sessions_added == 0:
             return jsonify({
                 "success": False,
                 "message": "Not enough points to convert (need at least 3)",
-                "current_points": remaining_points
+                "current_points": remaining_points,
+                "total_sessions": total_sessions
             }), 400
 
         return jsonify({
             "success": True,
             "message": f"Converted {sessions_added * 3} points to {sessions_added} session(s)",
             "sessions_added": sessions_added,
-            "remaining_points": remaining_points
+            "remaining_points": remaining_points,
+            "total_sessions": total_sessions
         })
 
     except Exception as e:

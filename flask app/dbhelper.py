@@ -546,13 +546,25 @@ def add_points_to_student(student_idno, points, reason, awarded_by):
         (student_idno, points, reason, awarded_by)
     )
     
-    # Check if points reached a multiple of 3 and auto-convert
-    sessions_added = new_points // 3
-    if sessions_added > 0:
-        # Add sessions to student
+    # Check if points reached a multiple of 3 and convert ONLY the multiple of 3
+    sessions_to_add = new_points // 3
+    old_sessions_to_add = 0
+    
+    if current_points:
+        old_points = current_points[0]['points']
+        old_sessions_to_add = old_points // 3
+    
+    # Only add the NEW sessions converted (not all of them)
+    additional_sessions = sessions_to_add - old_sessions_to_add
+    
+    if additional_sessions > 0:
+        # Calculate remaining points - we keep these, not reset them
+        remaining_points = new_points % 3
+        
+        # Add only the new sessions to student
         postprocess(
             "UPDATE students SET sessions_left = sessions_left + ? WHERE idno = ?",
-            (sessions_added, student_idno)
+            (additional_sessions, student_idno)
         )
         
         # Add conversion record to history
@@ -560,10 +572,30 @@ def add_points_to_student(student_idno, points, reason, awarded_by):
             """INSERT INTO points_history 
             (student_idno, points_change, reason, awarded_by) 
             VALUES (?, ?, ?, ?)""",
-            (student_idno, -(sessions_added * 3), "Auto-converted to sessions", "system")
+            (student_idno, -(additional_sessions * 3), f"Converted {additional_sessions * 3} points to {additional_sessions} sessions", "system")
         )
+        
+        # Get updated sessions
+        updated_sessions = getprocess(
+            "SELECT sessions_left FROM students WHERE idno = ?", 
+            (student_idno,)
+        )[0]['sessions_left']
+        
+        # Return the new points, additional sessions, and total sessions
+        return {
+            "new_points": new_points, 
+            "additional_sessions": additional_sessions,
+            "remaining_points": remaining_points,
+            "total_sessions": updated_sessions
+        }
     
-    return new_points
+    # If no conversion happened, return the new total points
+    return {
+        "new_points": new_points, 
+        "additional_sessions": 0,
+        "remaining_points": new_points % 3,
+        "total_sessions": getprocess("SELECT sessions_left FROM students WHERE idno = ?", (student_idno,))[0]['sessions_left']
+    }
 
 def convert_points_to_sessions(student_idno):
     # Get current points
@@ -573,16 +605,25 @@ def convert_points_to_sessions(student_idno):
     )
     
     if not current_points_result:
-        return 0, 0
+        return {"sessions_added": 0, "remaining_points": 0, "total_sessions": 0}
     
     current_points = current_points_result[0]['points']
     sessions_to_add = current_points // 3
     
     if sessions_to_add > 0:
+        # Calculate remaining points - which we keep
+        remaining_points = current_points % 3
+        
         # Add sessions to student
         postprocess(
             "UPDATE students SET sessions_left = sessions_left + ? WHERE idno = ?",
             (sessions_to_add, student_idno)
+        )
+        
+        # Update points to remaining after conversion, but don't reset completely
+        postprocess(
+            "UPDATE student_points SET points = ?, last_updated = CURRENT_TIMESTAMP WHERE student_idno = ?",
+            (remaining_points, student_idno)
         )
         
         # Add to history
@@ -590,12 +631,32 @@ def convert_points_to_sessions(student_idno):
             """INSERT INTO points_history 
             (student_idno, points_change, reason, awarded_by) 
             VALUES (?, ?, ?, ?)""",
-            (student_idno, -(sessions_to_add * 3), "Manual conversion to sessions", "user")
+            (student_idno, -(sessions_to_add * 3), f"Manual conversion: {sessions_to_add * 3} points to {sessions_to_add} sessions", "user")
         )
         
-        return sessions_to_add, current_points
+        # Get updated sessions
+        updated_sessions = getprocess(
+            "SELECT sessions_left FROM students WHERE idno = ?", 
+            (student_idno,)
+        )[0]['sessions_left']
+        
+        return {
+            "sessions_added": sessions_to_add, 
+            "remaining_points": remaining_points,
+            "total_sessions": updated_sessions
+        }
     
-    return 0, current_points
+    # Get updated sessions
+    updated_sessions = getprocess(
+        "SELECT sessions_left FROM students WHERE idno = ?", 
+        (student_idno,)
+    )[0]['sessions_left']
+    
+    return {
+        "sessions_added": 0, 
+        "remaining_points": current_points,
+        "total_sessions": updated_sessions
+    }
 
 # Function to get student points leaderboard
 def get_points_leaderboard(limit=10):

@@ -1136,8 +1136,17 @@ function handleLogout(reservationId) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire('Success!', data.message, 'success');
-                    // Tables will be updated via socket events
+                    Swal.fire({
+                        title: 'Success!',
+                        text: `Student logged out successfully. Sessions left: ${data.sessions_left}`,
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Reload the page after the user clicks OK
+                            window.location.reload();
+                        }
+                    });
                 } else {
                     Swal.fire('Error!', data.message, 'error');
                 }
@@ -1451,17 +1460,23 @@ function awardPointsToStudent(studentIdno, buttonElement, reservationId) {
         allowOutsideClick: () => !Swal.isLoading()
     }).then((result) => {
         if (result.isConfirmed) {
-            let message = '1 point awarded to student.';
-            
-            if (result.value.sessions_added > 0) {
-                message += ` Student earned ${result.value.sessions_added} additional session(s) from points.`;
-            }
-            
-            Swal.fire(
-                'Success!',
-                message,
-                'success'
-            );
+            // Display the detailed message from the server
+            Swal.fire({
+                title: 'Success!',
+                html: `
+                    <div class="points-info">
+                        <p>${result.value.message}</p>
+                        <p>Student now has <strong>${result.value.sessions_left}</strong> sessions left.</p>
+                    </div>
+                `,
+                icon: 'success',
+                confirmButtonText: 'OK'
+            }).then((confirmResult) => {
+                if (confirmResult.isConfirmed) {
+                    // Refresh the page after clicking OK
+                    window.location.reload();
+                }
+            });
             
             // Disable the button and update text
             if (buttonElement) {
@@ -1479,6 +1494,14 @@ function awardPointsToStudent(studentIdno, buttonElement, reservationId) {
             // Update the leaderboard if we're on the dashboard page
             if (document.getElementById('leaderboard-top-3')) {
                 fetchLeaderboard();
+            }
+            
+            // Refresh sit-in records to update any session counts
+            fetchAndDisplaySitInRecords();
+            
+            // Also refresh current sit-in display if we're on that page
+            if (window.location.hash === '#sit-in') {
+                fetchAndDisplayCurrentSitIn();
             }
         }
     });
