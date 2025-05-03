@@ -2482,3 +2482,729 @@ tr[data-foul-language="true"] {
     }
 }
 
+/* Lab Management Styles */
+.lab-management-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    margin-top: 1rem;
+}
+
+.lab-selection {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.lab-selection h3 {
+    margin-bottom: 1rem;
+    color: var(--first-color);
+    font-weight: 600;
+    font-size: 1.2rem;
+}
+
+.lab-buttons, .day-selection {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.lab-button, .day-button, .schedule-lab-button {
+    background: var(--body-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.lab-button:hover, .day-button:hover, .schedule-lab-button:hover {
+    background: var(--first-color);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.lab-button.active, .day-button.active, .schedule-lab-button.active {
+    background: var(--first-color);
+    color: white;
+    box-shadow: 0 4px 8px rgba(var(--first-color-rgb), 0.3);
+}
+
+.lab-overview {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.lab-stats {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.stat-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--body-color);
+    border-radius: 10px;
+    padding: 1rem;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-card i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.stat-card span:first-of-type {
+    font-size: 0.9rem;
+    color: var(--text-color-light);
+}
+
+.stat-card span:last-of-type {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+/* Custom colors for specific status cards */
+.stat-card:nth-child(1) i {
+    color: #4CAF50; /* Available - Green */
+}
+
+.stat-card:nth-child(2) i {
+    color: #2196F3; /* In Use - Blue */
+}
+
+.stat-card:nth-child(3) i {
+    color: #F44336; /* Unavailable - Red */
+}
+
+.computer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.computer-item {
+    background: var(--body-color);
+    border-radius: 8px;
+    padding: 1rem 0.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid var(--border-color);
+    position: relative;
+}
+
+.computer-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.computer-item i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.computer-number {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.computer-status {
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+/* Status colors */
+.computer-item.available {
+    border-color: #4CAF50;
+}
+
+.computer-item.available i {
+    color: #4CAF50;
+}
+
+.computer-item.available .computer-status {
+    background: rgba(76, 175, 80, 0.1);
+    color: #4CAF50;
+}
+
+.computer-item.in-use {
+    border-color: #2196F3;
+}
+
+.computer-item.in-use i {
+    color: #2196F3;
+}
+
+.computer-item.in-use .computer-status {
+    background: rgba(33, 150, 243, 0.1);
+    color: #2196F3;
+}
+
+.computer-item.unavailable {
+    border-color: #F44336;
+    opacity: 0.8;
+}
+
+.computer-item.unavailable i {
+    color: #F44336;
+}
+
+.computer-item.unavailable .computer-status {
+    background: rgba(244, 67, 54, 0.1);
+    color: #F44336;
+}
+
+.loading-message {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-color-light);
+    font-style: italic;
+}
+
+/* Modal Styles (Extending existing ones) */
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.btn-action, .btn-cancel {
+    padding: 0.7rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-action {
+    background: var(--first-color);
+    color: white;
+    border: none;
+}
+
+.btn-action:hover {
+    background: var(--first-color-dark);
+    transform: translateY(-2px);
+}
+
+.btn-action:disabled {
+    background: #4a5568;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-cancel {
+    background: transparent;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+.btn-cancel:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.btn-delete {
+    background: #F44336;
+    color: white;
+}
+
+.btn-delete:hover {
+    background: #d32f2f;
+}
+
+.student-info {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+/* Lab Schedule Styles */
+.lab-schedule-section {
+    margin-top: 3rem;
+}
+
+.schedule-container {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    margin-top: 1rem;
+}
+
+.schedule-table-container {
+    margin-top: 1.5rem;
+    overflow-x: auto;
+}
+
+.schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.schedule-table th, 
+.schedule-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.schedule-table th {
+    background: rgba(0, 0, 0, 0.1);
+    font-weight: 600;
+}
+
+.schedule-table tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.status-badge {
+    padding: 0.3rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.status-badge.available {
+    background: rgba(76, 175, 80, 0.1);
+    color: #4CAF50;
+}
+
+.status-badge.reserved {
+    background: rgba(33, 150, 243, 0.1);
+    color: #2196F3;
+}
+
+.status-badge.unavailable {
+    background: rgba(244, 67, 54, 0.1);
+    color: #F44336;
+}
+
+.schedule-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.3rem;
+    border-radius: 4px;
+    color: var(--text-color);
+}
+
+.action-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.action-btn.edit {
+    color: #FFC107;
+}
+
+.action-btn.delete {
+    color: #F44336;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .computer-grid {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    }
+    
+    .computer-item {
+        padding: 0.8rem 0.4rem;
+    }
+    
+    .computer-item i {
+        font-size: 1.5rem;
+    }
+    
+    .lab-stats {
+        flex-direction: column;
+    }
+    
+    .stat-card {
+        flex-direction: row;
+        justify-content: space-between;
+        padding: 0.8rem;
+    }
+    
+    .stat-card i {
+        margin-bottom: 0;
+        margin-right: 0.5rem;
+    }
+}
+
+/* Management Tabs Styles */
+.management-tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tab-button {
+    background: var(--body-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    padding: 10px 20px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    margin-right: 5px;
+    transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+    background: rgba(var(--first-color-rgb), 0.1);
+}
+
+.tab-button.active {
+    background: var(--first-color);
+    color: white;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.management-section {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Fix modal colors for dark theme */
+.modal-content,
+.student-modal-content,
+#studentEditModal .modal-content,
+#editModal .modal-content,
+#searchStudentModal .modal-content,
+#computer-modal .modal-content,
+#student-assignment-modal .modal-content,
+#schedule-modal .modal-content {
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    border: 1px solid var(--sidebar-hover);
+}
+
+.student-modal-header h2,
+.student-close-modal,
+.modal-content h2,
+.close-modal {
+    color: var(--sidebar-text);
+}
+
+.student-close-modal:hover,
+.close-modal:hover {
+    color: var(--first-color);
+}
+
+.student-form-group label {
+    color: var(--sidebar-text);
+}
+
+.student-form-group input,
+.form-group input,
+.form-group select,
+.form-group textarea {
+    background-color: var(--dark-color);
+    color: var(--sidebar-text);
+    border: 1px solid var(--sidebar-hover);
+}
+
+.student-form-group input:focus,
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: var(--first-color);
+    box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.1);
+}
+
+.student-info {
+    background-color: var(--dark-color);
+    color: var(--sidebar-text);
+}
+
+.student-info p,
+.student-info strong {
+    color: var(--sidebar-text);
+}
+
+/* Fix for all modal buttons */
+.btn-student-primary {
+    background-color: var(--first-color);
+    color: white;
+}
+
+.btn-student-primary:hover {
+    background-color: var(--second-color);
+}
+
+.btn-student-secondary {
+    background-color: var(--sidebar-hover);
+    color: var(--sidebar-text);
+}
+
+.btn-student-secondary:hover {
+    background-color: var(--first-color);
+    color: white;
+}
+
+/* Lab Schedule Management Styles */
+.lab-schedule-section {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.schedule-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: var(--sidebar-bg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    overflow: hidden;
+}
+
+.day-selection {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.day-button {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--sidebar-hover);
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.day-button:hover {
+    background-color: var(--sidebar-hover);
+}
+
+.day-button.active {
+    background-color: var(--first-color);
+    color: var(--white-color);
+    border-color: var(--first-color);
+}
+
+.schedule-lab-button {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--sidebar-hover);
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 0.5rem;
+}
+
+.schedule-lab-button:hover {
+    background-color: var(--sidebar-hover);
+}
+
+.schedule-lab-button.active {
+    background-color: var(--first-color);
+    color: var(--white-color);
+    border-color: var(--first-color);
+}
+
+.schedule-table-container {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+
+.schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.schedule-table th,
+.schedule-table td {
+    padding: 0.75rem;
+    border: 1px solid var(--sidebar-hover);
+    text-align: left;
+}
+
+.schedule-table th {
+    background-color: var(--dark-color);
+    color: var(--sidebar-text);
+    font-weight: 600;
+}
+
+.schedule-table tr:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.schedule-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.status-badge.available {
+    background-color: #10b981;
+    color: white;
+}
+
+.status-badge.reserved {
+    background-color: #f59e0b;
+    color: white;
+}
+
+.status-badge.unavailable {
+    background-color: #ef4444;
+    color: white;
+}
+
+.loading-message {
+    text-align: center;
+    padding: 1rem;
+    color: var(--sidebar-text);
+}
+
+.loading-message.error {
+    color: #ef4444;
+}
+
+#add-schedule-btn,
+#import-schedules-btn {
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Form fields for schedules */
+#subject-fields,
+#unavailable-reason-field {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--sidebar-hover);
+}
+
+/* Lab Schedule Error and Empty State Styles */
+.no-schedules-message {
+    padding: 1.5rem;
+    color: var(--sidebar-text);
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.error-message {
+    padding: 1.5rem;
+    color: #ff6b6b;
+    text-align: center;
+    background-color: rgba(255, 107, 107, 0.1);
+    border-radius: 8px;
+}
+
+.quick-add-btn, .retry-btn {
+    margin-top: 10px;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.quick-add-btn {
+    background-color: var(--first-color);
+    color: white;
+}
+
+.quick-add-btn:hover {
+    background-color: var(--second-color);
+    transform: translateY(-2px);
+}
+
+.retry-btn {
+    background-color: #5e5ce6;
+    color: white;
+}
+
+.retry-btn:hover {
+    background-color: #4a48b7;
+    transform: translateY(-2px);
+}
+
+/* Status Badge Styles */
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-align: center;
+    display: inline-block;
+}
+
+.status-badge.available {
+    background-color: rgba(46, 213, 115, 0.15);
+    color: #2ed573;
+    border: 1px solid rgba(46, 213, 115, 0.3);
+}
+
+.status-badge.reserved {
+    background-color: rgba(255, 193, 7, 0.15);
+    color: #ffc107;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.status-badge.unavailable {
+    background-color: rgba(255, 107, 107, 0.15);
+    color: #ff6b6b;
+    border: 1px solid rgba(255, 107, 107, 0.3);
+}
+

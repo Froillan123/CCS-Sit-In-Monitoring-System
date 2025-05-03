@@ -698,3 +698,466 @@ def get_student_sitin_count(student_idno):
     """
     result = getprocess(sql, (student_idno,))
     return result[0]['sitin_count'] if result else 0
+    
+# Create lab computers table if it doesn't exist
+def create_lab_computers_table():
+    try:
+        conn = sqlite3.connect('student.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS lab_computers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lab_id INTEGER NOT NULL,
+            computer_number INTEGER NOT NULL,
+            status TEXT DEFAULT 'Available' CHECK(status IN ('Available', 'In Use', 'Unavailable')),
+            student_idno TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (lab_id) REFERENCES laboratories(id),
+            FOREIGN KEY (student_idno) REFERENCES students(idno)
+        )''')
+        
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS lab_schedules (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lab_id INTEGER NOT NULL,
+            day_of_week TEXT NOT NULL CHECK(day_of_week IN ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday')),
+            start_time TEXT NOT NULL,
+            end_time TEXT NOT NULL,
+            subject_code TEXT,
+            subject_name TEXT,
+            status TEXT DEFAULT 'Available' CHECK(status IN ('Available', 'Reserved', 'Unavailable')),
+            reason TEXT,
+            FOREIGN KEY (lab_id) REFERENCES laboratories(id)
+        )''')
+        
+        conn.commit()
+        print("Lab computers and schedules tables created or already exist")
+    except Exception as e:
+        print(f"Error creating lab computers and schedules tables: {e}")
+    finally:
+        if conn:
+            conn.close()
+
+# Initialize lab computers for a lab
+def initialize_lab_computers(lab_id, computer_count=50):
+    try:
+        conn = sqlite3.connect('student.db')
+        cursor = conn.cursor()
+        
+        # Check if computers already exist for this lab
+        cursor.execute('SELECT COUNT(*) FROM lab_computers WHERE lab_id = ?', (lab_id,))
+        count = cursor.fetchone()[0]
+        
+        if count == 0:
+            for i in range(1, computer_count + 1):
+                cursor.execute('''
+                INSERT INTO lab_computers (lab_id, computer_number, status)
+                VALUES (?, ?, 'Available')
+                ''', (lab_id, i))
+            
+            conn.commit()
+            print(f"Initialized {computer_count} computers for lab {lab_id}")
+            return True
+        else:
+            print(f"Computers already exist for lab {lab_id}")
+            return False
+    except Exception as e:
+        print(f"Error initializing lab computers: {e}")
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+# Get computers for a specific lab
+def get_lab_computers(lab_id):
+    try:
+        conn = sqlite3.connect('student.db')
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+        SELECT lc.*, s.firstname, s.lastname
+        FROM lab_computers lc
+        LEFT JOIN students s ON lc.student_idno = s.idno
+        WHERE lc.lab_id = ?
+        ORDER BY lc.computer_number
+        ''', (lab_id,))
+        
+        computers = cursor.fetchall()
+        return [dict(computer) for computer in computers]
+    except Exception as e:
+        print(f"Error getting lab computers: {e}")
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+# Update computer status
+def update_computer_status(computer_id, status, student_idno=None):
+    try:
+        conn = sqlite3.connect('student.db')
+        cursor = conn.cursor()
+        
+        if status == 'In Use' and student_idno:
+            cursor.execute('''
+            UPDATE lab_computers 
+            SET status = ?, student_idno = ?, timestamp = CURRENT_TIMESTAMP
+            WHERE id = ?
+            ''', (status, student_idno, computer_id))
+        else:
+            cursor.execute('''
+            UPDATE lab_computers 
+            SET status = ?, student_idno = NULL, timestamp = CURRENT_TIMESTAMP
+            WHERE id = ?
+            ''', (status, computer_id))
+        
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error updating computer status: {e}")
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+# Add or update lab schedule
+def add_or_update_lab_schedule(lab_id, day_of_week, start_time, end_time, status, subject_code=None, subject_name=None, reason=None, schedule_id=None):
+    try:
+        conn = sqlite3.connect('student.db')
+        cursor = conn.cursor()
+        
+        if schedule_id:
+            # Update existing schedule
+            cursor.execute('''
+            UPDATE lab_schedules
+            SET day_of_week = ?, start_time = ?, end_time = ?, subject_code = ?,
+                subject_name = ?, status = ?, reason = ?
+            WHERE id = ?
+            ''', (day_of_week, start_time, end_time, subject_code, subject_name, status, reason, schedule_id))
+        else:
+            # Create new schedule
+            cursor.execute('''
+            INSERT INTO lab_schedules
+            (lab_id, day_of_week, start_time, end_time, subject_code, subject_name, status, reason)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (lab_id, day_of_week, start_time, end_time, subject_code, subject_name, status, reason))
+            
+            schedule_id = cursor.lastrowid
+        
+        conn.commit()
+        return schedule_id
+    except Exception as e:
+        print(f"Error adding/updating lab schedule: {e}")
+        return None
+    finally:
+        if conn:
+            conn.close()
+
+# Get lab schedules
+def get_lab_schedules(lab_id=None, day_of_week=None):
+    try:
+        conn = sqlite3.connect('student.db')
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Debug information
+        if lab_id:
+            print(f"DEBUG: Fetching schedules for lab ID {lab_id}")
+            # Print lab info
+            cursor.execute('SELECT * FROM laboratories WHERE id = ?', (lab_id,))
+            lab_info = cursor.fetchone()
+            if lab_info:
+                print(f"DEBUG: Lab found: {dict(lab_info)}")
+            else:
+                print(f"DEBUG: No lab found with ID {lab_id}")
+        
+        query = '''
+        SELECT ls.*, l.lab_name
+        FROM lab_schedules ls
+        JOIN laboratories l ON ls.lab_id = l.id
+        WHERE 1=1
+        '''
+        
+        params = []
+        
+        if lab_id:
+            query += ' AND ls.lab_id = ?'
+            params.append(lab_id)
+            
+        if day_of_week:
+            query += ' AND ls.day_of_week = ?'
+            params.append(day_of_week)
+            
+        query += ' ORDER BY ls.day_of_week, ls.start_time'
+        
+        print(f"DEBUG: Query: {query}")
+        print(f"DEBUG: Params: {params}")
+        
+        cursor.execute(query, params)
+        schedules = cursor.fetchall()
+        
+        result = [dict(schedule) for schedule in schedules]
+        print(f"DEBUG: Found {len(result)} schedules")
+        
+        # If no schedules found, check for what might be the issue
+        if not result and lab_id:
+            cursor.execute('SELECT COUNT(*) FROM lab_schedules WHERE lab_id = ?', (lab_id,))
+            count = cursor.fetchone()[0]
+            print(f"DEBUG: Total schedules for lab ID {lab_id}: {count}")
+            
+            # Check for any schedules to make sure the table has data
+            cursor.execute('SELECT COUNT(*), MIN(lab_id), MAX(lab_id) FROM lab_schedules')
+            total_info = cursor.fetchone()
+            if total_info:
+                print(f"DEBUG: Total schedules in DB: {total_info[0]}, Min lab_id: {total_info[1]}, Max lab_id: {total_info[2]}")
+            
+            # List all lab IDs in the schedule table
+            cursor.execute('SELECT DISTINCT lab_id, COUNT(*) FROM lab_schedules GROUP BY lab_id')
+            lab_ids = cursor.fetchall()
+            print(f"DEBUG: Distinct lab_ids in schedules: {[dict(row) for row in lab_ids]}")
+            
+        return result
+    except Exception as e:
+        print(f"Error getting lab schedules: {e}")
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+# Delete lab schedule
+def delete_lab_schedule(schedule_id):
+    try:
+        conn = sqlite3.connect('student.db')
+        cursor = conn.cursor()
+        
+        cursor.execute('DELETE FROM lab_schedules WHERE id = ?', (schedule_id,))
+        
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error deleting lab schedule: {e}")
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+# Import lab schedules from predefined data
+def import_default_lab_schedules(lab_mappings=None):
+    try:
+        print("DEBUG: Starting import_default_lab_schedules")
+        if lab_mappings is None:
+            lab_mappings = {}
+        print(f"DEBUG: Using lab ID mappings: {lab_mappings}")
+        
+        conn = sqlite3.connect('student.db')
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # First ensure all required lab IDs exist
+        required_lab_ids = set()
+        
+        # Define the schedule data structure 
+        # Format: (lab_id, day, start_time, end_time, subject_code, subject_name, status)
+        default_schedules = [
+            # Lab 544 - Monday
+            (544, 'Monday', '07:00', '08:30', 'ITP10123', 'Computer Programming 1', 'Reserved'),
+            (544, 'Monday', '08:30', '10:00', None, None, 'Available'),
+            (544, 'Monday', '10:00', '11:30', 'OOP20239', 'Computer Programming 2 (Java)', 'Reserved'),
+            (544, 'Monday', '11:30', '13:00', None, None, 'Available'),
+            (544, 'Monday', '13:00', '14:30', 'DSA20145', 'Data Structures and Algorithms', 'Reserved'),
+            (544, 'Monday', '14:30', '16:00', None, None, 'Available'),
+            (544, 'Monday', '16:00', '17:30', 'DBMS20267', 'Database Management Systems', 'Reserved'),
+            (544, 'Monday', '17:30', '19:00', None, None, 'Available'),
+            (544, 'Monday', '19:00', '21:00', 'ITE20245', 'IT Elective 1 (Mobile Dev)', 'Reserved'),
+            
+            # Lab 544 - Tuesday
+            (544, 'Tuesday', '07:00', '08:30', 'ITP10123', 'Computer Programming 1', 'Reserved'),
+            (544, 'Tuesday', '08:30', '10:00', None, None, 'Available'),
+            (544, 'Tuesday', '10:00', '11:30', 'OOP20239', 'Computer Programming 2 (Java)', 'Reserved'),
+            (544, 'Tuesday', '11:30', '13:00', None, None, 'Available'),
+            (544, 'Tuesday', '13:00', '14:30', 'DSA20145', 'Data Structures and Algorithms', 'Reserved'),
+            (544, 'Tuesday', '14:30', '16:00', None, None, 'Available'),
+            (544, 'Tuesday', '16:00', '17:30', 'DBMS20267', 'Database Management Systems', 'Reserved'),
+            (544, 'Tuesday', '17:30', '19:00', None, None, 'Available'),
+            (544, 'Tuesday', '19:00', '21:00', 'ITE20245', 'IT Elective 1 (Mobile Dev)', 'Reserved'),
+            
+            # Lab 544 - Wednesday
+            (544, 'Wednesday', '07:00', '08:30', 'ITP10123', 'Computer Programming 1', 'Reserved'),
+            (544, 'Wednesday', '08:30', '10:00', None, None, 'Available'),
+            (544, 'Wednesday', '10:00', '11:30', 'OOP20239', 'Computer Programming 2 (Java)', 'Reserved'),
+            (544, 'Wednesday', '11:30', '13:00', None, None, 'Available'),
+            (544, 'Wednesday', '13:00', '14:30', 'DSA20145', 'Data Structures and Algorithms', 'Reserved'),
+            (544, 'Wednesday', '14:30', '16:00', None, None, 'Available'),
+            (544, 'Wednesday', '16:00', '17:30', 'DBMS20267', 'Database Management Systems', 'Reserved'),
+            (544, 'Wednesday', '17:30', '19:00', None, None, 'Available'),
+            (544, 'Wednesday', '19:00', '21:00', 'ITE20245', 'IT Elective 1 (Mobile Dev)', 'Reserved'),
+            
+            # Add schedules for Thursday, Friday and Saturday for lab 544
+            (544, 'Thursday', '07:00', '08:30', 'ITP10123', 'Computer Programming 1', 'Reserved'),
+            (544, 'Thursday', '08:30', '10:00', None, None, 'Available'),
+            (544, 'Thursday', '10:00', '11:30', 'OOP20239', 'Computer Programming 2 (Java)', 'Reserved'),
+            
+            (544, 'Friday', '07:00', '08:30', 'ITP10123', 'Computer Programming 1', 'Reserved'),
+            (544, 'Friday', '08:30', '10:00', None, None, 'Available'),
+            (544, 'Friday', '10:00', '11:30', 'OOP20239', 'Computer Programming 2 (Java)', 'Reserved'),
+            
+            (544, 'Saturday', '07:00', '08:30', None, None, 'Available'),
+            (544, 'Saturday', '08:30', '10:00', None, None, 'Available'),
+            
+            # Lab 542 - Monday to Saturday
+            (542, 'Monday', '07:00', '08:30', None, None, 'Available'),
+            (542, 'Monday', '08:30', '10:00', 'OOP20239', 'Computer Programming 2 (Java)', 'Reserved'),
+            (542, 'Monday', '10:00', '11:30', None, None, 'Available'),
+            (542, 'Monday', '11:30', '13:00', 'DSA20145', 'Data Structures and Algorithms', 'Reserved'),
+            
+            (542, 'Tuesday', '07:00', '08:30', None, None, 'Available'),
+            (542, 'Tuesday', '08:30', '10:00', 'OOP20239', 'Computer Programming 2 (Java)', 'Reserved'),
+            
+            (542, 'Wednesday', '07:00', '08:30', None, None, 'Available'),
+            (542, 'Wednesday', '08:30', '10:00', 'OOP20239', 'Computer Programming 2 (Java)', 'Reserved'),
+            
+            (542, 'Thursday', '07:00', '08:30', None, None, 'Available'),
+            (542, 'Thursday', '08:30', '10:00', 'OOP20239', 'Computer Programming 2 (Java)', 'Reserved'),
+            
+            (542, 'Friday', '07:00', '08:30', None, None, 'Available'),
+            (542, 'Friday', '08:30', '10:00', 'OOP20239', 'Computer Programming 2 (Java)', 'Reserved'),
+            
+            (542, 'Saturday', '07:00', '08:30', None, None, 'Available'),
+            (542, 'Saturday', '08:30', '10:00', None, None, 'Available'),
+            
+            # Lab 524 - Monday to Saturday
+            (524, 'Monday', '07:00', '08:30', None, None, 'Available'),
+            (524, 'Monday', '08:30', '10:00', 'DSA20145', 'Data Structures and Algorithms', 'Reserved'),
+            (524, 'Monday', '10:00', '11:30', None, None, 'Available'),
+            (524, 'Monday', '11:30', '13:00', 'DBMS20267', 'Database Management Systems', 'Reserved'),
+            
+            (524, 'Tuesday', '07:00', '08:30', None, None, 'Available'),
+            (524, 'Tuesday', '08:30', '10:00', 'DSA20145', 'Data Structures and Algorithms', 'Reserved'),
+            
+            (524, 'Wednesday', '07:00', '08:30', None, None, 'Available'),
+            (524, 'Wednesday', '08:30', '10:00', 'DSA20145', 'Data Structures and Algorithms', 'Reserved'),
+            
+            (524, 'Thursday', '07:00', '08:30', None, None, 'Available'),
+            (524, 'Thursday', '08:30', '10:00', 'DSA20145', 'Data Structures and Algorithms', 'Reserved'),
+            
+            (524, 'Friday', '07:00', '08:30', None, None, 'Available'),
+            (524, 'Friday', '08:30', '10:00', 'DSA20145', 'Data Structures and Algorithms', 'Reserved'),
+            
+            (524, 'Saturday', '07:00', '08:30', None, None, 'Available'),
+            (524, 'Saturday', '08:30', '10:00', None, None, 'Available'),
+        ]
+        
+        # Apply lab ID mappings to the schedules
+        mapped_schedules = []
+        for schedule in default_schedules:
+            original_lab_id = schedule[0]
+            # If there's a mapping for this lab ID, use it, otherwise keep the original
+            actual_lab_id = lab_mappings.get(original_lab_id, original_lab_id)
+            
+            # Create a new schedule tuple with the updated lab ID
+            new_schedule = (actual_lab_id,) + schedule[1:]
+            mapped_schedules.append(new_schedule)
+        
+        # Extract unique lab IDs from the schedules
+        for schedule in mapped_schedules:
+            required_lab_ids.add(schedule[0])
+        
+        print(f"DEBUG: Importing {len(mapped_schedules)} default schedules for labs: {required_lab_ids}")
+        
+        # Insert schedules in batches for better performance
+        cursor.executemany('''
+        INSERT INTO lab_schedules 
+        (lab_id, day_of_week, start_time, end_time, subject_code, subject_name, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', mapped_schedules)
+        
+        conn.commit()
+        print("DEBUG: Default lab schedules imported successfully")
+        return True
+    except Exception as e:
+        import traceback
+        print(f"DEBUG: Error importing default lab schedules: {str(e)}")
+        print(traceback.format_exc())
+        if 'conn' in locals() and conn:
+            conn.rollback()
+        return False
+    finally:
+        if 'cursor' in locals() and cursor:
+            cursor.close()
+        if 'conn' in locals() and conn:
+            conn.close()
+
+# Call these functions when the app starts
+create_lab_computers_table()
+
+# Initialize computers for all labs
+def initialize_all_labs_computers():
+    try:
+        print("DEBUG: Initializing computers for all labs")
+        conn = sqlite3.connect('student.db')
+        cursor = conn.cursor()
+        
+        # Get all labs
+        cursor.execute('SELECT id FROM laboratories')
+        labs = cursor.fetchall()
+        
+        initialized_count = 0
+        for lab in labs:
+            lab_id = lab[0]
+            if initialize_lab_computers(lab_id):
+                initialized_count += 1
+        
+        print(f"DEBUG: Initialized computers for {initialized_count} labs")
+        return True
+    except Exception as e:
+        print(f"DEBUG: Error initializing lab computers: {e}")
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+# Create laboratories table and populate with default labs if empty
+def create_and_populate_laboratories():
+    try:
+        print("DEBUG: Creating and checking laboratories table")
+        conn = sqlite3.connect('student.db')
+        cursor = conn.cursor()
+        
+        # Create laboratories table if it doesn't exist
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS laboratories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lab_name TEXT NOT NULL,
+            status TEXT DEFAULT 'Available' CHECK(status IN ('Available', 'Unavailable'))
+        )''')
+        
+        # Check if laboratories table has any rows
+        cursor.execute('SELECT COUNT(*) FROM laboratories')
+        count = cursor.fetchone()[0]
+        
+        if count == 0:
+            print("DEBUG: Laboratories table is empty, adding default labs")
+            # Insert default labs
+            default_labs = [
+                ('Lab 517', 'Available'),
+                ('Lab 524', 'Available'),
+                ('Lab 526', 'Available'),
+                ('Lab 528', 'Available'),
+                ('Lab 530', 'Available'),
+                ('Lab 542', 'Available'),
+                ('Lab 544', 'Available')
+            ]
+            
+            cursor.executemany('INSERT INTO laboratories (lab_name, status) VALUES (?, ?)', default_labs)
+            conn.commit()
+            print(f"DEBUG: Added {len(default_labs)} default laboratories")
+        else:
+            print(f"DEBUG: Laboratories table already has {count} labs")
+        
+        return True
+    except Exception as e:
+        print(f"DEBUG: Error in create_and_populate_laboratories: {e}")
+        return False
+    finally:
+        if conn:
+            conn.close()

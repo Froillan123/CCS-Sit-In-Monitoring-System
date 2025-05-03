@@ -89,6 +89,18 @@ def create_lab_resources_table():
 # Create lab resources table
 create_lab_resources_table()
 
+# Ensure laboratories table exists with data
+create_and_populate_laboratories()
+print("DEBUG: Laboratories table initialized")
+
+# Create lab computers and schedules tables
+create_lab_computers_table()
+print("DEBUG: Lab computers and schedules tables initialized")
+
+# Initialize computers for all labs
+initialize_all_labs_computers()
+print("DEBUG: Lab computers initialization completed")
+
 # Delete old reservations thread
 delete_thread = threading.Thread(target=delete_old_reservations)
 delete_thread.daemon = True
@@ -1439,7 +1451,12 @@ def dashboard():
     # Get all necessary data
     admin_username = session.get('admin_username')
     active_students = list(active_users_dict.keys())
-    labs = get_lab_names() or []
+    labs = get_lab_names() or []  # Ensure labs is always at least an empty list
+    
+    print(f"DEBUG: Retrieved {len(labs)} labs for dashboard")
+    for lab in labs:
+        print(f"DEBUG: Lab ID: {lab.get('id')}, Name: {lab.get('lab_name')}")
+        
     laboratories = get_count_laboratories()
     student_count = get_count_students()
     active_students_count = len(active_students)
@@ -2268,6 +2285,323 @@ def create_sample_resource():
     except Exception as e:
         print(f"Error creating sample resources: {str(e)}")
         return f"Failed to create sample resources: {str(e)}"
+
+# Lab Management Routes
+@app.route('/lab_management')
+def lab_management():
+    if 'admin_username' not in session:
+        flash("You need to login first", 'warning')
+        return redirect(url_for('admin_login'))
+    
+    # Get all labs
+    labs = get_lab_names()
+    
+    return render_template('admin/lab_management.html', 
+                          labs=labs,
+                          admin_username=session.get('admin_username'),
+                          admin_firstname=session.get('admin_firstname'),
+                          current_page='lab_management')
+
+@app.route('/api/lab_computers/<int:lab_id>', methods=['GET'])
+def api_lab_computers(lab_id):
+    if 'admin_username' not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+    
+    # Initialize computers if they don't exist
+    initialize_lab_computers(lab_id)
+    
+    # Get computers for the lab
+    computers = get_lab_computers(lab_id)
+    
+    # Get lab name
+    lab_name = "Unknown Lab"
+    labs = get_lab_names()
+    for lab in labs:
+        if lab['id'] == lab_id:
+            lab_name = lab['lab_name']
+            break
+    
+    return jsonify({
+        "success": True, 
+        "lab_id": lab_id,
+        "lab_name": lab_name,
+        "computers": computers
+    })
+
+@app.route('/api/computer_status/<int:computer_id>', methods=['PUT'])
+def api_update_computer_status(computer_id):
+    if 'admin_username' not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+    
+    data = request.get_json()
+    status = data.get('status')
+    student_idno = data.get('student_idno')
+    
+    if not status or status not in ['Available', 'In Use', 'Unavailable']:
+        return jsonify({"success": False, "message": "Invalid status"}), 400
+    
+    # Update computer status
+    success = update_computer_status(computer_id, status, student_idno)
+    
+    if success:
+        # Get updated computer info
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+        SELECT lc.*, s.firstname, s.lastname
+        FROM lab_computers lc
+        LEFT JOIN students s ON lc.student_idno = s.idno
+        WHERE lc.id = ?
+        ''', (computer_id,))
+        computer = cursor.fetchone()
+        conn.close()
+        
+        return jsonify({
+            "success": True, 
+            "message": f"Computer status updated to {status}",
+            "computer": dict(computer) if computer else None
+        })
+    else:
+        return jsonify({"success": False, "message": "Failed to update computer status"}), 500
+
+# Lab Schedule Routes
+@app.route('/lab_schedule')
+def lab_schedule():
+    if 'admin_username' not in session:
+        flash("You need to login first", 'warning')
+        return redirect(url_for('admin_login'))
+    
+    # Get all labs
+    labs = get_lab_names()
+    
+    return render_template('admin/lab_schedule.html', 
+                          labs=labs,
+                          admin_username=session.get('admin_username'),
+                          admin_firstname=session.get('admin_firstname'),
+                          current_page='lab_schedule')
+
+@app.route('/api/lab_schedules/<int:lab_id>', methods=['GET'])
+def api_lab_schedules(lab_id):
+    if 'admin_username' not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+    
+    try:
+        # Get day parameter if provided
+        day_of_week = request.args.get('day')
+        
+        print(f"DEBUG: Fetching schedules for lab {lab_id}, day: {day_of_week if day_of_week else 'All days'}")
+        
+        # Get schedules for the lab
+        schedules = get_lab_schedules(lab_id, day_of_week)
+        
+        if not schedules and day_of_week:
+            print(f"DEBUG: No schedules found for lab {lab_id} on {day_of_week}")
+        
+        # Get lab name
+        lab_name = "Unknown Lab"
+        labs = get_lab_names()
+        for lab in labs:
+            if lab['id'] == lab_id:
+                lab_name = lab['lab_name']
+                break
+        
+        print(f"DEBUG: Returning {len(schedules)} schedules for lab {lab_id} ({lab_name})")
+        
+        return jsonify({
+            "success": True, 
+            "lab_id": lab_id,
+            "lab_name": lab_name,
+            "schedules": schedules,
+            "day": day_of_week
+        })
+    except Exception as e:
+        import traceback
+        print(f"DEBUG: Error fetching lab schedules: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({
+            "success": False, 
+            "message": f"Error fetching schedules: {str(e)}"
+        }), 500
+
+@app.route('/api/lab_schedules', methods=['POST'])
+def api_add_lab_schedule():
+    if 'admin_username' not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+    
+    data = request.get_json()
+    lab_id = data.get('lab_id')
+    day_of_week = data.get('day_of_week')
+    start_time = data.get('start_time')
+    end_time = data.get('end_time')
+    status = data.get('status')
+    subject_code = data.get('subject_code')
+    subject_name = data.get('subject_name')
+    reason = data.get('reason')
+    schedule_id = data.get('schedule_id')
+    
+    # Validate required fields
+    if not all([lab_id, day_of_week, start_time, end_time, status]):
+        return jsonify({"success": False, "message": "Missing required fields"}), 400
+    
+    # Add or update schedule
+    result_id = add_or_update_lab_schedule(
+        lab_id, day_of_week, start_time, end_time, status, 
+        subject_code, subject_name, reason, schedule_id
+    )
+    
+    if result_id:
+        return jsonify({
+            "success": True, 
+            "message": "Schedule saved successfully",
+            "schedule_id": result_id
+        })
+    else:
+        return jsonify({"success": False, "message": "Failed to save schedule"}), 500
+
+@app.route('/api/lab_schedules/<int:schedule_id>', methods=['DELETE'])
+def api_delete_lab_schedule(schedule_id):
+    if 'admin_username' not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+    
+    # Delete schedule
+    success = delete_lab_schedule(schedule_id)
+    
+    if success:
+        return jsonify({
+            "success": True, 
+            "message": "Schedule deleted successfully"
+        })
+    else:
+        return jsonify({"success": False, "message": "Failed to delete schedule"}), 500
+
+@app.route('/import_default_schedules', methods=['POST'])
+def import_default_schedules():
+    if 'admin_username' not in session:
+        print("DEBUG: Unauthorized access to import_default_schedules route")
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+    
+    try:
+        print("DEBUG: Attempting to import default schedules")
+        
+        # First create or verify the laboratories table
+        if not create_and_populate_laboratories():
+            return jsonify({
+                "success": False, 
+                "message": "Failed to initialize laboratories table"
+            }), 500
+        
+        # Check if labs with IDs used in default schedules exist
+        conn = sqlite3.connect('student.db')
+        cursor = conn.cursor()
+        
+        # Get all lab IDs and names
+        cursor.execute('SELECT id, lab_name FROM laboratories')
+        lab_records = cursor.fetchall()
+        existing_lab_ids = [record[0] for record in lab_records]
+        lab_name_to_id = {record[1].replace(' ', ''): record[0] for record in lab_records}
+        
+        print(f"DEBUG: Existing lab IDs: {existing_lab_ids}")
+        print(f"DEBUG: Lab name to ID mapping: {lab_name_to_id}")
+        
+        # Clear existing schedules
+        print("DEBUG: Clearing existing schedules")
+        cursor.execute('DELETE FROM lab_schedules')
+        conn.commit()
+        conn.close()
+        
+        # Now import default schedules with corrected lab IDs
+        # First, verify if specific lab IDs (542, 544, 524) exist
+        # If not, we'll use the IDs from lab names (Lab542, Lab544, Lab524)
+        
+        # Map lab names to IDs if they exist
+        lab_mappings = {}
+        if 542 not in existing_lab_ids and 'Lab542' in lab_name_to_id:
+            lab_mappings[542] = lab_name_to_id['Lab542']
+        
+        if 544 not in existing_lab_ids and 'Lab544' in lab_name_to_id:
+            lab_mappings[544] = lab_name_to_id['Lab544']
+            
+        if 524 not in existing_lab_ids and 'Lab524' in lab_name_to_id:
+            lab_mappings[524] = lab_name_to_id['Lab524']
+            
+        print(f"DEBUG: Lab ID mappings: {lab_mappings}")
+        
+        # Now import default schedules with potentially corrected lab IDs
+        success = import_default_lab_schedules(lab_mappings)
+        
+        if success:
+            print("DEBUG: Default schedules imported successfully")
+            
+            # Initialize computers for all labs to ensure they exist
+            initialize_all_labs_computers()
+            
+            return jsonify({
+                "success": True, 
+                "message": "Default schedules imported successfully"
+            })
+        else:
+            print("DEBUG: Failed to import default schedules")
+            return jsonify({
+                "success": False, 
+                "message": "Failed to import default schedules. An error occurred during import."
+            }), 500
+    except Exception as e:
+        import traceback
+        print(f"DEBUG: Error in import_default_schedules: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({
+            "success": False, 
+            "message": f"An error occurred: {str(e)}"
+        }), 500
+
+@app.route('/api/lab_schedules/<int:schedule_id>', methods=['GET'])
+def api_get_lab_schedule(schedule_id):
+    if 'admin_username' not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+    
+    try:
+        # Get database connection
+        conn = sqlite3.connect('student.db')
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Get schedule by ID
+        cursor.execute('''
+        SELECT * FROM lab_schedules WHERE id = ?
+        ''', (schedule_id,))
+        
+        schedule = cursor.fetchone()
+        
+        if not schedule:
+            return jsonify({"success": False, "message": "Schedule not found"}), 404
+        
+        # Convert to dict
+        schedule_dict = dict(schedule)
+        
+        # Get lab name
+        cursor.execute('SELECT lab_name FROM laboratories WHERE id = ?', (schedule_dict['lab_id'],))
+        lab = cursor.fetchone()
+        
+        if lab:
+            schedule_dict['lab_name'] = lab['lab_name']
+        else:
+            schedule_dict['lab_name'] = "Unknown Lab"
+        
+        return jsonify({
+            "success": True,
+            "schedule": schedule_dict
+        })
+    except Exception as e:
+        import traceback
+        print(f"DEBUG: Error fetching lab schedule: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({
+            "success": False, 
+            "message": f"Error fetching schedule: {str(e)}"
+        }), 500
+    finally:
+        if 'conn' in locals():
+            conn.close()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

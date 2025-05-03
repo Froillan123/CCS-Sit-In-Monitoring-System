@@ -726,7 +726,200 @@
         </div>
 
         <div id="management" class="page-content" style="display: none;">
-            <h2>Computer Lab Management</h2>
+            
+            <!-- Tab controls for management sections -->
+            <div class="management-tabs">
+                <button id="computer-management-tab" class="tab-button active">Computer Lab Management</button>
+                <button id="schedule-management-tab" class="tab-button">Lab Schedule Management</button>
+            </div>
+            
+            <!-- Computer Lab Management Section -->
+            <div id="computer-management-section" class="management-section">
+                <div class="lab-management-container">
+                    <!-- Lab Selection -->
+                    <div class="lab-selection">
+                        <h3>Select Laboratory:</h3>
+                        <div class="lab-buttons">
+                            {% for lab in labs %}
+                            <button class="lab-button" data-lab-id="{{ lab.id }}">{{ lab.lab_name }}</button>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Lab Overview -->
+                    <div class="lab-overview" id="lab-overview">
+                        <h3 id="selected-lab-name">No Lab Selected</h3>
+                        <div class="lab-stats">
+                            <div class="stat-card">
+                                <i class="ri-computer-line"></i>
+                                <span>Available:</span>
+                                <span id="available-count">0</span>
+                            </div>
+                            <div class="stat-card">
+                                <i class="ri-user-line"></i>
+                                <span>In Use:</span>
+                                <span id="in-use-count">0</span>
+                            </div>
+                            <div class="stat-card">
+                                <i class="ri-error-warning-line"></i>
+                                <span>Unavailable:</span>
+                                <span id="unavailable-count">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Computer Grid -->
+                        <div class="computer-grid" id="computer-grid">
+                            <!-- Will be populated dynamically -->
+                            <div class="loading-message">Select a laboratory to view computers</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modals -->
+                <!-- Computer Status Modal (when clicking a computer) -->
+                <div id="computer-modal" class="modal">
+                    <div class="modal-content">
+                        <span class="close-modal" id="close-computer-modal">&times;</span>
+                        <h2 id="computer-modal-title">Computer Status</h2>
+                        <div id="computer-modal-content">
+                            <!-- Will be populated dynamically -->
+                        </div>
+                        <div id="computer-modal-actions" class="modal-actions">
+                            <!-- Will be populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Student Assignment Modal -->
+                <div id="student-assignment-modal" class="modal">
+                    <div class="modal-content">
+                        <span class="close-modal" id="close-student-modal">&times;</span>
+                        <h2>Assign Student to Computer</h2>
+                        <div class="search-container">
+                            <input type="text" id="student-search-input" placeholder="Search by Student ID or Name">
+                            <div id="student-search-results" class="search-results"></div>
+                        </div>
+                        <div id="selected-student-info" style="display: none;">
+                            <h3>Selected Student</h3>
+                            <p><strong>ID:</strong> <span id="student-id"></span></p>
+                            <p><strong>Name:</strong> <span id="student-name"></span></p>
+                            <p><strong>Sessions Left:</strong> <span id="student-sessions"></span></p>
+                        </div>
+                        <div class="modal-actions">
+                            <button id="assign-student-btn" class="btn-action" disabled>Assign Student</button>
+                            <button id="cancel-assign-btn" class="btn-cancel">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Lab Schedule Management Section -->
+            <div id="schedule-management-section" class="management-section" style="display: none;">
+                <div class="lab-schedule-section">
+                    <div class="schedule-container">
+                        <!-- Lab Selection for Schedule -->
+                        <div class="lab-selection">
+                            <h3>Select Laboratory:</h3>
+                            <div class="lab-buttons">
+                                {% for lab in labs %}
+                                <button class="schedule-lab-button" data-lab-id="{{ lab.id }}">{{ lab.lab_name }}</button>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Day Selection -->
+                        <div class="day-selection">
+                            <button class="day-button active" data-day="Monday">Monday</button>
+                            <button class="day-button" data-day="Tuesday">Tuesday</button>
+                            <button class="day-button" data-day="Wednesday">Wednesday</button>
+                            <button class="day-button" data-day="Thursday">Thursday</button>
+                            <button class="day-button" data-day="Friday">Friday</button>
+                            <button class="day-button" data-day="Saturday">Saturday</button>
+                        </div>
+
+                        <!-- Schedule Table -->
+                        <div class="schedule-table-container">
+                            <button id="add-schedule-btn" class="btn-action">
+                                <i class="ri-add-line"></i> Add Schedule
+                            </button>
+                            <button id="import-schedules-btn" class="btn-action">
+                                <i class="ri-download-line"></i> Import Default Schedules
+                            </button>
+                            <table class="schedule-table">
+                                <thead>
+                                    <tr>
+                                        <th>Time Slot</th>
+                                        <th>Subject</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="schedule-table-body">
+                                    <!-- Will be populated dynamically -->
+                                    <tr>
+                                        <td colspan="4" class="loading-message">Select a lab and day to view schedules</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Schedule Modal -->
+                <div id="schedule-modal" class="modal">
+                    <div class="modal-content">
+                        <span class="close-modal" id="close-schedule-modal">&times;</span>
+                        <h2 id="schedule-modal-title">Add Schedule</h2>
+                        <form id="schedule-form">
+                            <input type="hidden" id="schedule-id">
+                            <input type="hidden" id="schedule-lab-id">
+                            <input type="hidden" id="schedule-day">
+
+                            <div class="form-group">
+                                <label for="start-time">Start Time:</label>
+                                <input type="time" id="start-time" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="end-time">End Time:</label>
+                                <input type="time" id="end-time" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="schedule-status">Status:</label>
+                                <select id="schedule-status" required>
+                                    <option value="Available">Available</option>
+                                    <option value="Reserved">Reserved</option>
+                                    <option value="Unavailable">Unavailable</option>
+                                </select>
+                            </div>
+
+                            <div id="subject-fields" style="display: none;">
+                                <div class="form-group">
+                                    <label for="subject-code">Subject Code:</label>
+                                    <input type="text" id="subject-code" placeholder="e.g., ITP10123">
+                                </div>
+                                <div class="form-group">
+                                    <label for="subject-name">Subject Name:</label>
+                                    <input type="text" id="subject-name" placeholder="e.g., Computer Programming 1">
+                                </div>
+                            </div>
+
+                            <div id="unavailable-reason-field" style="display: none;">
+                                <div class="form-group">
+                                    <label for="unavailable-reason">Reason:</label>
+                                    <input type="text" id="unavailable-reason" placeholder="Reason for unavailability">
+                                </div>
+                            </div>
+
+                            <div class="modal-actions">
+                                <button type="submit" class="btn-action">Save Schedule</button>
+                                <button type="button" id="cancel-schedule-btn" class="btn-cancel">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div id="reservation-request" class="page-content" style="display: none;">
