@@ -466,6 +466,235 @@ pre {
     margin-top: 10px;
     display: inline-block;
 }
+
+/* Lab Schedule Modal Styles */
+.lab-schedules-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    z-index: 1000;
+    overflow-y: auto;
+  }
+
+  .lab-schedules-modal-content {
+    background-color: white;
+    margin: 40px auto;
+    width: 90%;
+    max-width: 900px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .lab-schedules-modal-header {
+    padding: 16px 20px;
+    background-color: var(--first-color);
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .lab-schedules-modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  .lab-schedules-modal-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.8rem;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+  }
+
+  .lab-schedules-modal-body {
+    padding: 20px;
+  }
+
+  .lab-schedules-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .lab-tab {
+    padding: 8px 16px;
+    border-radius: 20px;
+    background-color: #f1f1f1;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .lab-tab.active {
+    background-color: var(--first-color);
+    color: white;
+    font-weight: 600;
+  }
+
+  .lab-schedule {
+    display: none;
+  }
+
+  .lab-schedule.active {
+    display: block;
+  }
+
+  .schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+
+  /* Improved schedule table readability */
+  .schedule-table th,
+  .schedule-table td {
+    padding: 14px;
+    text-align: left;
+    border: 1px solid #ddd;
+    font-size: 1.5rem !important; /* Increased font size for better readability */
+  }
+
+  .schedule-table th {
+    background-color: #f5f5f5;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    font-size: 1.6rem !important; /* Slightly larger for headers */
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 1.4rem !important; /* Increased badge font size */
+    font-weight: 500;
+  }
+
+  .day-header {
+    background-color: #f1f1f1;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .status-badge.available {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  .status-badge.reserved {
+    background-color: #ffebee;
+    color: #c62828;
+  }
+
+  .status-badge.unavailable {
+    background-color: #f5f5f5;
+    color: #757575;
+  }
+
+  .schedule-legend {
+    display: flex;
+    gap: 20px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+  }
+
+  .legend-color.available-slot {
+    background-color: #e8f5e9;
+    border: 1px solid #c8e6c9;
+  }
+
+  .legend-color.reserved-slot {
+    background-color: #ffebee;
+    border: 1px solid #ffcdd2;
+  }
+
+  .lab-schedules-modal-footer {
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #eee;
+    background-color: #f9f9f9;
+  }
+
+  .schedule-print-btn {
+    background-color: var(--first-color);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s;
+  }
+
+  .schedule-print-btn:hover {
+    background-color: var(--second-color);
+  }
+
+  /* Responsive styles for smaller screens */
+  @media (max-width: 768px) {
+    .lab-schedules-modal-content {
+      width: 95%;
+      margin: 20px auto;
+    }
+
+    .lab-schedules-tabs {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 10px;
+      flex-wrap: nowrap;
+    }
+
+    .lab-tab {
+      white-space: nowrap;
+    }
+
+    .schedule-table {
+      font-size: 0.9rem;
+    }
+
+    .lab-schedules-modal-footer {
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .schedule-legend {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  /* Keyframes for spinner animation */
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
 </style>
       <!-- Dashboard Container -->
           <div class="dashboard-wrapper">
@@ -1206,23 +1435,23 @@ pre {
                     <h3>{{ lab.lab_name }} Schedule</h3>
                     <div class="schedule-description" style="margin-bottom: 20px; color: #666; font-size: 1.1rem;">
                       <p>This schedule shows availability times and reserved class sessions for {{ lab.lab_name }}.</p>
-                      <p><strong>Green cells</strong> indicate time slots available for reservations. <strong>Red cells</strong> indicate class sessions or unavailable time slots.</p>
+                      <p><strong>Green indicators</strong> show available time slots. <strong>Red indicators</strong> show reserved/class sessions.</p>
                     </div>
                     <div class="schedule-table-container">
                       <table class="schedule-table">
                         <thead>
                           <tr>
-                            <th>Time</th>
-                            <th>Monday</th>
-                            <th>Tuesday</th>
-                            <th>Wednesday</th>
-                            <th>Thursday</th>
-                            <th>Friday</th>
-                            <th>Saturday</th>
+                            <th>Time Slot</th>
+                            <th>Subject</th>
+                            <th>Status</th>
                           </tr>
                         </thead>
                         <tbody>
-                          <!-- Time slots will be loaded dynamically from the API -->
+                          <tr>
+                            <td colspan="3" class="text-center">
+                              <div style="padding: 20px; text-align: center;">Loading schedules...</div>
+                            </td>
+                          </tr>
                         </tbody>
                       </table>
                     </div>
@@ -1233,11 +1462,11 @@ pre {
               <div class="lab-schedules-modal-footer">
                 <div class="schedule-legend">
                   <div class="legend-item">
-                    <div class="legend-color empty-slot"></div>
+                    <div class="legend-color available-slot"></div>
                     <span class="legend-text">Available</span>
                   </div>
                   <div class="legend-item">
-                    <div class="legend-color class-slot"></div>
+                    <div class="legend-color reserved-slot"></div>
                     <span class="legend-text">Class in Session</span>
                   </div>
                 </div>

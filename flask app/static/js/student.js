@@ -4,6 +4,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const resourcesContainer = document.querySelector('.resources-container');
     const resourceModal = document.querySelector('.resource-modal');
     const labSchedulesModal = document.querySelector('.lab-schedules-modal');
+    const notificationBtn = document.querySelector('.notification-btn');
+    const notificationCount = document.querySelector('.notification-count');
+    const notificationList = document.querySelector('.notification-list');
+    const notificationDot = document.querySelector('.notification-dot');
     
     if (resourcesContainer) {
         loadLabResources();
@@ -85,6 +89,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Show corresponding schedule
                 const labId = this.getAttribute('data-lab');
                 document.getElementById(`${labId}-schedule`).classList.add('active');
+                
+                // Load the schedule for this lab
+                const labIdNumber = labId.replace('lab', '');
+                loadLabSchedule(labIdNumber);
             });
         });
         
@@ -123,18 +131,21 @@ document.addEventListener('DOMContentLoaded', function() {
                             body { font-family: Arial, sans-serif; margin: 20px; }
                             h1 { color: #333; text-align: center; margin-bottom: 20px; }
                             table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-                            th, td { padding: 10px; text-align: center; border: 1px solid #ddd; }
+                            th, td { padding: 10px; text-align: left; border: 1px solid #ddd; }
                             th { background-color: #f5f5f5; }
-                            .time-slot { background-color: #f9f9f9; font-weight: bold; }
-                            .empty-slot { background-color: #e8f5e9; }
-                            .class-slot { background-color: #ffebee; }
+                            .day-header { background-color: #f1f1f1; text-align: center; font-weight: bold; padding: 10px; }
+                            .status-badge { display: inline-block; padding: 4px 8px; border-radius: 20px; font-size: 0.9rem; font-weight: 500; }
+                            .status-badge.available { background-color: #e8f5e9; color: #2e7d32; }
+                            .status-badge.reserved { background-color: #ffebee; color: #c62828; }
+                            .status-badge.unavailable { background-color: #f5f5f5; color: #757575; }
                             .legend { display: flex; justify-content: center; gap: 30px; margin-top: 20px; }
                             .legend-item { display: flex; align-items: center; gap: 5px; }
                             .legend-color { width: 16px; height: 16px; border-radius: 3px; }
-                            .legend-color.empty-slot { background-color: #e8f5e9; border: 1px solid #c8e6c9; }
-                            .legend-color.class-slot { background-color: #ffebee; border: 1px solid #ffcdd2; }
+                            .legend-color.available-slot { background-color: #e8f5e9; border: 1px solid #c8e6c9; }
+                            .legend-color.reserved-slot { background-color: #ffebee; border: 1px solid #ffcdd2; }
                             @media print {
-                                @page { size: landscape; }
+                                @page { size: portrait; }
+                                .status-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                             }
                         </style>
                     </head>
@@ -145,11 +156,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             '<p>Schedule will be updated soon.</p>'}
                         <div class="legend">
                             <div class="legend-item">
-                                <span class="legend-color empty-slot"></span>
+                                <span class="legend-color available-slot"></span>
                                 <span>Available</span>
                             </div>
                             <div class="legend-item">
-                                <span class="legend-color class-slot"></span>
+                                <span class="legend-color reserved-slot"></span>
                                 <span>Class in Session</span>
                             </div>
                         </div>
@@ -265,6 +276,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (labTabs.length > 0 && !document.querySelector('.lab-tab.active')) {
         labTabs[0].click();
     }
+
+    // Initialize notifications
+    updateNotificationCount();
 });
 
 /**
@@ -293,6 +307,16 @@ function loadAllLabSchedules() {
         const labId = tab.getAttribute('data-lab').replace('lab', '');
         loadLabSchedule(labId);
     });
+    
+    // Make sure the first tab is active
+    if (labTabs.length > 0 && !document.querySelector('.lab-tab.active')) {
+        labTabs[0].classList.add('active');
+        const firstLabId = labTabs[0].getAttribute('data-lab');
+        const firstSchedule = document.getElementById(`${firstLabId}-schedule`);
+        if (firstSchedule) {
+            firstSchedule.classList.add('active');
+        }
+    }
 }
 
 /**
@@ -304,132 +328,135 @@ function loadLabSchedule(labId) {
     if (!scheduleContainer) return;
     
     // Get the table body
-    const tableBody = scheduleContainer.querySelector('tbody');
-    if (!tableBody) return;
+    let tableBody = scheduleContainer.querySelector('tbody');
     
-    // Create loading indicator
+    // Show loading message
     tableBody.innerHTML = `
         <tr>
-            <td colspan="7" style="text-align: center; padding: 40px;">
-                <div style="display: flex; justify-content: center; align-items: center; flex-direction: column;">
+            <td colspan="3" class="text-center">
+                <div style="padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center;">
                     <div class="spinner" style="border: 4px solid rgba(0, 0, 0, 0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: #7c4dff; animation: spin 1s linear infinite;"></div>
-                    <p style="margin-top: 15px;">Loading lab schedule...</p>
+                    <p style="margin-top: 15px; font-size: 1.5rem; color: #666;">Loading lab schedule...</p>
                 </div>
             </td>
         </tr>
     `;
     
-    // Define time slots
-    const timeSlots = [
-        "07:00 - 08:30", "08:30 - 10:00", "10:00 - 11:30", "11:30 - 13:00", 
-        "13:00 - 14:30", "14:30 - 16:00", "16:00 - 17:30", "17:30 - 19:00", 
-        "19:00 - 21:00"
-    ];
-    
-    // Define weekdays
-    const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    
-    // Initialize the schedule grid
-    let scheduleGrid = {};
-    timeSlots.forEach(timeSlot => {
-        scheduleGrid[timeSlot] = {};
-        weekdays.forEach(day => {
-            scheduleGrid[timeSlot][day] = {
-                status: "Available",
-                subject: null
-            };
-        });
-    });
-    
     // Fetch the lab schedules from the API
-    fetchLabSchedules(labId)
-        .then(schedules => {
-            // Process the schedules and update the grid
-            schedules.forEach(schedule => {
-                const day = schedule.day_of_week;
-                const timeSlot = `${schedule.start_time} - ${schedule.end_time}`;
-                
-                // If this time slot is in our grid
-                if (scheduleGrid[timeSlot] && scheduleGrid[timeSlot][day]) {
-                    scheduleGrid[timeSlot][day] = {
-                        status: schedule.status,
-                        subject: schedule.subject_name || schedule.subject_code,
-                        reason: schedule.reason
-                    };
-                }
+    fetch(`/api/student/lab_schedules/${labId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Check if we have valid data
+            if (!data.success) {
+                throw new Error(data.message || 'Failed to load schedule');
+            }
+            
+            // Clear the table body
+            tableBody.innerHTML = '';
+            
+            // Process the schedules
+            const schedules = data.schedules || [];
+            
+            if (schedules.length === 0) {
+                // No schedules found
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="text-center">
+                            <div style="padding: 20px; text-align: center;">
+                                <i class="fas fa-calendar-times" style="font-size: 32px; color: #ccc; margin-bottom: 10px;"></i>
+                                <p style="font-size: 1.5rem; color: #666;">No schedules have been set up for this laboratory.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Group schedules by day of the week
+            const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            const schedulesByDay = {};
+            
+            daysOfWeek.forEach(day => {
+                schedulesByDay[day] = schedules.filter(schedule => schedule.day_of_week === day);
             });
             
-            // Build the HTML table
-            let tableHtml = '';
-            timeSlots.forEach(timeSlot => {
-                tableHtml += `<tr>
-                    <td class="time-slot">${timeSlot}</td>`;
+            // Create a header row for each day that has schedules
+            daysOfWeek.forEach(day => {
+                if (schedulesByDay[day].length === 0) return;
                 
-                weekdays.forEach(day => {
-                    const cell = scheduleGrid[timeSlot][day];
-                    const isAvailable = cell.status === 'Available';
-                    const cellClass = isAvailable ? 'empty-slot' : 'class-slot';
-                    const cellContent = isAvailable ? 'Available' : (cell.subject || cell.reason || 'Reserved');
+                // Create a header row for this day
+                const dayHeaderRow = document.createElement('tr');
+                dayHeaderRow.innerHTML = `
+                    <td colspan="3" class="day-header" style="background-color: #f5f5f5; font-weight: bold; text-align: center; padding: 12px; font-size: 1.6rem;">${day}</td>
+                `;
+                tableBody.appendChild(dayHeaderRow);
+                
+                // Sort time slots by start time
+                const daySchedules = schedulesByDay[day].sort((a, b) => {
+                    return a.start_time.localeCompare(b.start_time);
+                });
+                
+                // Add each time slot for this day
+                daySchedules.forEach(schedule => {
+                    const row = document.createElement('tr');
                     
-                    tableHtml += `<td class="${cellClass}">${cellContent}</td>`;
-                });
-                
-                tableHtml += `</tr>`;
-            });
-            
-            // Update the table
-            tableBody.innerHTML = tableHtml;
-            
-            // Add hover effects to the cells
-            const cells = tableBody.querySelectorAll('td:not(.time-slot)');
-            cells.forEach(cell => {
-                cell.addEventListener('mouseenter', function() {
-                    this.style.transform = 'scale(1.05)';
-                    this.style.zIndex = '1';
-                });
-                
-                cell.addEventListener('mouseleave', function() {
-                    this.style.transform = '';
-                    this.style.zIndex = '';
+                    // Format the time slot
+                    const startTimeParts = schedule.start_time.split(':');
+                    const endTimeParts = schedule.end_time.split(':');
+                    
+                    // Convert to 12-hour format with AM/PM
+                    const startHour = parseInt(startTimeParts[0]);
+                    const startMinute = startTimeParts[1] || '00';
+                    const endHour = parseInt(endTimeParts[0]);
+                    const endMinute = endTimeParts[1] || '00';
+                    
+                    const startTime12 = `${startHour > 12 ? startHour - 12 : startHour}:${startMinute.padStart(2, '0')} ${startHour >= 12 ? 'PM' : 'AM'}`;
+                    const endTime12 = `${endHour > 12 ? endHour - 12 : endHour}:${endMinute.padStart(2, '0')} ${endHour >= 12 ? 'PM' : 'AM'}`;
+                    
+                    const timeSlot = `${startTime12} - ${endTime12}`;
+                    
+                    // Determine subject info
+                    let subjectInfo = 'N/A';
+                    if (schedule.subject_code && schedule.subject_name) {
+                        subjectInfo = `${schedule.subject_code} - ${schedule.subject_name}`;
+                    }
+                    
+                    // Determine status class and style
+                    let statusBadge = '';
+                    if (schedule.status === 'Available') {
+                        statusBadge = '<span class="status-badge available">Available</span>';
+                    } else if (schedule.status === 'Reserved') {
+                        statusBadge = '<span class="status-badge reserved">Reserved</span>';
+                    } else {
+                        statusBadge = `<span class="status-badge unavailable">${schedule.status}</span>`;
+                    }
+                    
+                    // Add the cells to the row
+                    row.innerHTML = `
+                        <td>${timeSlot}</td>
+                        <td>${subjectInfo}</td>
+                        <td>${statusBadge}</td>
+                    `;
+                    
+                    tableBody.appendChild(row);
                 });
             });
         })
         .catch(error => {
-            console.error(`Error loading schedule for lab ${labId}:`, error);
+            console.error('Error loading lab schedule:', error);
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="7" style="text-align: center; padding: 40px; color: #d32f2f;">
-                        <i class="fas fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 10px;"></i>
-                        <p>Failed to load schedule. Please try again later.</p>
+                    <td colspan="3" class="text-center error">
+                        <span style="font-size: 1.5rem; color: #c62828;">Failed to load schedules: ${error.message || 'Failed to fetch'}</span>
                     </td>
                 </tr>
             `;
         });
-}
-
-/**
- * Fetch lab schedules from the API
- */
-async function fetchLabSchedules(labId) {
-    try {
-        // Create a non-authenticated version of the API call
-        const response = await fetch(`/api/student/lab_schedules/${labId}`);
-        
-        if (!response.ok) {
-            throw new Error(`Failed to fetch lab schedules: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            return data.schedules || [];
-        } else {
-            throw new Error(data.message || 'Unknown error');
-        }
-    } catch (error) {
-        console.error(`Error fetching lab schedules: ${error.message}`);
-        return []; // Return empty array on error
-    }
 }
 
 /**
