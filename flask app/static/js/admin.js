@@ -4176,16 +4176,6 @@ function exportLabSchedulesToWord() {
         btn.classList.add('exporting');
     });
     
-    // Show loading
-    Swal.fire({
-        title: 'Exporting...',
-        text: 'Please wait while we generate your Word document',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-    
     // Fetch all lab schedules
     fetch('/api/lab_schedules/export')
         .then(response => {
@@ -4230,258 +4220,317 @@ function exportLabSchedulesToWord() {
                 }
             });
             
-            // Create a new Document
-            const doc = new Document({
-                creator: "University of Cebu Main - College of Computer Studies",
-                title: "Lab Schedules",
-                description: "Laboratory Schedules Export",
-                styles: {
-                    paragraphStyles: {
-                        title: {
-                            run: {
-                                size: 36,
-                                bold: true,
-                                color: "2A5F96",
-                            },
-                            paragraph: {
-                                spacing: {
-                                    after: 300,
-                                },
-                            },
-                        },
-                        heading1: {
-                            run: {
-                                size: 28,
-                                bold: true,
-                                color: "2A5F96",
-                            },
-                            paragraph: {
-                                spacing: {
-                                    before: 400,
-                                    after: 200,
-                                },
-                            },
-                        },
-                        heading2: {
-                            run: {
-                                size: 24,
-                                bold: true,
-                                color: "2A5F96",
-                            },
-                            paragraph: {
-                                spacing: {
-                                    before: 300,
-                                    after: 100,
-                                },
-                            },
-                        },
-                    },
-                },
-                sections: [{
-                    properties: {},
-                    children: [
-                        new Paragraph({
-                            text: "University of Cebu Main",
-                            heading: HeadingLevel.TITLE,
-                        }),
-                        new Paragraph({
-                            text: "College of Computer Studies",
-                            heading: HeadingLevel.HEADING_1,
-                            spacing: {
-                                before: 0,
-                                after: 200,
-                            },
-                        }),
-                        new Paragraph({
-                            text: "Laboratory Schedules",
-                            heading: HeadingLevel.HEADING_1,
-                        }),
-                        new Paragraph({
-                            children: [
-                                new TextRun({
-                                    text: `Generated on: ${new Date().toLocaleString()}`,
-                                    italics: true,
-                                }),
-                            ],
-                        }),
-                        new Paragraph({
-                            text: "",
-                            spacing: {
-                                after: 200,
-                            },
-                        }),
-                    ],
-                }],
-            });
-            
-            // Loop through each lab
-            Object.keys(labSchedules).forEach(labName => {
-                // Add lab header
-                doc.addParagraph(
+            try {
+                // Access docx components from the global window object
+                const { 
+                    Document, 
+                    Paragraph, 
+                    TextRun, 
+                    Table, 
+                    TableRow, 
+                    TableCell, 
+                    BorderStyle, 
+                    WidthType, 
+                    AlignmentType,
+                    TableLayoutType
+                } = window.docx;
+                
+                // Create document sections array to build our document
+                const children = [];
+                
+                // Add title and header with professional styling
+                children.push(
                     new Paragraph({
-                        text: labName,
-                        heading: HeadingLevel.HEADING_1,
+                        alignment: AlignmentType.CENTER,
+                        spacing: {
+                            before: 0,
+                            after: 200
+                        },
+                        children: [
+                            new TextRun({
+                                text: "UNIVERSITY OF CEBU MAIN",
+                                bold: true,
+                                size: 36,
+                                font: "Arial"
+                            })
+                        ]
                     })
                 );
                 
-                // Loop through each day
-                weekdays.forEach(day => {
-                    const schedules = labSchedules[labName][day] || [];
-                    
-                    // Add day header
-                    doc.addParagraph(
+                children.push(
+                    new Paragraph({
+                        alignment: AlignmentType.CENTER,
+                        spacing: {
+                            before: 0,
+                            after: 200
+                        },
+                        children: [
+                            new TextRun({
+                                text: "COLLEGE OF COMPUTER STUDIES",
+                                bold: true,
+                                size: 28,
+                                font: "Arial"
+                            })
+                        ]
+                    })
+                );
+                
+                children.push(
+                    new Paragraph({
+                        alignment: AlignmentType.CENTER,
+                        spacing: {
+                            before: 0,
+                            after: 400
+                        },
+                        children: [
+                            new TextRun({
+                                text: "LABORATORY SCHEDULES",
+                                bold: true,
+                                size: 28,
+                                font: "Arial"
+                            })
+                        ]
+                    })
+                );
+                
+                children.push(
+                    new Paragraph({
+                        alignment: AlignmentType.RIGHT,
+                        spacing: {
+                            before: 0,
+                            after: 400
+                        },
+                        children: [
+                            new TextRun({
+                                text: `Generated on: ${new Date().toLocaleDateString("en-US", {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                })}`,
+                                italics: true,
+                                size: 24,
+                                font: "Arial"
+                            })
+                        ]
+                    })
+                );
+                
+                // Loop through each lab
+                Object.keys(labSchedules).forEach(labName => {
+                    // Add lab header with professional styling
+                    children.push(
                         new Paragraph({
-                            text: day,
-                            heading: HeadingLevel.HEADING_2,
+                            spacing: {
+                                before: 400,
+                                after: 200
+                            },
+                            children: [
+                                new TextRun({
+                                    text: labName,
+                                    bold: true,
+                                    size: 28,
+                                    font: "Arial"
+                                })
+                            ]
                         })
                     );
                     
-                    if (schedules.length === 0) {
-                        // No schedules for this day
-                        doc.addParagraph(
+                    // Loop through each day
+                    weekdays.forEach(day => {
+                        const schedules = labSchedules[labName][day] || [];
+                        
+                        // Add day header with professional styling
+                        children.push(
                             new Paragraph({
+                                spacing: {
+                                    before: 300,
+                                    after: 200
+                                },
                                 children: [
                                     new TextRun({
-                                        text: "No scheduled sessions",
-                                        italics: true,
-                                        color: "808080",
-                                    }),
-                                ],
-                            })
-                        );
-                    } else {
-                        // Create table for schedules
-                        const tableRows = [];
-                        
-                        // Add header row
-                        tableRows.push(
-                            new TableRow({
-                                tableHeader: true,
-                                children: [
-                                    new TableCell({
-                                        shading: {
-                                            fill: "2A5F96",
-                                            val: ShadingType.CLEAR,
-                                            color: "auto",
-                                        },
-                                        children: [new Paragraph({ text: "Start Time", color: "FFFFFF", bold: true })],
-                                    }),
-                                    new TableCell({
-                                        shading: {
-                                            fill: "2A5F96",
-                                            val: ShadingType.CLEAR,
-                                            color: "auto",
-                                        },
-                                        children: [new Paragraph({ text: "End Time", color: "FFFFFF", bold: true })],
-                                    }),
-                                    new TableCell({
-                                        shading: {
-                                            fill: "2A5F96",
-                                            val: ShadingType.CLEAR,
-                                            color: "auto",
-                                        },
-                                        children: [new Paragraph({ text: "Subject Code", color: "FFFFFF", bold: true })],
-                                    }),
-                                    new TableCell({
-                                        shading: {
-                                            fill: "2A5F96",
-                                            val: ShadingType.CLEAR,
-                                            color: "auto",
-                                        },
-                                        children: [new Paragraph({ text: "Subject Name", color: "FFFFFF", bold: true })],
-                                    }),
-                                    new TableCell({
-                                        shading: {
-                                            fill: "2A5F96",
-                                            val: ShadingType.CLEAR,
-                                            color: "auto",
-                                        },
-                                        children: [new Paragraph({ text: "Status", color: "FFFFFF", bold: true })],
-                                    }),
-                                ],
+                                        text: day,
+                                        bold: true,
+                                        size: 24,
+                                        font: "Arial"
+                                    })
+                                ]
                             })
                         );
                         
-                        // Add data rows
-                        schedules.forEach((schedule, i) => {
-                            tableRows.push(
-                                new TableRow({
+                        if (schedules.length === 0) {
+                            // No schedules for this day
+                            children.push(
+                                new Paragraph({
+                                    spacing: {
+                                        before: 100,
+                                        after: 200
+                                    },
                                     children: [
-                                        new TableCell({
-                                            children: [new Paragraph(formatTime(schedule.start_time))],
-                                        }),
-                                        new TableCell({
-                                            children: [new Paragraph(formatTime(schedule.end_time))],
-                                        }),
-                                        new TableCell({
-                                            children: [new Paragraph(schedule.subject_code || '')],
-                                        }),
-                                        new TableCell({
-                                            children: [new Paragraph(schedule.subject_name || '')],
-                                        }),
-                                        new TableCell({
-                                            children: [new Paragraph(schedule.status || '')],
-                                        }),
-                                    ],
+                                        new TextRun({
+                                            text: "No scheduled sessions",
+                                            italics: true,
+                                            size: 24,
+                                            font: "Arial",
+                                            color: "808080"
+                                        })
+                                    ]
                                 })
                             );
-                        });
-                        
-                        // Add table to document
-                        const table = new Table({
-                            rows: tableRows,
-                            width: {
-                                size: 100,
-                                type: WidthType.PERCENTAGE,
-                            },
-                        });
-                        
-                        doc.addTable(table);
-                        
-                        // Add space after table
-                        doc.addParagraph(new Paragraph(""));
-                    }
+                        } else {
+                            // Create table rows - simplified approach with standard Word styling
+                            const tableRows = [];
+                            
+                            // Create header row
+                            const headerRow = new TableRow({
+                                tableHeader: true,
+                                children: [
+                                    createHeaderCell("Time Slot"),
+                                    createHeaderCell("Subject"),
+                                    createHeaderCell("Status")
+                                ]
+                            });
+                            tableRows.push(headerRow);
+                            
+                            // Create data rows
+                            schedules.forEach((schedule, index) => {
+                                const timeSlot = `${schedule.start_time} - ${schedule.end_time}`;
+                                let subject = '';
+                                
+                                if (schedule.status === 'Reserved') {
+                                    subject = `${schedule.subject_code || ''} ${schedule.subject_name || ''}`.trim();
+                                } else if (schedule.status === 'Unavailable') {
+                                    subject = schedule.reason || 'Unavailable';
+                                }
+                                
+                                // Row cells
+                                const row = new TableRow({
+                                    children: [
+                                        createCell(timeSlot),
+                                        createCell(subject || "(No subject)"),
+                                        createCell(schedule.status, schedule.status === 'Available' ? '008800' : 
+                                                schedule.status === 'Reserved' ? '000088' : '880000', true)
+                                    ]
+                                });
+                                
+                                tableRows.push(row);
+                            });
+                            
+                            // Create the table - simplified with standard Word styling
+                            const table = new Table({
+                                rows: tableRows,
+                                width: {
+                                    size: 100,
+                                    type: WidthType.PERCENTAGE
+                                },
+                                borders: {
+                                    top: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                    bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                    left: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                    right: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                    insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                                    insideVertical: { style: BorderStyle.SINGLE, size: 1, color: "000000" }
+                                },
+                                layout: TableLayoutType.FIXED,
+                                columnWidths: [2000, 5000, 2000],
+                            });
+                            
+                            // Add table to the document
+                            children.push(table);
+                            
+                            // Add spacing after table
+                            children.push(new Paragraph({ text: "", spacing: { before: 200, after: 200 } }));
+                        }
+                    });
                 });
-            });
-            
-            // Generate Word document
-            Packer.toBlob(doc).then(blob => {
-                // Create download link
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "Lab_Schedules.docx";
-                document.body.appendChild(a);
-                a.click();
                 
-                // Cleanup
-                setTimeout(() => {
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
+                // Function to create consistent header cells
+                function createHeaderCell(text) {
+                    return new TableCell({
+                        children: [
+                            new Paragraph({
+                                alignment: AlignmentType.CENTER,
+                                children: [
+                                    new TextRun({
+                                        text: text,
+                                        bold: true,
+                                        size: 24,
+                                        font: "Arial",
+                                        color: "FFFFFF"
+                                    })
+                                ]
+                            })
+                        ],
+                        shading: {
+                            fill: "2B579A"
+                        }
+                    });
+                }
+                
+                // Function to create consistent cells
+                function createCell(text, color = "000000", bold = false) {
+                    return new TableCell({
+                        children: [
+                            new Paragraph({
+                                alignment: AlignmentType.CENTER,
+                                children: [
+                                    new TextRun({
+                                        text: text,
+                                        bold: bold,
+                                        size: 24,
+                                        font: "Arial",
+                                        color: color
+                                    })
+                                ]
+                            })
+                        ]
+                    });
+                }
+                
+                // Create the document with all the content
+                const doc = new Document({
+                    sections: [{
+                        properties: {},
+                        children: children
+                    }]
+                });
+                
+                // Create a blob from the document
+                window.docx.Packer.toBlob(doc).then(blob => {
+                    // Use FileSaver to save the file
+                    window.saveAs(blob, `Laboratory_Schedules_${new Date().toISOString().slice(0, 10)}.docx`);
                     
-                    // Re-enable export buttons
+                    // Re-enable buttons
                     exportButtons.forEach(btn => {
                         btn.disabled = false;
                         btn.classList.remove('exporting');
                     });
+                }).catch(error => {
+                    console.error("Error creating Word document:", error);
                     
-                    Swal.close();
-                }, 100);
-            });
+                    // Re-enable buttons
+                    exportButtons.forEach(btn => {
+                        btn.disabled = false;
+                        btn.classList.remove('exporting');
+                    });
+                });
+                
+            } catch (error) {
+                console.error("Error creating Word document:", error);
+                
+                // Re-enable buttons
+                exportButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.classList.remove('exporting');
+                });
+            }
         })
         .catch(error => {
-            console.error('Error exporting to Word:', error);
+            console.error("Error fetching schedule data:", error);
             
-            // Re-enable export buttons
+            // Re-enable buttons
             exportButtons.forEach(btn => {
                 btn.disabled = false;
                 btn.classList.remove('exporting');
-            });
-            
-            Swal.fire({
-                title: 'Export Failed',
-                text: error.message || 'Failed to export lab schedules to Word',
-                icon: 'error'
             });
         });
 }
