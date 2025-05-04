@@ -2575,8 +2575,32 @@ function initializeScheduleManagement() {
     const importSchedulesBtn = document.getElementById('import-schedules-btn');
     const resetSchedulesBtn = document.getElementById('reset-schedules-btn');
     
+    // Export buttons
+    const exportExcelBtn = document.getElementById('export-schedule-excel-btn');
+    const exportPdfBtn = document.getElementById('export-schedule-pdf-btn');
+    const exportWordBtn = document.getElementById('export-schedule-doc-btn');
+    
     let selectedLab = null;
     let selectedDay = 'Monday'; // Default selected day
+    
+    // Add event listeners to export buttons
+    if (exportExcelBtn) {
+        exportExcelBtn.addEventListener('click', exportLabSchedulesToExcel);
+    } else {
+        console.warn("DEBUG: export-schedule-excel-btn element not found");
+    }
+    
+    if (exportPdfBtn) {
+        exportPdfBtn.addEventListener('click', exportLabSchedulesToPDF);
+    } else {
+        console.warn("DEBUG: export-schedule-pdf-btn element not found");
+    }
+    
+    if (exportWordBtn) {
+        exportWordBtn.addEventListener('click', exportLabSchedulesToWord);
+    } else {
+        console.warn("DEBUG: export-schedule-doc-btn element not found");
+    }
     
     // Add event listeners to lab buttons
     if (scheduleTabs) {
@@ -3746,4 +3770,718 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Function to export lab schedules to Excel
+function exportLabSchedulesToExcel() {
+    // Disable export buttons during export
+    const exportButtons = document.querySelectorAll('.export-schedule-buttons .btn-action');
+    exportButtons.forEach(btn => {
+        btn.disabled = true;
+        btn.classList.add('exporting');
+    });
+    
+    // Show loading
+    Swal.fire({
+        title: 'Exporting...',
+        text: 'Please wait while we generate your Excel file',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
 
+    // Fetch all lab schedules
+    fetch('/api/lab_schedules/export')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch lab schedules data');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data.success) {
+                throw new Error(data.message || 'Failed to export schedules');
+            }
+
+            // Group schedules by lab name
+            const labSchedules = {};
+            const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            
+            // Add all labs to ensure proper ordering
+            data.labs.forEach(lab => {
+                labSchedules[lab.lab_name] = {};
+                weekdays.forEach(day => {
+                    labSchedules[lab.lab_name][day] = [];
+                });
+            });
+            
+            // Organize schedules by lab and day
+            data.schedules.forEach(schedule => {
+                const labName = data.labs.find(lab => lab.id === schedule.lab_id)?.lab_name || 'Unknown Lab';
+                const day = schedule.day_of_week;
+                
+                if (weekdays.includes(day)) {
+                    if (!labSchedules[labName]) {
+                        labSchedules[labName] = {};
+                        weekdays.forEach(d => { labSchedules[labName][d] = []; });
+                    }
+                    
+                    if (!labSchedules[labName][day]) {
+                        labSchedules[labName][day] = [];
+                    }
+                    
+                    labSchedules[labName][day].push(schedule);
+                }
+            });
+
+            // Create Excel workbook
+            const wb = XLSX.utils.book_new();
+            wb.Props = {
+                Title: "Lab Schedules",
+                Subject: "Lab Schedules Export",
+                Author: "University of Cebu Main - College of Computer Studies",
+                CreatedDate: new Date()
+            };
+            
+            // Create worksheet with all schedules organized by lab and day
+            const wsData = [];
+            
+            // Add header for UC Main and CCS
+            wsData.push(['University of Cebu Main', '', '', '', '', '', '']);
+            wsData.push(['College of Computer Studies', '', '', '', '', '', '']);
+            wsData.push(['Laboratory Schedules', '', '', '', '', '', '']);
+            wsData.push(['Generated on: ' + new Date().toLocaleString(), '', '', '', '', '', '']);
+            wsData.push(['', '', '', '', '', '', '']); // Empty row after header
+            
+            // Add header row
+            wsData.push(['Laboratory', 'Day', 'Start Time', 'End Time', 'Subject Code', 'Subject Name', 'Status']);
+            
+            // Add data rows grouped by lab and day
+            Object.keys(labSchedules).forEach(labName => {
+                weekdays.forEach(day => {
+                    const schedules = labSchedules[labName][day] || [];
+                    
+                    if (schedules.length === 0) {
+                        // Add a row with just lab name and day if no schedules
+                        wsData.push([labName, day, '', '', '', '', '']);
+                    } else {
+                        schedules.forEach((schedule, index) => {
+                            wsData.push([
+                                index === 0 ? labName : '',  // Only show lab name for first entry of each lab+day group
+                                index === 0 ? day : '',      // Only show day for first entry of each lab+day group
+                                formatTime(schedule.start_time),
+                                formatTime(schedule.end_time),
+                                schedule.subject_code || '',
+                                schedule.subject_name || '',
+                                schedule.status || ''
+                            ]);
+                        });
+                    }
+                });
+                
+                // Add a blank row after each lab
+                wsData.push(['', '', '', '', '', '', '']);
+            });
+            
+            // Create worksheet and add to workbook
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            
+            // Set column widths
+            const colWidths = [
+                { wch: 15 },  // Lab Name
+                { wch: 10 },  // Day
+                { wch: 10 },  // Start Time
+                { wch: 10 },  // End Time
+                { wch: 12 },  // Subject Code
+                { wch: 30 },  // Subject Name
+                { wch: 10 }   // Status
+            ];
+            ws['!cols'] = colWidths;
+            
+            // Merge header cells
+            ws['!merges'] = [
+                { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }, // University of Cebu Main
+                { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } }, // College of Computer Studies
+                { s: { r: 2, c: 0 }, e: { r: 2, c: 6 } }, // Laboratory Schedules
+                { s: { r: 3, c: 0 }, e: { r: 3, c: 6 } }, // Generated date
+            ];
+            
+            XLSX.utils.book_append_sheet(wb, ws, "Lab Schedules");
+            
+            // Generate Excel file
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+            
+            // Convert binary to Blob
+            function s2ab(s) {
+                const buf = new ArrayBuffer(s.length);
+                const view = new Uint8Array(buf);
+                for (let i = 0; i < s.length; i++) {
+                    view[i] = s.charCodeAt(i) & 0xFF;
+                }
+                return buf;
+            }
+            
+            // Create Blob and download
+            const blob = new Blob([s2ab(wbout)], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Lab_Schedules.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            
+            // Cleanup
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                // Re-enable export buttons
+                exportButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.classList.remove('exporting');
+                });
+                
+                Swal.close();
+            }, 100);
+        })
+        .catch(error => {
+            console.error('Error exporting to Excel:', error);
+            
+            // Re-enable export buttons
+            exportButtons.forEach(btn => {
+                btn.disabled = false;
+                btn.classList.remove('exporting');
+            });
+            
+            Swal.fire({
+                title: 'Export Failed',
+                text: error.message || 'Failed to export lab schedules to Excel',
+                icon: 'error'
+            });
+        });
+}
+
+function exportLabSchedulesToPDF() {
+    // Disable export buttons during export
+    const exportButtons = document.querySelectorAll('.export-schedule-buttons .btn-action');
+    exportButtons.forEach(btn => {
+        btn.disabled = true;
+        btn.classList.add('exporting');
+    });
+    
+    // Show loading
+    Swal.fire({
+        title: 'Exporting...',
+        text: 'Please wait while we generate your PDF file',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    // Fetch all lab schedules
+    fetch('/api/lab_schedules/export')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch lab schedules data');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data.success) {
+                throw new Error(data.message || 'Failed to export schedules');
+            }
+            
+            // Group schedules by lab name
+            const labSchedules = {};
+            const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            
+            // Add all labs to ensure proper ordering
+            data.labs.forEach(lab => {
+                labSchedules[lab.lab_name] = {};
+                weekdays.forEach(day => {
+                    labSchedules[lab.lab_name][day] = [];
+                });
+            });
+            
+            // Organize schedules by lab and day
+            data.schedules.forEach(schedule => {
+                const labName = data.labs.find(lab => lab.id === schedule.lab_id)?.lab_name || 'Unknown Lab';
+                const day = schedule.day_of_week;
+                
+                if (weekdays.includes(day)) {
+                    if (!labSchedules[labName]) {
+                        labSchedules[labName] = {};
+                        weekdays.forEach(d => { labSchedules[labName][d] = []; });
+                    }
+                    
+                    if (!labSchedules[labName][day]) {
+                        labSchedules[labName][day] = [];
+                    }
+                    
+                    labSchedules[labName][day].push(schedule);
+                }
+            });
+
+            // Create PDF document
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape');
+            
+            // Set UC Main and CCS header
+            doc.setFontSize(18);
+            doc.setTextColor(0, 51, 102); // Dark blue
+            doc.text('University of Cebu Main', 14, 20);
+            doc.text('College of Computer Studies', 14, 30);
+            
+            // Set title
+            doc.setFontSize(16);
+            doc.setTextColor(0, 0, 0); // Black
+            doc.text('Laboratory Schedules', 14, 40);
+            
+            // Set subtitle and date
+            doc.setFontSize(12);
+            doc.setTextColor(102, 102, 102); // Gray
+            doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 50);
+            
+            let yPos = 60;
+            const pageHeight = doc.internal.pageSize.height;
+            
+            // Helper function to check if we need a new page
+            function checkForNewPage(neededSpace) {
+                if (yPos + neededSpace > pageHeight - 20) {
+                    doc.addPage();
+                    
+                    // Add header to new page
+                    doc.setFontSize(10);
+                    doc.setTextColor(102, 102, 102);
+                    doc.text('University of Cebu Main - College of Computer Studies', 14, 10);
+                    doc.text('Laboratory Schedules', 14, 15);
+                    
+                    yPos = 25;
+                    return true;
+                }
+                return false;
+            }
+            
+            // Loop through each lab
+            Object.keys(labSchedules).forEach(labName => {
+                // Check if we need a new page for lab header
+                checkForNewPage(30);
+                
+                // Add lab header
+                doc.setFontSize(14);
+                doc.setTextColor(0, 102, 204);
+                doc.text(`${labName}`, 14, yPos);
+                yPos += 8;
+                
+                // Loop through each day
+                weekdays.forEach(day => {
+                    const schedules = labSchedules[labName][day] || [];
+                    
+                    // Check if we need a new page for day header
+                    checkForNewPage(25);
+                    
+                    // Add day header
+                    doc.setFontSize(12);
+                    doc.setTextColor(68, 68, 68);
+                    doc.text(`${day}`, 14, yPos);
+                    yPos += 6;
+                    
+                    if (schedules.length === 0) {
+                        // No schedules for this day
+                        doc.setFontSize(10);
+                        doc.setTextColor(128, 128, 128);
+                        doc.text('No scheduled sessions', 14, yPos);
+                        yPos += 6;
+                    } else {
+                        // Create table for schedules
+                        const tableData = [];
+                        const tableColumns = [
+                            { header: 'Start Time', dataKey: 'start_time', width: 30 },
+                            { header: 'End Time', dataKey: 'end_time', width: 30 },
+                            { header: 'Subject Code', dataKey: 'subject_code', width: 40 },
+                            { header: 'Subject Name', dataKey: 'subject_name', width: 85 },
+                            { header: 'Status', dataKey: 'status', width: 30 }
+                        ];
+                        
+                        // Add schedule data to table
+                        schedules.forEach(schedule => {
+                            tableData.push({
+                                start_time: formatTime(schedule.start_time),
+                                end_time: formatTime(schedule.end_time),
+                                subject_code: schedule.subject_code || '',
+                                subject_name: schedule.subject_name || '',
+                                status: schedule.status || ''
+                            });
+                        });
+                        
+                        // Check if we need a new page for table
+                        const tableHeight = schedules.length * 10 + 15; // Estimate table height
+                        checkForNewPage(tableHeight);
+                        
+                        // Generate table
+                        doc.autoTable({
+                            startY: yPos,
+                            columns: tableColumns,
+                            body: tableData,
+                            theme: 'grid',
+                            headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+                            alternateRowStyles: { fillColor: [240, 240, 240] },
+                            margin: { left: 14, right: 14 },
+                            styles: { fontSize: 9 }
+                        });
+                        
+                        // Update yPos after table
+                        yPos = doc.autoTable.previous.finalY + 10;
+                    }
+                });
+                
+                // Add space after each lab
+                yPos += 10;
+            });
+            
+            // Save the PDF file
+            doc.save('Lab_Schedules.pdf');
+            
+            // Re-enable export buttons
+            exportButtons.forEach(btn => {
+                btn.disabled = false;
+                btn.classList.remove('exporting');
+            });
+            
+            Swal.close();
+        })
+        .catch(error => {
+            console.error('Error exporting to PDF:', error);
+            
+            // Re-enable export buttons
+            exportButtons.forEach(btn => {
+                btn.disabled = false;
+                btn.classList.remove('exporting');
+            });
+            
+            Swal.fire({
+                title: 'Export Failed',
+                text: error.message || 'Failed to export lab schedules to PDF',
+                icon: 'error'
+            });
+        });
+}
+
+function exportLabSchedulesToWord() {
+    // Disable export buttons during export
+    const exportButtons = document.querySelectorAll('.export-schedule-buttons .btn-action');
+    exportButtons.forEach(btn => {
+        btn.disabled = true;
+        btn.classList.add('exporting');
+    });
+    
+    // Show loading
+    Swal.fire({
+        title: 'Exporting...',
+        text: 'Please wait while we generate your Word document',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    
+    // Fetch all lab schedules
+    fetch('/api/lab_schedules/export')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch lab schedules data');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data.success) {
+                throw new Error(data.message || 'Failed to export schedules');
+            }
+            
+            // Group schedules by lab name
+            const labSchedules = {};
+            const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            
+            // Add all labs to ensure proper ordering
+            data.labs.forEach(lab => {
+                labSchedules[lab.lab_name] = {};
+                weekdays.forEach(day => {
+                    labSchedules[lab.lab_name][day] = [];
+                });
+            });
+            
+            // Organize schedules by lab and day
+            data.schedules.forEach(schedule => {
+                const labName = data.labs.find(lab => lab.id === schedule.lab_id)?.lab_name || 'Unknown Lab';
+                const day = schedule.day_of_week;
+                
+                if (weekdays.includes(day)) {
+                    if (!labSchedules[labName]) {
+                        labSchedules[labName] = {};
+                        weekdays.forEach(d => { labSchedules[labName][d] = []; });
+                    }
+                    
+                    if (!labSchedules[labName][day]) {
+                        labSchedules[labName][day] = [];
+                    }
+                    
+                    labSchedules[labName][day].push(schedule);
+                }
+            });
+            
+            // Create a new Document
+            const doc = new Document({
+                creator: "University of Cebu Main - College of Computer Studies",
+                title: "Lab Schedules",
+                description: "Laboratory Schedules Export",
+                styles: {
+                    paragraphStyles: {
+                        title: {
+                            run: {
+                                size: 36,
+                                bold: true,
+                                color: "2A5F96",
+                            },
+                            paragraph: {
+                                spacing: {
+                                    after: 300,
+                                },
+                            },
+                        },
+                        heading1: {
+                            run: {
+                                size: 28,
+                                bold: true,
+                                color: "2A5F96",
+                            },
+                            paragraph: {
+                                spacing: {
+                                    before: 400,
+                                    after: 200,
+                                },
+                            },
+                        },
+                        heading2: {
+                            run: {
+                                size: 24,
+                                bold: true,
+                                color: "2A5F96",
+                            },
+                            paragraph: {
+                                spacing: {
+                                    before: 300,
+                                    after: 100,
+                                },
+                            },
+                        },
+                    },
+                },
+                sections: [{
+                    properties: {},
+                    children: [
+                        new Paragraph({
+                            text: "University of Cebu Main",
+                            heading: HeadingLevel.TITLE,
+                        }),
+                        new Paragraph({
+                            text: "College of Computer Studies",
+                            heading: HeadingLevel.HEADING_1,
+                            spacing: {
+                                before: 0,
+                                after: 200,
+                            },
+                        }),
+                        new Paragraph({
+                            text: "Laboratory Schedules",
+                            heading: HeadingLevel.HEADING_1,
+                        }),
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: `Generated on: ${new Date().toLocaleString()}`,
+                                    italics: true,
+                                }),
+                            ],
+                        }),
+                        new Paragraph({
+                            text: "",
+                            spacing: {
+                                after: 200,
+                            },
+                        }),
+                    ],
+                }],
+            });
+            
+            // Loop through each lab
+            Object.keys(labSchedules).forEach(labName => {
+                // Add lab header
+                doc.addParagraph(
+                    new Paragraph({
+                        text: labName,
+                        heading: HeadingLevel.HEADING_1,
+                    })
+                );
+                
+                // Loop through each day
+                weekdays.forEach(day => {
+                    const schedules = labSchedules[labName][day] || [];
+                    
+                    // Add day header
+                    doc.addParagraph(
+                        new Paragraph({
+                            text: day,
+                            heading: HeadingLevel.HEADING_2,
+                        })
+                    );
+                    
+                    if (schedules.length === 0) {
+                        // No schedules for this day
+                        doc.addParagraph(
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: "No scheduled sessions",
+                                        italics: true,
+                                        color: "808080",
+                                    }),
+                                ],
+                            })
+                        );
+                    } else {
+                        // Create table for schedules
+                        const tableRows = [];
+                        
+                        // Add header row
+                        tableRows.push(
+                            new TableRow({
+                                tableHeader: true,
+                                children: [
+                                    new TableCell({
+                                        shading: {
+                                            fill: "2A5F96",
+                                            val: ShadingType.CLEAR,
+                                            color: "auto",
+                                        },
+                                        children: [new Paragraph({ text: "Start Time", color: "FFFFFF", bold: true })],
+                                    }),
+                                    new TableCell({
+                                        shading: {
+                                            fill: "2A5F96",
+                                            val: ShadingType.CLEAR,
+                                            color: "auto",
+                                        },
+                                        children: [new Paragraph({ text: "End Time", color: "FFFFFF", bold: true })],
+                                    }),
+                                    new TableCell({
+                                        shading: {
+                                            fill: "2A5F96",
+                                            val: ShadingType.CLEAR,
+                                            color: "auto",
+                                        },
+                                        children: [new Paragraph({ text: "Subject Code", color: "FFFFFF", bold: true })],
+                                    }),
+                                    new TableCell({
+                                        shading: {
+                                            fill: "2A5F96",
+                                            val: ShadingType.CLEAR,
+                                            color: "auto",
+                                        },
+                                        children: [new Paragraph({ text: "Subject Name", color: "FFFFFF", bold: true })],
+                                    }),
+                                    new TableCell({
+                                        shading: {
+                                            fill: "2A5F96",
+                                            val: ShadingType.CLEAR,
+                                            color: "auto",
+                                        },
+                                        children: [new Paragraph({ text: "Status", color: "FFFFFF", bold: true })],
+                                    }),
+                                ],
+                            })
+                        );
+                        
+                        // Add data rows
+                        schedules.forEach((schedule, i) => {
+                            tableRows.push(
+                                new TableRow({
+                                    children: [
+                                        new TableCell({
+                                            children: [new Paragraph(formatTime(schedule.start_time))],
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph(formatTime(schedule.end_time))],
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph(schedule.subject_code || '')],
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph(schedule.subject_name || '')],
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph(schedule.status || '')],
+                                        }),
+                                    ],
+                                })
+                            );
+                        });
+                        
+                        // Add table to document
+                        const table = new Table({
+                            rows: tableRows,
+                            width: {
+                                size: 100,
+                                type: WidthType.PERCENTAGE,
+                            },
+                        });
+                        
+                        doc.addTable(table);
+                        
+                        // Add space after table
+                        doc.addParagraph(new Paragraph(""));
+                    }
+                });
+            });
+            
+            // Generate Word document
+            Packer.toBlob(doc).then(blob => {
+                // Create download link
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "Lab_Schedules.docx";
+                document.body.appendChild(a);
+                a.click();
+                
+                // Cleanup
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    // Re-enable export buttons
+                    exportButtons.forEach(btn => {
+                        btn.disabled = false;
+                        btn.classList.remove('exporting');
+                    });
+                    
+                    Swal.close();
+                }, 100);
+            });
+        })
+        .catch(error => {
+            console.error('Error exporting to Word:', error);
+            
+            // Re-enable export buttons
+            exportButtons.forEach(btn => {
+                btn.disabled = false;
+                btn.classList.remove('exporting');
+            });
+            
+            Swal.fire({
+                title: 'Export Failed',
+                text: error.message || 'Failed to export lab schedules to Word',
+                icon: 'error'
+            });
+        });
+}

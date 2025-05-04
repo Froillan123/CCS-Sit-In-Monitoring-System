@@ -3213,6 +3213,67 @@ def get_processed_reservations():
         print(f"Error fetching processed reservations: {str(e)}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
+@app.route('/api/lab_schedules/export', methods=['GET'])
+def api_export_lab_schedules():
+    if 'admin_username' not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+    
+    try:
+        # Get lab_id parameter if provided
+        lab_id = request.args.get('lab_id')
+        if lab_id:
+            try:
+                lab_id = int(lab_id)
+            except ValueError:
+                return jsonify({"success": False, "message": "Invalid lab ID"}), 400
+        
+        # Get all lab schedules
+        if lab_id:
+            schedules = get_lab_schedules(lab_id)
+            # Get lab name
+            lab_name = "Unknown Lab"
+            labs = get_lab_names()
+            for lab in labs:
+                if lab['id'] == lab_id:
+                    lab_name = lab['lab_name']
+                    break
+                    
+            return jsonify({
+                "success": True,
+                "lab_id": lab_id,
+                "lab_name": lab_name,
+                "schedules": schedules
+            })
+        else:
+            # Get all labs
+            conn = sqlite3.connect('student.db')
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            cursor.execute('SELECT id, lab_name FROM laboratories')
+            labs = [dict(lab) for lab in cursor.fetchall()]
+            
+            all_schedules = []
+            for lab in labs:
+                lab_schedules = get_lab_schedules(lab['id'])
+                for schedule in lab_schedules:
+                    all_schedules.append(schedule)
+            
+            return jsonify({
+                "success": True,
+                "labs": labs,
+                "schedules": all_schedules
+            })
+            
+    except Exception as e:
+        import traceback
+        print(f"DEBUG: Error exporting lab schedules: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({
+            "success": False, 
+            "message": f"Error exporting schedules: {str(e)}"
+        }), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     socketio.run(app, host='0.0.0.0', port=port, debug=True)

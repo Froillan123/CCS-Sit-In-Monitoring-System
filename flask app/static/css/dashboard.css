@@ -3472,3 +3472,70 @@ tr[data-foul-language="true"] {
     }
 }
 
+/* Export Schedule Buttons */
+.export-schedule-buttons {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 15px;
+    gap: 10px;
+}
+
+.export-schedule-buttons .btn-action {
+    transition: all 0.3s ease;
+    min-width: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    padding: 10px 15px;
+    font-weight: 500;
+}
+
+.export-schedule-buttons .btn-action i {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+.export-schedule-buttons .btn-action:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.export-schedule-buttons .btn-action.excel {
+    background-color: #1E7E34;
+}
+
+.export-schedule-buttons .btn-action.pdf {
+    background-color: #C82333;
+}
+
+.export-schedule-buttons .btn-action.word {
+    background-color: #0069D9;
+}
+
+/* Responsive adjustments for export buttons */
+@media (max-width: 768px) {
+    .export-schedule-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .export-schedule-buttons .btn-action {
+        margin-bottom: 8px;
+    }
+}
+
+.export-schedule-buttons .btn-action.exporting {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.export-schedule-buttons .btn-action:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
