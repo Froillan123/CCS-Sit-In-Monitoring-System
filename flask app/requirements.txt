@@ -24,3 +24,4 @@ google-genai==1.2.0
 better-profanity==0.7.0
 profanity-check==1.0.3  # Add this manually, version isn't in pip list but required
 cryptography
+apscheduler

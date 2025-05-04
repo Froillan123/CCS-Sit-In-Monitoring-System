@@ -4534,3 +4534,171 @@ function exportLabSchedulesToWord() {
             });
         });
 }
+
+// Function to load and display current sit-ins
+function loadCurrentSitIns() {
+    fetch('/get_currentsitin')
+        .then(response => response.json())
+        .then(data => {
+            const tableBody = document.querySelector('#reservations-table tbody');
+            tableBody.innerHTML = '';
+            
+            if (data.success && data.data && data.data.length > 0) {
+                data.data.forEach(reservation => {
+                    const row = document.createElement('tr');
+                    row.setAttribute('data-is-reservation', reservation.reservation_type === 'reservation');
+                    
+                    // Determine status class
+                    let statusClass = 'status-approved';
+                    if (reservation.status === 'Pending') {
+                        statusClass = 'status-pending';
+                    } else if (reservation.status === 'Logged Out') {
+                        statusClass = 'status-completed';
+                    }
+                    
+                    // Create badge for reservation type
+                    let typeBadge = '';
+                    if (reservation.reservation_type === 'reservation') {
+                        typeBadge = '<span class="reservation-badge">Reservation</span>';
+                    } else {
+                        typeBadge = '<span class="sit-in-badge">Sit In</span>';
+                    }
+                    
+                    row.innerHTML = `
+                        <td>${reservation.student_idno}</td>
+                        <td>${reservation.student_name}</td>
+                        <td>${reservation.lab_name}</td>
+                        <td>${reservation.purpose}</td>
+                        <td>${formatDate(reservation.reservation_date)}</td>
+                        <td>${formatTime(reservation.login_time)}</td>
+                        <td>${reservation.logout_time ? formatTime(reservation.logout_time) : 'Active'}</td>
+                        <td>${reservation.session_number || 'N/A'}</td>
+                        <td><span class="${statusClass}">${reservation.status}</span></td>
+                        <td>${typeBadge}</td>
+                        <td>
+                            ${!reservation.logout_time ? `
+                                <button class="logout-btn" onclick="logoutStudent(${reservation.id})">
+                                    <i class="fas fa-sign-out-alt"></i> Log Out
+                                </button>
+                            ` : `
+                                <button class="logout-btn" disabled>
+                                    <i class="fas fa-check"></i> Completed
+                                </button>
+                            `}
+                        </td>
+                    `;
+                    
+                    tableBody.appendChild(row);
+                });
+            } else {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="11" class="text-center">No active sit-ins or reservations found</td>
+                    </tr>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching current sit-ins:', error);
+            
+            const tableBody = document.querySelector('#reservations-table tbody');
+            if (tableBody) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="11" class="text-center error">Error loading sit-ins. Please try again.</td>
+                    </tr>
+                `;
+            }
+        });
+}
+
+// Add filter buttons for sit-in type to the UI
+function addSitInFilters() {
+    const sitInSection = document.querySelector('#sit-in');
+    if (!sitInSection) return;
+    
+    // Create filter buttons container if it doesn't exist
+    let filterContainer = sitInSection.querySelector('.sit-in-filters');
+    if (!filterContainer) {
+        // Insert filter container after the heading
+        const heading = sitInSection.querySelector('h2');
+        filterContainer = document.createElement('div');
+        filterContainer.className = 'sit-in-filters';
+        heading.parentNode.insertBefore(filterContainer, heading.nextSibling);
+    }
+    
+    // Add filter buttons
+    filterContainer.innerHTML = `
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="sit-in">Sit Ins Only</button>
+        <button class="filter-btn" data-filter="reservation">Reservations Only</button>
+    `;
+    
+    // Add click event listeners
+    filterContainer.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Update active button
+            filterContainer.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Apply filter
+            const filter = this.getAttribute('data-filter');
+            applySitInFilter(filter);
+        });
+    });
+}
+
+// Apply filter to the sit-ins table
+function applySitInFilter(filter) {
+    const rows = document.querySelectorAll('#reservations-table tbody tr');
+    
+    rows.forEach(row => {
+        const isReservation = row.getAttribute('data-is-reservation') === 'true';
+        
+        if (filter === 'all') {
+            row.style.display = '';
+        } else if (filter === 'reservation' && isReservation) {
+            row.style.display = '';
+        } else if (filter === 'sit-in' && !isReservation) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Initialize the Current Sit In section
+document.addEventListener('DOMContentLoaded', function() {
+    // Add filters when the page loads
+    addSitInFilters();
+    
+    // Load current sit-ins when navigating to the sit-in tab
+    document.querySelector('[data-page="sit-in"]').addEventListener('click', function() {
+        loadCurrentSitIns();
+    });
+});
+
+// Helper functions for date/time formatting
+function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+    
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
+}
+
+function formatTime(timeString) {
+    if (!timeString) return 'N/A';
+    
+    // Handle both full datetime strings and time-only strings
+    let time;
+    if (timeString.includes('T') || timeString.includes(' ')) {
+        time = new Date(timeString);
+    } else {
+        // Assume it's a time string like "14:30:00"
+        const [hours, minutes] = timeString.split(':');
+        time = new Date();
+        time.setHours(hours, minutes, 0);
+    }
+    
+    return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}

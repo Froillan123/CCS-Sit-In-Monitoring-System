@@ -741,26 +741,37 @@ def get_reservations():
 
 @app.route('/get_currentsitin')
 def get_currentsitin():
-    if 'admin_username' not in session:
-        return jsonify({"success": False, "message": "Unauthorized"}), 401
-
     try:
-        sql = """
-        SELECT r.id, r.student_idno, r.student_name, l.lab_name, r.purpose, 
-               r.reservation_date, r.login_time, r.logout_time, r.status,
-               r.session_number, s.sessions_left
-        FROM reservations r
-        JOIN laboratories l ON r.lab_id = l.id
-        JOIN students s ON r.student_idno = s.idno
-        WHERE r.status = 'Approved' AND r.logout_time IS NULL
-        ORDER BY r.login_time DESC
+        # Get all current sit-ins (includes both regular sit-ins and active reservations)
+        query = """
+            SELECT r.id, r.student_idno, r.student_name, l.lab_name, r.purpose, 
+                   r.reservation_date, r.login_time, r.logout_time, r.status,
+                   'sit-in' as reservation_type
+            FROM reservations r
+            JOIN laboratories l ON r.lab_id = l.id
+            WHERE r.status IN ('Active', 'In Use')
+            
+            UNION ALL
+            
+            SELECT sr.id, sr.student_idno, 
+                   (SELECT firstname || ' ' || lastname FROM students s WHERE s.idno = sr.student_idno) as student_name,
+                   l.lab_name, sr.purpose, sr.reservation_date, 
+                   substr(sr.time_slot, 1, 5) as login_time, 
+                   substr(sr.time_slot, -5) as logout_time,
+                   sr.status,
+                   'reservation' as reservation_type
+            FROM student_reservation sr
+            JOIN laboratories l ON sr.lab_id = l.id
+            WHERE sr.status = 'In Use'
+            
+            ORDER BY login_time DESC
         """
-        reservations = getprocess(sql)
+        result = getprocess(query)
         
-        return jsonify({"success": True, "data": reservations})
+        return jsonify({"success": True, "data": result})
     except Exception as e:
-        print(f"Error fetching reservations: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        print(f"Error fetching current sit-ins: {e}")
+        return jsonify({"success": False, "message": str(e)})
 
 
 
@@ -2979,20 +2990,45 @@ def update_reservation_status_endpoint():
         if success:
             # Get the updated reservation details for notification
             query = """
-                SELECT sr.*, s.idno as student_idno
+                SELECT sr.*, s.idno as student_idno, l.lab_name, lc.computer_number
                 FROM student_reservation sr
                 JOIN students s ON sr.student_idno = s.idno
+                JOIN laboratories l ON sr.lab_id = l.id
+                LEFT JOIN lab_computers lc ON sr.computer_id = lc.id
                 WHERE sr.id = ?
             """
             reservation = getprocess(query, (reservation_id,))
             
             if reservation and len(reservation) > 0:
+                # Create a notification for the student
+                reservation_data = reservation[0]
+                title = f"Reservation {status}"
+                message = f"Your reservation for {reservation_data['lab_name']} on {reservation_data['reservation_date']} during {reservation_data['time_slot']} has been {status.lower()}."
+                
+                # Add notification to database
+                add_reservation_notification(
+                    reservation_data['student_idno'],
+                    reservation_id,
+                    title,
+                    message,
+                    'status_update'
+                )
+                
                 # Emit socket event to notify the student
-                socketio.emit(f'student_reservation_updated_{reservation[0]["student_idno"]}', {
+                socketio.emit(f'reservation_status_updated', {
+                    'student_idno': reservation_data['student_idno'],
                     'reservation_id': reservation_id,
                     'status': status,
-                    'message': f'Your reservation has been {status.lower()}'
+                    'title': title,
+                    'message': message,
+                    'type': 'status_update',
+                    'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 })
+                
+                # If approved, update the computer status for the reservation date/time
+                if status == 'Approved':
+                    # We will handle the computer status separately in another function
+                    pass
             
             return jsonify({
                 'success': True,
@@ -3000,7 +3036,6 @@ def update_reservation_status_endpoint():
             })
         else:
             return jsonify({'success': False, 'message': 'Failed to update reservation status'}), 500
-            
     except Exception as e:
         print(f"Error updating reservation status: {e}")
         return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
@@ -3274,6 +3309,284 @@ def api_export_lab_schedules():
             "message": f"Error exporting schedules: {str(e)}"
         }), 500
 
+@app.route('/api/student/notifications', methods=['GET'])
+def get_student_notifications_route():
+    if 'student_idno' not in session:
+        return jsonify({'success': False, 'message': 'Please log in first'}), 401
+    
+    try:
+        student_idno = session.get('student_idno')
+        notifications = get_student_notifications(student_idno)
+        
+        return jsonify({
+            'success': True,
+            'notifications': notifications
+        })
+    except Exception as e:
+        print(f"Error fetching student notifications: {e}")
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+@app.route('/api/student/notifications/read', methods=['POST'])
+def mark_notification_read_route():
+    if 'student_idno' not in session:
+        return jsonify({'success': False, 'message': 'Please log in first'}), 401
+    
+    try:
+        data = request.json
+        notification_id = data.get('notification_id')
+        
+        if not notification_id:
+            return jsonify({'success': False, 'message': 'Notification ID is required'}), 400
+        
+        success = mark_notification_read(notification_id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Notification marked as read'
+            })
+        else:
+            return jsonify({'success': False, 'message': 'Failed to mark notification as read'}), 500
+    except Exception as e:
+        print(f"Error marking notification as read: {e}")
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+@app.route('/api/student/notifications/read-all', methods=['POST'])
+def mark_all_notifications_read_route():
+    if 'student_idno' not in session:
+        return jsonify({'success': False, 'message': 'Please log in first'}), 401
+    
+    try:
+        student_idno = session.get('student_idno')
+        success = mark_all_notifications_read(student_idno)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'All notifications marked as read'
+            })
+        else:
+            return jsonify({'success': False, 'message': 'Failed to mark notifications as read'}), 500
+    except Exception as e:
+        print(f"Error marking all notifications as read: {e}")
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+@app.route('/api/student/notifications/count', methods=['GET'])
+def get_unread_notifications_count_route():
+    if 'student_idno' not in session:
+        return jsonify({'success': False, 'message': 'Please log in first'}), 401
+    
+    try:
+        student_idno = session.get('student_idno')
+        count = get_unread_notifications_count(student_idno)
+        
+        return jsonify({
+            'success': True,
+            'count': count
+        })
+    except Exception as e:
+        print(f"Error getting unread notifications count: {e}")
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+# Add a scheduled task to check for upcoming reservations and send notifications
+def check_upcoming_reservations():
+    """Check for upcoming reservations and send notifications to students"""
+    try:
+        # Get reservations that are starting within the next 30 minutes
+        thirty_mins_from_now = datetime.now() + timedelta(minutes=30)
+        current_date = datetime.now().strftime('%Y-%m-%d')
+        current_time = datetime.now().strftime('%H:%M:%S')
+        
+        # Query to find reservations that are coming up in the next 30 minutes
+        query = """
+            SELECT sr.*, s.idno as student_idno, s.firstname, s.lastname, l.lab_name, lc.computer_number
+            FROM student_reservation sr
+            JOIN students s ON sr.student_idno = s.idno
+            JOIN laboratories l ON sr.lab_id = l.id
+            LEFT JOIN lab_computers lc ON sr.computer_id = lc.id
+            WHERE sr.reservation_date = ? 
+            AND sr.status = 'Approved'
+            AND sr.time_slot LIKE ? 
+            AND NOT EXISTS (
+                SELECT 1 FROM reservation_notifications rn 
+                WHERE rn.reservation_id = sr.id AND rn.notification_type = 'upcoming'
+            )
+        """
+        
+        # Get the time component in format expected in the database
+        time_to_check = thirty_mins_from_now.strftime('%H:%M')
+        time_pattern = f"%{time_to_check}%"
+        
+        upcoming_reservations = getprocess(query, (current_date, time_pattern))
+        
+        for reservation in upcoming_reservations:
+            # Create a notification for the upcoming reservation
+            title = "Upcoming Reservation"
+            message = f"Your reservation for {reservation['lab_name']} (PC #{reservation['computer_number']}) starts in 30 minutes."
+            
+            # Add notification to database
+            add_reservation_notification(
+                reservation['student_idno'],
+                reservation['id'],
+                title,
+                message,
+                'upcoming'
+            )
+            
+            # Emit socket event to notify the student
+            socketio.emit('reservation_upcoming', {
+                'student_idno': reservation['student_idno'],
+                'reservation_id': reservation['id'],
+                'title': title,
+                'message': message,
+                'type': 'upcoming',
+                'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            })
+            
+        return True
+    except Exception as e:
+        print(f"Error checking upcoming reservations: {e}")
+        return False
+
+# Run the check_upcoming_reservations function every minute
+def start_reservation_scheduler():
+    from apscheduler.schedulers.background import BackgroundScheduler
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(check_upcoming_reservations, 'interval', minutes=1)
+    scheduler.start()
+
+# Function to monitor reservation time slots and auto logout/login when time slots start/end
+def check_reservation_time_slots():
+    """Check for reservations whose time slots have started/ended and update their status"""
+    try:
+        current_date = datetime.now().strftime('%Y-%m-%d')
+        current_time = datetime.now().strftime('%H:%M:%S')
+        
+        # 1. First, find approved reservations whose time slots have started
+        start_query = """
+            SELECT sr.*, s.idno as student_idno, l.lab_name, lc.computer_number
+            FROM student_reservation sr
+            JOIN students s ON sr.student_idno = s.idno
+            JOIN laboratories l ON sr.lab_id = l.id
+            LEFT JOIN lab_computers lc ON sr.computer_id = lc.id
+            WHERE sr.reservation_date = ? 
+            AND sr.status = 'Approved'
+            AND time(substr(sr.time_slot, 1, 5)) <= time(?)
+            AND time(substr(sr.time_slot, -5)) > time(?)
+        """
+        
+        starting_reservations = getprocess(start_query, (current_date, current_time, current_time))
+        
+        for reservation in starting_reservations:
+            # Update reservation status to In Use
+            postprocess(
+                "UPDATE student_reservation SET status = 'In Use' WHERE id = ?",
+                (reservation['id'],)
+            )
+            
+            # Update computer status to In Use
+            if reservation['computer_id']:
+                postprocess(
+                    "UPDATE lab_computers SET status = 'In Use', student_idno = ? WHERE id = ?",
+                    (reservation['student_idno'], reservation['computer_id'])
+                )
+            
+            # Create a notification for the student
+            title = "Reservation Started"
+            message = f"Your reservation for {reservation['lab_name']} (PC #{reservation['computer_number']}) has started. You can now use the computer."
+            
+            # Add notification to database
+            add_reservation_notification(
+                reservation['student_idno'],
+                reservation['id'],
+                title,
+                message,
+                'system'
+            )
+            
+            # Emit socket event to notify the student
+            socketio.emit('reservation_started', {
+                'student_idno': reservation['student_idno'],
+                'reservation_id': reservation['id'],
+                'title': title,
+                'message': message,
+                'type': 'system',
+                'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            })
+        
+        # 2. Find reservations whose time slots have ended
+        end_query = """
+            SELECT sr.*, s.idno as student_idno, l.lab_name, lc.computer_number
+            FROM student_reservation sr
+            JOIN students s ON sr.student_idno = s.idno
+            JOIN laboratories l ON sr.lab_id = l.id
+            LEFT JOIN lab_computers lc ON sr.computer_id = lc.id
+            WHERE sr.reservation_date = ? 
+            AND sr.status = 'In Use'
+            AND time(substr(sr.time_slot, -5)) <= time(?)
+        """
+        
+        ended_reservations = getprocess(end_query, (current_date, current_time))
+        
+        for reservation in ended_reservations:
+            # Update reservation status to Logged Out
+            postprocess(
+                "UPDATE student_reservation SET status = 'Logged Out' WHERE id = ?",
+                (reservation['id'],)
+            )
+            
+            # Update computer status to Available
+            if reservation['computer_id']:
+                postprocess(
+                    "UPDATE lab_computers SET status = 'Available', student_idno = NULL WHERE id = ?",
+                    (reservation['computer_id'],)
+                )
+            
+            # Create a notification for the student
+            title = "Reservation Ended"
+            message = f"Your reservation for {reservation['lab_name']} has ended and you have been automatically logged out."
+            
+            # Add notification to database
+            add_reservation_notification(
+                reservation['student_idno'],
+                reservation['id'],
+                title,
+                message,
+                'system'
+            )
+            
+            # Emit socket event to notify the student
+            socketio.emit('reservation_ended', {
+                'student_idno': reservation['student_idno'],
+                'reservation_id': reservation['id'],
+                'title': title,
+                'message': message,
+                'type': 'system',
+                'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            })
+        
+        return True
+    except Exception as e:
+        print(f"Error checking reservation time slots: {e}")
+        return False
+
+# Update the scheduler to also run check_reservation_time_slots
+def start_all_schedulers():
+    try:
+        from apscheduler.schedulers.background import BackgroundScheduler
+        scheduler = BackgroundScheduler()
+        scheduler.add_job(check_upcoming_reservations, 'interval', minutes=1)
+        scheduler.add_job(check_reservation_time_slots, 'interval', minutes=1)
+        scheduler.start()
+        print("Schedulers started successfully")
+    except Exception as e:
+        print(f"Error starting schedulers: {e}")
+
+# Call this function when the application starts
 if __name__ == '__main__':
+    # Initialize tables and start schedulers before running the app
+    initialize_tables()
+    start_all_schedulers()
+    
     port = int(os.environ.get('PORT', 5000))
-    socketio.run(app, host='0.0.0.0', port=port, debug=True)
+    socketio.run(app, debug=True, host='0.0.0.0', port=port)

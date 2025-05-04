@@ -1722,4 +1722,316 @@ function closeActionModal() {
     modal.style.display = 'none';
     modal.classList.remove('animate-fade-in', 'animate-fade-out');
   }, 300);
-} 
+}
+
+/**
+ * Handle reservation notifications 
+ */
+function loadReservationNotifications() {
+    fetch('/api/student/notifications')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch notifications');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                updateNotificationsUI(data.notifications);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading notifications:', error);
+        });
+}
+
+/**
+ * Update the notifications UI with the provided notifications
+ */
+function updateNotificationsUI(notifications) {
+    const notificationItems = document.getElementById('notificationItems');
+    if (!notificationItems) return;
+    
+    // Clear existing notifications
+    notificationItems.innerHTML = '';
+    
+    if (notifications.length === 0) {
+        notificationItems.innerHTML = `
+            <div class="notification-empty">
+                <i class="fas fa-bell-slash"></i>
+                <p>No notifications</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Add each notification to the dropdown
+    notifications.forEach(notification => {
+        const notificationItem = document.createElement('div');
+        notificationItem.classList.add('notification-item');
+        notificationItem.setAttribute('data-id', notification.id);
+        
+        if (!notification.is_read) {
+            notificationItem.classList.add('unread');
+        }
+        
+        // Set notification icon based on type
+        let iconClass = 'fas fa-bell';
+        if (notification.notification_type === 'status_update') {
+            iconClass = 'fas fa-sync';
+        } else if (notification.notification_type === 'upcoming') {
+            iconClass = 'fas fa-clock';
+        } else if (notification.notification_type === 'system') {
+            iconClass = 'fas fa-exclamation-circle';
+        }
+        
+        notificationItem.innerHTML = `
+            <div class="notification-icon">
+                <i class="${iconClass}"></i>
+            </div>
+            <div class="notification-content">
+                <div class="notification-title">${notification.title}</div>
+                <div class="notification-text">${notification.message}</div>
+                <div class="notification-time">${formatDateTime(notification.created_at)}</div>
+            </div>
+        `;
+        
+        // Add click event to mark notification as read
+        notificationItem.addEventListener('click', () => {
+            markNotificationAsRead(notification.id);
+        });
+        
+        notificationItems.appendChild(notificationItem);
+    });
+    
+    // Update notification count
+    updateNotificationCount();
+}
+
+/**
+ * Mark a notification as read
+ */
+function markNotificationAsRead(notificationId) {
+    fetch('/api/student/notifications/read', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ notification_id: notificationId }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove unread class from the notification item
+            const notificationItem = document.querySelector(`.notification-item[data-id="${notificationId}"]`);
+            if (notificationItem) {
+                notificationItem.classList.remove('unread');
+                updateNotificationCount();
+            }
+        }
+    })
+    .catch(error => console.error('Error marking notification as read:', error));
+}
+
+/**
+ * Mark all notifications as read
+ */
+function markAllNotificationsAsRead() {
+    fetch('/api/student/notifications/read-all', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove unread class from all notification items
+            document.querySelectorAll('.notification-item.unread').forEach(item => {
+                item.classList.remove('unread');
+            });
+            updateNotificationCount();
+        }
+    })
+    .catch(error => console.error('Error marking all notifications as read:', error));
+}
+
+/**
+ * Update the notification count badge
+ */
+function updateNotificationCount() {
+    const unreadCount = document.querySelectorAll('.notification-item.unread').length;
+    const notificationBadge = document.getElementById('notificationBadge');
+    
+    if (notificationBadge) {
+        if (unreadCount > 0) {
+            notificationBadge.textContent = unreadCount;
+            notificationBadge.style.display = 'block';
+        } else {
+            notificationBadge.textContent = '0';
+            notificationBadge.style.display = 'none';
+        }
+    }
+}
+
+/**
+ * Format a date string to a more readable format
+ */
+function formatDateTime(dateTimeStr) {
+    if (!dateTimeStr) return 'Unknown';
+    
+    const date = new Date(dateTimeStr);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+    
+    if (diffSec < 60) {
+        return 'Just now';
+    } else if (diffMin < 60) {
+        return `${diffMin} minute${diffMin !== 1 ? 's' : ''} ago`;
+    } else if (diffHour < 24) {
+        return `${diffHour} hour${diffHour !== 1 ? 's' : ''} ago`;
+    } else if (diffDay < 7) {
+        return `${diffDay} day${diffDay !== 1 ? 's' : ''} ago`;
+    } else {
+        const options = { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        return date.toLocaleDateString(undefined, options);
+    }
+}
+
+/**
+ * Set up socket.io event listeners for reservation notifications
+ */
+function setupReservationNotifications() {
+    // Check if socket.io is available
+    if (typeof socket === 'undefined') {
+        console.error('Socket.io not initialized');
+        return;
+    }
+    
+    // Listen for reservation status updates
+    socket.on('reservation_status_updated', function(data) {
+        // First check if this notification is for the current student
+        if (data.student_idno === currentStudentId) {
+            // Show a notification
+            showReservationNotification(data.title, data.message);
+            
+            // Refresh notifications list
+            loadReservationNotifications();
+            
+            // Refresh reservations if on the reservations page
+            if (document.getElementById('reservation-student').style.display === 'block') {
+                loadStudentReservations();
+            }
+        }
+    });
+    
+    // Listen for upcoming reservation notifications
+    socket.on('reservation_upcoming', function(data) {
+        if (data.student_idno === currentStudentId) {
+            showReservationNotification(data.title, data.message);
+            loadReservationNotifications();
+        }
+    });
+    
+    // Listen for reservation ended notifications
+    socket.on('reservation_ended', function(data) {
+        if (data.student_idno === currentStudentId) {
+            showReservationNotification(data.title, data.message);
+            loadReservationNotifications();
+            
+            // Refresh reservations if on the reservations page
+            if (document.getElementById('reservation-student').style.display === 'block') {
+                loadStudentReservations();
+            }
+        }
+    });
+}
+
+/**
+ * Show a notification using SweetAlert2
+ */
+function showReservationNotification(title, message) {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: title,
+            text: message,
+            icon: 'info',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 5000,
+            timerProgressBar: true,
+            customClass: {
+                popup: 'swal-default-size'
+            }
+        });
+    } else {
+        // Fallback to alert if SweetAlert2 is not available
+        alert(`${title}: ${message}`);
+    }
+}
+
+/**
+ * Update the current sit in section to show reservation type
+ */
+function updateCurrentSitInSection() {
+    // This could be expanded based on your actual UI needs
+    const sitInTab = document.querySelector('[data-section="sit-in"]');
+    if (sitInTab) {
+        // Add badges to show reservation type in the sit-in table
+        document.querySelectorAll('#reservations-table tbody tr').forEach(row => {
+            const typeCell = document.createElement('td');
+            const isReservation = row.getAttribute('data-is-reservation') === 'true';
+            
+            if (isReservation) {
+                typeCell.innerHTML = '<span class="reservation-badge">Reservation</span>';
+            } else {
+                typeCell.innerHTML = '<span class="sit-in-badge">Sit In</span>';
+            }
+            
+            // Insert after status column
+            const statusCell = row.querySelector('td:nth-child(8)');
+            if (statusCell) {
+                statusCell.parentNode.insertBefore(typeCell, statusCell.nextSibling);
+            }
+        });
+    }
+}
+
+// Initialize the notifications system when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Setup for existing functionality
+    
+    // Load notifications
+    loadReservationNotifications();
+    
+    // Setup socket.io notification listeners
+    setupReservationNotifications();
+    
+    // Mark all as read button
+    const markAllReadBtn = document.getElementById('markAllRead');
+    if (markAllReadBtn) {
+        markAllReadBtn.addEventListener('click', function(event) {
+            event.stopPropagation();
+            markAllNotificationsAsRead();
+        });
+    }
+    
+    // Update sit-in/reservation tables when the tab is clicked
+    const sitInTab = document.querySelector('[data-section="sit-in"]');
+    if (sitInTab) {
+        sitInTab.addEventListener('click', function() {
+            setTimeout(updateCurrentSitInSection, 500); // Wait for the table to load
+        });
+    }
+}); 

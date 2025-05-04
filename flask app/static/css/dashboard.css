@@ -3539,3 +3539,76 @@ tr[data-foul-language="true"] {
     box-shadow: none;
 }
 
+/* Sit-in and Reservation Badges */
+.reservation-badge, .sit-in-badge {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.reservation-badge {
+    background: linear-gradient(135deg, #4a6bdc, #764ba2);
+    color: white;
+}
+
+.sit-in-badge {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    color: white;
+}
+
+/* Sit-in Filters */
+.sit-in-filters {
+    display: flex;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.filter-btn {
+    padding: 8px 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    color: #333;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+    background-color: #f0f0f0;
+}
+
+.filter-btn.active {
+    background-color: var(--first-color);
+    color: white;
+    border-color: var(--first-color);
+}
+
+/* Status Badge Styles */
+.status-approved, .status-pending, .status-completed {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.status-approved {
+    background-color: rgba(76, 175, 80, 0.2);
+    color: #2e7d32;
+}
+
+.status-pending {
+    background-color: rgba(255, 152, 0, 0.2);
+    color: #ef6c00;
+}
+
+.status-completed {
+    background-color: rgba(33, 150, 243, 0.2);
+    color: #1976d2;
+}
+

@@ -853,6 +853,7 @@ def initialize_tables():
     create_lab_computers_table()
     create_student_reservation_table()
     create_points_tables()
+    create_reservation_notifications_table()
 
 # Initialize lab computers for a lab
 def initialize_lab_computers(lab_id, computer_count=50):
@@ -1320,3 +1321,80 @@ def drop_and_recreate_lab_schedules():
             cursor.close()
         if 'conn' in locals() and conn:
             conn.close()
+
+def create_reservation_notifications_table():
+    """Create the reservation_notifications table if it doesn't exist"""
+    try:
+        conn = sqlite3.connect('student.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS reservation_notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_idno TEXT NOT NULL,
+            reservation_id INTEGER,
+            title TEXT NOT NULL,
+            message TEXT NOT NULL,
+            notification_type TEXT NOT NULL,
+            is_read INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (student_idno) REFERENCES students(idno),
+            FOREIGN KEY (reservation_id) REFERENCES student_reservation(id) ON DELETE CASCADE
+        )''')
+        
+        conn.commit()
+        print("Reservation notifications table created or already exists")
+        return True
+    except Exception as e:
+        print(f"Error creating reservation notifications table: {e}")
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+def add_reservation_notification(student_idno, reservation_id, title, message, notification_type):
+    """Add a new reservation notification for a student
+    notification_type can be: 'status_update', 'upcoming', 'system'
+    """
+    sql = """
+        INSERT INTO reservation_notifications 
+        (student_idno, reservation_id, title, message, notification_type)
+        VALUES (?, ?, ?, ?, ?)
+    """
+    return postprocess(sql, (student_idno, reservation_id, title, message, notification_type))
+
+def get_student_notifications(student_idno, limit=20):
+    """Get notifications for a student, including reservation notifications"""
+    sql = """
+        SELECT * FROM reservation_notifications
+        WHERE student_idno = ?
+        ORDER BY created_at DESC
+        LIMIT ?
+    """
+    return getprocess(sql, (student_idno, limit))
+
+def mark_notification_read(notification_id):
+    """Mark a notification as read"""
+    sql = """
+        UPDATE reservation_notifications
+        SET is_read = 1
+        WHERE id = ?
+    """
+    return postprocess(sql, (notification_id,))
+
+def mark_all_notifications_read(student_idno):
+    """Mark all notifications for a student as read"""
+    sql = """
+        UPDATE reservation_notifications
+        SET is_read = 1
+        WHERE student_idno = ? AND is_read = 0
+    """
+    return postprocess(sql, (student_idno,))
+
+def get_unread_notifications_count(student_idno):
+    """Get count of unread notifications for a student"""
+    sql = """
+        SELECT COUNT(*) as count FROM reservation_notifications
+        WHERE student_idno = ? AND is_read = 0
+    """
+    result = getprocess(sql, (student_idno,))
+    return result[0]['count'] if result else 0

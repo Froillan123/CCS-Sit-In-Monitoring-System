@@ -2954,10 +2954,23 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+// Initialize when document is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    fetchAnnouncements();
+    loadReservationNotifications(); // Load reservation notifications
+    setupReservationNotifications(); // Set up socket events for notifications
 
+    // Mark all as read button
+    const markAllReadBtn = document.getElementById('markAllRead');
+    if (markAllReadBtn) {
+        markAllReadBtn.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent event from bubbling up
+            markAllNotificationsAsRead();
+        });
+    }
 
-
-
+    // Existing code...
+});
 
 </script>
 {% endblock %}
