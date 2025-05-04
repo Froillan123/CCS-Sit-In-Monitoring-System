@@ -742,14 +742,19 @@ def get_reservations():
 @app.route('/get_currentsitin')
 def get_currentsitin():
     try:
+        # Check if admin is logged in
+        if 'admin_username' not in session:
+            return jsonify({"success": False, "message": "Unauthorized"}), 401
+            
         # Get all current sit-ins (includes both regular sit-ins and active reservations)
         query = """
             SELECT r.id, r.student_idno, r.student_name, l.lab_name, r.purpose, 
                    r.reservation_date, r.login_time, r.logout_time, r.status,
+                   r.session_number,
                    'sit-in' as reservation_type
             FROM reservations r
             JOIN laboratories l ON r.lab_id = l.id
-            WHERE r.status IN ('Active', 'In Use')
+            WHERE r.status IN ('Active', 'In Use', 'Approved')
             
             UNION ALL
             
@@ -759,6 +764,7 @@ def get_currentsitin():
                    substr(sr.time_slot, 1, 5) as login_time, 
                    substr(sr.time_slot, -5) as logout_time,
                    sr.status,
+                   NULL as session_number,
                    'reservation' as reservation_type
             FROM student_reservation sr
             JOIN laboratories l ON sr.lab_id = l.id
@@ -771,7 +777,7 @@ def get_currentsitin():
         return jsonify({"success": True, "data": result})
     except Exception as e:
         print(f"Error fetching current sit-ins: {e}")
-        return jsonify({"success": False, "message": str(e)})
+        return jsonify({"success": False, "message": str(e)}), 500
 
 
 

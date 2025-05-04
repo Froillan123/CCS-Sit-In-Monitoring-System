@@ -1124,39 +1124,71 @@ document.addEventListener('DOMContentLoaded', function () {
 
 function handleLogout(reservationId) {
     Swal.fire({
-        title: 'Are you sure?',
-        text: 'You are about to log out this student',
+        title: 'Confirm Logout',
+        text: 'Are you sure you want to log out this student?',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
         cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, log out!'
+        confirmButtonText: 'Yes, log out'
     }).then((result) => {
         if (result.isConfirmed) {
+            // Show loading
+            Swal.fire({
+                title: 'Processing...',
+                text: 'Logging out student...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Call the logout API
             fetch(`/logout-student/${reservationId}`, {
-                method: 'POST'
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire({
-                        title: 'Success!',
-                        text: `Student logged out successfully. Sessions left: ${data.sessions_left}`,
-                        icon: 'success',
-                        confirmButtonText: 'OK'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            // Reload the page after the user clicks OK
-                            window.location.reload();
-                        }
-                    });
+                    Swal.fire(
+                        'Logged Out!',
+                        'Student has been logged out successfully.',
+                        'success'
+                    );
+                    
+                    // Remove or update the row in the table
+                    const row = document.querySelector(`tr[data-reservation-id="${reservationId}"]`);
+                    if (row) {
+                        // Option 1: Remove the row
+                        row.remove();
+                        
+                        // Option 2: Update the row status and disable logout button
+                        // const statusCell = row.querySelector('.status');
+                        // const actionCell = row.querySelector('td:last-child');
+                        // if (statusCell) statusCell.textContent = 'Logged Out';
+                        // if (actionCell) actionCell.innerHTML = '<button class="logout-btn" disabled>Completed</button>';
+                    }
+                    
+                    // Refresh the page or reload data
+                    fetchAndDisplayCurrentSitIn();
                 } else {
-                    Swal.fire('Error!', data.message, 'error');
+                    Swal.fire(
+                        'Error!',
+                        data.message || 'Failed to log out student.',
+                        'error'
+                    );
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                Swal.fire('Error!', 'Failed to log out student', 'error');
+                console.error('Error during logout:', error);
+                Swal.fire(
+                    'Error!',
+                    'An error occurred during logout. Please try again.',
+                    'error'
+                );
             });
         }
     });
@@ -1200,10 +1232,20 @@ function fetchAndDisplayCurrentSitIn() {
             const tableBody = document.querySelector('#reservations-table tbody');
             tableBody.innerHTML = '';
 
-            if (data.success && data.data.length > 0) {
+            if (data.success && data.data && data.data.length > 0) {
                 data.data.forEach(reservation => {
                     const row = document.createElement('tr');
                     row.setAttribute('data-reservation-id', reservation.id);
+                    row.setAttribute('data-is-reservation', reservation.reservation_type === 'reservation');
+                    
+                    // Create badge for reservation type
+                    let typeBadge = '';
+                    if (reservation.reservation_type === 'reservation') {
+                        typeBadge = '<span class="reservation-badge">Reservation</span>';
+                    } else {
+                        typeBadge = '<span class="sit-in-badge">Sit In</span>';
+                    }
+                    
                     row.innerHTML = `
                         <td>${reservation.student_idno}</td>
                         <td>${reservation.student_name}</td>
@@ -1211,9 +1253,10 @@ function fetchAndDisplayCurrentSitIn() {
                         <td>${reservation.purpose}</td>
                         <td>${reservation.reservation_date}</td>
                         <td>${reservation.login_time}</td>
-                        <td>N/A</td>
-                        <td>Session ${reservation.session_number}</td>
+                        <td>${reservation.logout_time || 'N/A'}</td>
+                        <td>${reservation.session_number || 'N/A'}</td>
                         <td class="status">${reservation.status}</td>
+                        <td>${typeBadge}</td>
                         <td>
                             <button class="logout-btn" data-reservation-id="${reservation.id}">Logout</button>
                         </td>
@@ -1224,7 +1267,7 @@ function fetchAndDisplayCurrentSitIn() {
                 // Display "No student sitting in" row with styling and icon
                 const emptyRow = document.createElement('tr');
                 emptyRow.innerHTML = `
-                    <td colspan="10" style="
+                    <td colspan="11" style="
                         text-align: center;
                         padding: 30px 40px;
                         color: #888;
@@ -1240,6 +1283,16 @@ function fetchAndDisplayCurrentSitIn() {
         })
         .catch(error => {
             console.error('Error fetching current sit-ins:', error);
+            const tableBody = document.querySelector('#reservations-table tbody');
+            if (tableBody) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="11" class="text-center error">
+                            Failed to load reservations: ${error.message || 'Failed to fetch'}
+                        </td>
+                    </tr>
+                `;
+            }
             Swal.fire('Error', 'Failed to load current sit-ins', 'error');
         });
 }
@@ -4546,6 +4599,7 @@ function loadCurrentSitIns() {
             if (data.success && data.data && data.data.length > 0) {
                 data.data.forEach(reservation => {
                     const row = document.createElement('tr');
+                    row.setAttribute('data-reservation-id', reservation.id);
                     row.setAttribute('data-is-reservation', reservation.reservation_type === 'reservation');
                     
                     // Determine status class
@@ -4569,33 +4623,34 @@ function loadCurrentSitIns() {
                         <td>${reservation.student_name}</td>
                         <td>${reservation.lab_name}</td>
                         <td>${reservation.purpose}</td>
-                        <td>${formatDate(reservation.reservation_date)}</td>
-                        <td>${formatTime(reservation.login_time)}</td>
-                        <td>${reservation.logout_time ? formatTime(reservation.logout_time) : 'Active'}</td>
+                        <td>${reservation.reservation_date}</td>
+                        <td>${reservation.login_time}</td>
+                        <td>${reservation.logout_time || 'N/A'}</td>
                         <td>${reservation.session_number || 'N/A'}</td>
-                        <td><span class="${statusClass}">${reservation.status}</span></td>
+                        <td class="${statusClass}">${reservation.status}</td>
                         <td>${typeBadge}</td>
                         <td>
-                            ${!reservation.logout_time ? `
-                                <button class="logout-btn" onclick="logoutStudent(${reservation.id})">
-                                    <i class="fas fa-sign-out-alt"></i> Log Out
-                                </button>
-                            ` : `
-                                <button class="logout-btn" disabled>
-                                    <i class="fas fa-check"></i> Completed
-                                </button>
-                            `}
+                            <button class="logout-btn" data-reservation-id="${reservation.id}" onclick="handleLogout(${reservation.id})">Logout</button>
                         </td>
                     `;
-                    
                     tableBody.appendChild(row);
                 });
             } else {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="11" class="text-center">No active sit-ins or reservations found</td>
-                    </tr>
+                // Display "No student sitting in" row with styling and icon
+                const emptyRow = document.createElement('tr');
+                emptyRow.innerHTML = `
+                    <td colspan="11" style="
+                        text-align: center;
+                        padding: 30px 40px;
+                        color: #888;
+                        font-size: 17px;
+                        transition: all 0.3s ease;
+                    ">
+                        <i class="fas fa-chair" style="margin-right: 10px; color: #ccc; font-size: 18px;"></i>
+                        No student is currently sitting in.
+                    </td>
                 `;
+                tableBody.appendChild(emptyRow);
             }
         })
         .catch(error => {
@@ -4605,7 +4660,9 @@ function loadCurrentSitIns() {
             if (tableBody) {
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="11" class="text-center error">Error loading sit-ins. Please try again.</td>
+                        <td colspan="11" class="text-center error">
+                            Failed to load reservations: ${error.message || 'Failed to fetch'}
+                        </td>
                     </tr>
                 `;
             }
