@@ -1,0 +1,448 @@
+Want i want is that In comp lab management
+
+I can see the over of computer lab and lab schedule 
+
+
+each lab name has 50 pc each and the status he can set to available, in use, unavailable when clicking the PC if it's in use the modal will pop up and who's student is in there 
+
+
+Lab Schedule - I can create a lab schedule for it and make it Available or Unavailable 
+
+List the monday - saturday schedule and i can see if it's unavailable the admin can set it to unavailable due to reason. if it's reserve that's the time he can see the modal which class on that lab and what subject here is my lab schedule i made. so insert this make it automatic reserve on that specific time. 
+
+
+
+
+University of Cebu Main
+College of Computer Studies
+
+Lab544
+Monday
+Time Slot Subject / Availability
+7:00 8:30 AM - ITP10123 - Computer Programming 1
+8:30 10:00 AM - Available
+10:00 11:30 AM - OOP20239 - Computer Programming 2 (Java)
+11:30 AM 1:00 PM - Available
+1:00 2:30 PM - DSA20145 - Data Structures and Algorithms
+2:30 4:00 PM - Available
+4:00 5:30 PM - DBMS20267 - Database Management Systems
+5:30 7:00 PM - Available
+7:00 9:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+Tuesday
+Time Slot Subject / Availability
+7:00 8:30 AM - ITP10123 - Computer Programming 1
+8:30 10:00 AM - Available
+10:00 11:30 AM - OOP20239 - Computer Programming 2 (Java)
+11:30 AM 1:00 PM - Available
+1:00 2:30 PM - DSA20145 - Data Structures and Algorithms
+2:30 4:00 PM - Available
+4:00 5:30 PM - DBMS20267 - Database Management Systems
+5:30 7:00 PM - Available
+7:00 9:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+Wednesday
+Time Slot Subject / Availability
+7:00 8:30 AM - ITP10123 - Computer Programming 1
+8:30 10:00 AM - Available
+10:00 11:30 AM - OOP20239 - Computer Programming 2 (Java)
+11:30 AM 1:00 PM - Available
+
+1:00 2:30 PM - DSA20145 - Data Structures and Algorithms
+2:30 4:00 PM - Available
+4:00 5:30 PM - DBMS20267 - Database Management Systems
+5:30 7:00 PM - Available
+7:00 9:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+Thursday
+Time Slot Subject / Availability
+7:00 8:30 AM - ITP10123 - Computer Programming 1
+8:30 10:00 AM - Available
+10:00 11:30 AM - OOP20239 - Computer Programming 2 (Java)
+11:30 AM 1:00 PM - Available
+1:00 2:30 PM - DSA20145 - Data Structures and Algorithms
+2:30 4:00 PM - Available
+4:00 5:30 PM - DBMS20267 - Database Management Systems
+5:30 7:00 PM - Available
+7:00 9:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+Friday
+Time Slot Subject / Availability
+7:00 8:30 AM - ITP10123 - Computer Programming 1
+8:30 10:00 AM - Available
+10:00 11:30 AM - OOP20239 - Computer Programming 2 (Java)
+11:30 AM 1:00 PM - Available
+1:00 2:30 PM - DSA20145 - Data Structures and Algorithms
+2:30 4:00 PM - Available
+4:00 5:30 PM - DBMS20267 - Database Management Systems
+5:30 7:00 PM - Available
+7:00 9:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+Saturday
+Time Slot Subject / Availability
+7:00 8:30 AM - ITP10123 - Computer Programming 1
+8:30 10:00 AM - Available
+10:00 11:30 AM - OOP20239 - Computer Programming 2 (Java)
+11:30 AM 1:00 PM - Available
+
+1:00 2:30 PM - DSA20145 - Data Structures and Algorithms
+2:30 4:00 PM - Available
+4:00 5:30 PM - DBMS20267 - Database Management Systems
+5:30 7:00 PM - Available
+7:00 9:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+
+Lab542
+Monday
+Time Slot Subject / Availability
+7:00 8:30 AM - Available
+8:30 10:00 AM - OOP20239 - Computer Programming 2 (Java)
+10:00 11:30 AM - Available
+11:30 AM 1:00 PM - DSA20145 - Data Structures and Algorithms
+1:00 2:30 PM - Available
+2:30 4:00 PM - DBMS20267 - Database Management Systems
+4:00 5:30 PM - Available
+5:30 7:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+7:00 9:00 PM - Available
+Tuesday
+Time Slot Subject / Availability
+7:00 8:30 AM - Available
+8:30 10:00 AM - OOP20239 - Computer Programming 2 (Java)
+10:00 11:30 AM - Available
+11:30 AM 1:00 PM - DSA20145 - Data Structures and Algorithms
+1:00 2:30 PM - Available
+2:30 4:00 PM - DBMS20267 - Database Management Systems
+4:00 5:30 PM - Available
+5:30 7:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+7:00 9:00 PM - Available
+Wednesday
+Time Slot Subject / Availability
+7:00 8:30 AM - Available
+8:30 10:00 AM - OOP20239 - Computer Programming 2 (Java)
+10:00 11:30 AM - Available
+11:30 AM 1:00 PM - DSA20145 - Data Structures and Algorithms
+1:00 2:30 PM - Available
+2:30 4:00 PM - DBMS20267 - Database Management Systems
+4:00 5:30 PM - Available
+
+5:30 7:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+7:00 9:00 PM - Available
+Thursday
+Time Slot Subject / Availability
+7:00 8:30 AM - Available
+8:30 10:00 AM - OOP20239 - Computer Programming 2 (Java)
+10:00 11:30 AM - Available
+11:30 AM 1:00 PM - DSA20145 - Data Structures and Algorithms
+1:00 2:30 PM - Available
+2:30 4:00 PM - DBMS20267 - Database Management Systems
+4:00 5:30 PM - Available
+5:30 7:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+7:00 9:00 PM - Available
+Friday
+Time Slot Subject / Availability
+7:00 8:30 AM - Available
+8:30 10:00 AM - OOP20239 - Computer Programming 2 (Java)
+10:00 11:30 AM - Available
+11:30 AM 1:00 PM - DSA20145 - Data Structures and Algorithms
+1:00 2:30 PM - Available
+2:30 4:00 PM - DBMS20267 - Database Management Systems
+4:00 5:30 PM - Available
+5:30 7:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+7:00 9:00 PM - Available
+Saturday
+Time Slot Subject / Availability
+7:00 8:30 AM - Available
+8:30 10:00 AM - OOP20239 - Computer Programming 2 (Java)
+10:00 11:30 AM - Available
+11:30 AM 1:00 PM - DSA20145 - Data Structures and Algorithms
+1:00 2:30 PM - Available
+2:30 4:00 PM - DBMS20267 - Database Management Systems
+4:00 5:30 PM - Available
+
+5:30 7:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+7:00 9:00 PM - Available
+
+Lab530
+Monday
+Time Slot Subject / Availability
+7:00 8:30 AM - OOP20239 - Computer Programming 2 (Java)
+8:30 10:00 AM - Available
+10:00 11:30 AM - DSA20145 - Data Structures and Algorithms
+11:30 AM 1:00 PM - Available
+1:00 2:30 PM - DBMS20267 - Database Management Systems
+2:30 4:00 PM - Available
+4:00 5:30 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+5:30 7:00 PM - Available
+7:00 9:00 PM - NET30134 - Networks and Communications
+Tuesday
+Time Slot Subject / Availability
+7:00 8:30 AM - OOP20239 - Computer Programming 2 (Java)
+8:30 10:00 AM - Available
+10:00 11:30 AM - DSA20145 - Data Structures and Algorithms
+11:30 AM 1:00 PM - Available
+1:00 2:30 PM - DBMS20267 - Database Management Systems
+2:30 4:00 PM - Available
+4:00 5:30 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+5:30 7:00 PM - Available
+7:00 9:00 PM - NET30134 - Networks and Communications
+Wednesday
+Time Slot Subject / Availability
+7:00 8:30 AM - OOP20239 - Computer Programming 2 (Java)
+8:30 10:00 AM - Available
+10:00 11:30 AM - DSA20145 - Data Structures and Algorithms
+11:30 AM 1:00 PM - Available
+1:00 2:30 PM - DBMS20267 - Database Management Systems
+2:30 4:00 PM - Available
+4:00 5:30 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+
+5:30 7:00 PM - Available
+7:00 9:00 PM - NET30134 - Networks and Communications
+Thursday
+Time Slot Subject / Availability
+7:00 8:30 AM - OOP20239 - Computer Programming 2 (Java)
+8:30 10:00 AM - Available
+10:00 11:30 AM - DSA20145 - Data Structures and Algorithms
+11:30 AM 1:00 PM - Available
+1:00 2:30 PM - DBMS20267 - Database Management Systems
+2:30 4:00 PM - Available
+4:00 5:30 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+5:30 7:00 PM - Available
+7:00 9:00 PM - NET30134 - Networks and Communications
+Friday
+Time Slot Subject / Availability
+7:00 8:30 AM - OOP20239 - Computer Programming 2 (Java)
+8:30 10:00 AM - Available
+10:00 11:30 AM - DSA20145 - Data Structures and Algorithms
+11:30 AM 1:00 PM - Available
+1:00 2:30 PM - DBMS20267 - Database Management Systems
+2:30 4:00 PM - Available
+4:00 5:30 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+5:30 7:00 PM - Available
+7:00 9:00 PM - NET30134 - Networks and Communications
+Saturday
+Time Slot Subject / Availability
+7:00 8:30 AM - OOP20239 - Computer Programming 2 (Java)
+8:30 10:00 AM - Available
+10:00 11:30 AM - DSA20145 - Data Structures and Algorithms
+11:30 AM 1:00 PM - Available
+1:00 2:30 PM - DBMS20267 - Database Management Systems
+2:30 4:00 PM - Available
+4:00 5:30 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+
+5:30 7:00 PM - Available
+7:00 9:00 PM - NET30134 - Networks and Communications
+
+Lab524
+Monday
+Time Slot Subject / Availability
+7:00 8:30 AM - Available
+8:30 10:00 AM - DSA20145 - Data Structures and Algorithms
+10:00 11:30 AM - Available
+11:30 AM 1:00 PM - DBMS20267 - Database Management Systems
+1:00 2:30 PM - Available
+2:30 4:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+4:00 5:30 PM - Available
+5:30 7:00 PM - NET30134 - Networks and Communications
+7:00 9:00 PM - Available
+Tuesday
+Time Slot Subject / Availability
+7:00 8:30 AM - Available
+8:30 10:00 AM - DSA20145 - Data Structures and Algorithms
+10:00 11:30 AM - Available
+11:30 AM 1:00 PM - DBMS20267 - Database Management Systems
+1:00 2:30 PM - Available
+2:30 4:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+4:00 5:30 PM - Available
+5:30 7:00 PM - NET30134 - Networks and Communications
+7:00 9:00 PM - Available
+Wednesday
+Time Slot Subject / Availability
+7:00 8:30 AM - Available
+8:30 10:00 AM - DSA20145 - Data Structures and Algorithms
+10:00 11:30 AM - Available
+11:30 AM 1:00 PM - DBMS20267 - Database Management Systems
+1:00 2:30 PM - Available
+2:30 4:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+4:00 5:30 PM - Available
+
+5:30 7:00 PM - NET30134 - Networks and Communications
+7:00 9:00 PM - Available
+Thursday
+Time Slot Subject / Availability
+7:00 8:30 AM - Available
+8:30 10:00 AM - DSA20145 - Data Structures and Algorithms
+10:00 11:30 AM - Available
+11:30 AM 1:00 PM - DBMS20267 - Database Management Systems
+1:00 2:30 PM - Available
+2:30 4:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+4:00 5:30 PM - Available
+5:30 7:00 PM - NET30134 - Networks and Communications
+7:00 9:00 PM - Available
+Friday
+Time Slot Subject / Availability
+7:00 8:30 AM - Available
+8:30 10:00 AM - DSA20145 - Data Structures and Algorithms
+10:00 11:30 AM - Available
+11:30 AM 1:00 PM - DBMS20267 - Database Management Systems
+1:00 2:30 PM - Available
+2:30 4:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+4:00 5:30 PM - Available
+5:30 7:00 PM - NET30134 - Networks and Communications
+7:00 9:00 PM - Available
+Saturday
+Time Slot Subject / Availability
+7:00 8:30 AM - Available
+8:30 10:00 AM - DSA20145 - Data Structures and Algorithms
+10:00 11:30 AM - Available
+11:30 AM 1:00 PM - DBMS20267 - Database Management Systems
+1:00 2:30 PM - Available
+2:30 4:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+4:00 5:30 PM - Available
+
+5:30 7:00 PM - NET30134 - Networks and Communications
+7:00 9:00 PM - Available
+
+Lab526
+Monday
+Time Slot Subject / Availability
+7:00 8:30 AM - DSA20145 - Data Structures and Algorithms
+8:30 10:00 AM - Available
+10:00 11:30 AM - DBMS20267 - Database Management Systems
+11:30 AM 1:00 PM - Available
+1:00 2:30 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+2:30 4:00 PM - Available
+4:00 5:30 PM - NET30134 - Networks and Communications
+5:30 7:00 PM - Available
+7:00 9:00 PM - IAS30291 - Information Assurance and Security
+Tuesday
+Time Slot Subject / Availability
+7:00 8:30 AM - DSA20145 - Data Structures and Algorithms
+8:30 10:00 AM - Available
+10:00 11:30 AM - DBMS20267 - Database Management Systems
+11:30 AM 1:00 PM - Available
+1:00 2:30 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+2:30 4:00 PM - Available
+4:00 5:30 PM - NET30134 - Networks and Communications
+5:30 7:00 PM - Available
+7:00 9:00 PM - IAS30291 - Information Assurance and Security
+Wednesday
+Time Slot Subject / Availability
+7:00 8:30 AM - DSA20145 - Data Structures and Algorithms
+8:30 10:00 AM - Available
+10:00 11:30 AM - DBMS20267 - Database Management Systems
+11:30 AM 1:00 PM - Available
+1:00 2:30 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+2:30 4:00 PM - Available
+4:00 5:30 PM - NET30134 - Networks and Communications
+
+5:30 7:00 PM - Available
+7:00 9:00 PM - IAS30291 - Information Assurance and Security
+Thursday
+Time Slot Subject / Availability
+7:00 8:30 AM - DSA20145 - Data Structures and Algorithms
+8:30 10:00 AM - Available
+10:00 11:30 AM - DBMS20267 - Database Management Systems
+11:30 AM 1:00 PM - Available
+1:00 2:30 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+2:30 4:00 PM - Available
+4:00 5:30 PM - NET30134 - Networks and Communications
+5:30 7:00 PM - Available
+7:00 9:00 PM - IAS30291 - Information Assurance and Security
+Friday
+Time Slot Subject / Availability
+7:00 8:30 AM - DSA20145 - Data Structures and Algorithms
+8:30 10:00 AM - Available
+10:00 11:30 AM - DBMS20267 - Database Management Systems
+11:30 AM 1:00 PM - Available
+1:00 2:30 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+2:30 4:00 PM - Available
+4:00 5:30 PM - NET30134 - Networks and Communications
+5:30 7:00 PM - Available
+7:00 9:00 PM - IAS30291 - Information Assurance and Security
+Saturday
+Time Slot Subject / Availability
+7:00 8:30 AM - DSA20145 - Data Structures and Algorithms
+8:30 10:00 AM - Available
+10:00 11:30 AM - DBMS20267 - Database Management Systems
+11:30 AM 1:00 PM - Available
+1:00 2:30 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+2:30 4:00 PM - Available
+4:00 5:30 PM - NET30134 - Networks and Communications
+
+5:30 7:00 PM - Available
+7:00 9:00 PM - IAS30291 - Information Assurance and Security
+
+Lab525
+Monday
+Time Slot Subject / Availability
+7:00 8:30 AM - Available
+8:30 10:00 AM - DBMS20267 - Database Management Systems
+10:00 11:30 AM - Available
+11:30 AM 1:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+1:00 2:30 PM - Available
+2:30 4:00 PM - NET30134 - Networks and Communications
+4:00 5:30 PM - Available
+5:30 7:00 PM - IAS30291 - Information Assurance and Security
+7:00 9:00 PM - Available
+Tuesday
+Time Slot Subject / Availability
+7:00 8:30 AM - Available
+8:30 10:00 AM - DBMS20267 - Database Management Systems
+10:00 11:30 AM - Available
+11:30 AM 1:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+1:00 2:30 PM - Available
+2:30 4:00 PM - NET30134 - Networks and Communications
+4:00 5:30 PM - Available
+5:30 7:00 PM - IAS30291 - Information Assurance and Security
+7:00 9:00 PM - Available
+Wednesday
+Time Slot Subject / Availability
+7:00 8:30 AM - Available
+8:30 10:00 AM - DBMS20267 - Database Management Systems
+10:00 11:30 AM - Available
+11:30 AM 1:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+1:00 2:30 PM - Available
+2:30 4:00 PM - NET30134 - Networks and Communications
+4:00 5:30 PM - Available
+
+5:30 7:00 PM - IAS30291 - Information Assurance and Security
+7:00 9:00 PM - Available
+Thursday
+Time Slot Subject / Availability
+7:00 8:30 AM - Available
+8:30 10:00 AM - DBMS20267 - Database Management Systems
+10:00 11:30 AM - Available
+11:30 AM 1:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+1:00 2:30 PM - Available
+2:30 4:00 PM - NET30134 - Networks and Communications
+4:00 5:30 PM - Available
+5:30 7:00 PM - IAS30291 - Information Assurance and Security
+7:00 9:00 PM - Available
+Friday
+Time Slot Subject / Availability
+7:00 8:30 AM - Available
+8:30 10:00 AM - DBMS20267 - Database Management Systems
+10:00 11:30 AM - Available
+11:30 AM 1:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+1:00 2:30 PM - Available
+2:30 4:00 PM - NET30134 - Networks and Communications
+4:00 5:30 PM - Available
+5:30 7:00 PM - IAS30291 - Information Assurance and Security
+7:00 9:00 PM - Available
+Saturday
+Time Slot Subject / Availability
+7:00 8:30 AM - Available
+8:30 10:00 AM - DBMS20267 - Database Management Systems
+10:00 11:30 AM - Available
+11:30 AM 1:00 PM - ITE20245 - IT Elective 1 (Mobile Dev)
+1:00 2:30 PM - Available
+2:30 4:00 PM - NET30134 - Networks and Communications
+4:00 5:30 PM - Available
+
+5:30 7:00 PM - IAS30291 - Information Assurance and Security
+7:00 9:00 PM - Available
+
+
+THIS IS Make it and make it responsive design cool looking and make sure it align to my root
+
+
+
+there's a special tip On PC if it's in use if i click on that PC see the student right? 
+
+if i click the available there's a different modal on there that II can set to unavailable or not and close modal 
+
+That's my requirements

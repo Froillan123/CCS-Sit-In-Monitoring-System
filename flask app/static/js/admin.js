@@ -2106,3 +2106,1198 @@ document.addEventListener('DOMContentLoaded', function() {
         fetchLabResources(); // Refresh the resources list
     });
 });
+    
+// Add lab management functionality
+let selectedLabId = null;
+let selectedLabComputers = [];
+let currentScheduleDay = 'Monday';
+let selectedScheduleLabId = null;
+
+// Initialization for lab management
+function initializeLabManagement() {
+    console.log("DEBUG: initializing lab management");
+    
+    try {
+        // Lab selection
+        const labButtons = document.querySelectorAll('.lab-button');
+        if (!labButtons || labButtons.length === 0) {
+            console.error("DEBUG: No lab buttons found");
+            return;
+        }
+        
+        console.log(`DEBUG: Found ${labButtons.length} lab buttons`);
+        
+        labButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const labId = parseInt(this.dataset.labId);
+                console.log(`DEBUG: Selected lab ID: ${labId}`);
+                selectLab(labId);
+                
+                // Update active button
+                document.querySelectorAll('.lab-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                this.classList.add('active');
+            });
+        });
+        
+        // Setup tab management
+        const computerManagementTab = document.getElementById('computer-management-tab');
+        const scheduleManagementTab = document.getElementById('schedule-management-tab');
+        const computerManagementSection = document.getElementById('computer-management-section');
+        const scheduleManagementSection = document.getElementById('schedule-management-section');
+        
+        console.log("DEBUG: Setting up tab event listeners");
+        
+        if (computerManagementTab && scheduleManagementTab && computerManagementSection && scheduleManagementSection) {
+            computerManagementTab.addEventListener('click', function() {
+                computerManagementSection.style.display = 'block';
+                scheduleManagementSection.style.display = 'none';
+                computerManagementTab.classList.add('active');
+                scheduleManagementTab.classList.remove('active');
+            });
+            
+            scheduleManagementTab.addEventListener('click', function() {
+                computerManagementSection.style.display = 'none';
+                scheduleManagementSection.style.display = 'block';
+                computerManagementTab.classList.remove('active');
+                scheduleManagementTab.classList.add('active');
+                
+                // Initialize schedule management if not already done
+                if (!scheduleManagementInitialized) {
+                    initializeScheduleManagement();
+                }
+            });
+        } else {
+            console.error("DEBUG: One or more tab elements not found");
+        }
+        
+        // Computer modal setup
+        const closeComputerModal = document.getElementById('close-computer-modal');
+        if (closeComputerModal) {
+            closeComputerModal.addEventListener('click', function() {
+                document.getElementById('computer-modal').style.display = 'none';
+            });
+        }
+        
+        // Student assignment modal setup
+        const closeStudentModal = document.getElementById('close-student-modal');
+        const cancelAssignBtn = document.getElementById('cancel-assign-btn');
+        const assignStudentBtn = document.getElementById('assign-student-btn');
+        
+        if (closeStudentModal) {
+            closeStudentModal.addEventListener('click', function() {
+                document.getElementById('student-assignment-modal').style.display = 'none';
+            });
+        }
+        
+        if (cancelAssignBtn) {
+            cancelAssignBtn.addEventListener('click', function() {
+                document.getElementById('student-assignment-modal').style.display = 'none';
+            });
+        }
+        
+        if (assignStudentBtn) {
+            assignStudentBtn.addEventListener('click', assignStudentToComputer);
+        }
+        
+        // Student search
+        const studentSearchInput = document.getElementById('student-search-input');
+        if (studentSearchInput) {
+            studentSearchInput.addEventListener('input', debounce(searchStudents, 300));
+        }
+        
+        console.log("DEBUG: Lab management initialization complete");
+        
+        // Auto-select the first lab if available
+        if (labButtons.length > 0) {
+            console.log("DEBUG: Auto-selecting first lab");
+            labButtons[0].click();
+        }
+    } catch (e) {
+        console.error("DEBUG: Error in lab management initialization:", e);
+    }
+}
+
+function selectLab(labId) {
+    console.log(`DEBUG: Selecting lab ID ${labId}`);
+    selectedLabId = labId;
+    const loadingMessage = `<div class="loading-message">Loading computers for Lab ${labId}...</div>`;
+    const computerGrid = document.getElementById('computer-grid');
+    
+    if (!computerGrid) {
+        console.error("DEBUG: computer-grid element not found");
+        return;
+    }
+    
+    computerGrid.innerHTML = loadingMessage;
+    
+    // Fetch computers for this lab
+    fetch(`/api/lab_computers/${labId}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log(`DEBUG: Received data for lab ${labId}:`, data);
+            if (data.success) {
+                selectedLabComputers = data.computers;
+                renderLabComputers(data);
+            } else {
+                computerGrid.innerHTML = 
+                    `<div class="loading-message">Error loading computers: ${data.message}</div>`;
+            }
+        })
+        .catch(error => {
+            console.error('DEBUG: Error fetching lab computers:', error);
+            computerGrid.innerHTML = 
+                `<div class="loading-message">Error loading computers. Please try again.</div>`;
+        });
+}
+
+function renderLabComputers(data) {
+    console.log(`DEBUG: Rendering computers for lab ${data.lab_name}`);
+    const computerGrid = document.getElementById('computer-grid');
+    const labName = document.getElementById('selected-lab-name');
+    
+    if (!computerGrid || !labName) {
+        console.error("DEBUG: Required elements for rendering computers not found");
+        return;
+    }
+    
+    // Update lab name
+    labName.textContent = data.lab_name;
+    
+    // Count status
+    let availableCount = 0;
+    let inUseCount = 0;
+    let unavailableCount = 0;
+    
+    // Generate computer grid
+    let gridHtml = '';
+    
+    data.computers.forEach(computer => {
+        const status = computer.status.toLowerCase().replace(' ', '-');
+        let statusClass = '';
+        let statusIcon = '';
+        
+        // Set appropriate status class and icon
+        switch(status) {
+            case 'available':
+                statusClass = 'available';
+                statusIcon = 'ri-computer-line';
+                availableCount++;
+                break;
+            case 'in-use':
+                statusClass = 'in-use';
+                statusIcon = 'ri-user-line';
+                inUseCount++;
+                break;
+            case 'unavailable':
+                statusClass = 'unavailable';
+                statusIcon = 'ri-error-warning-line';
+                unavailableCount++;
+                break;
+            default:
+                statusClass = '';
+                statusIcon = 'ri-computer-line';
+        }
+        
+        gridHtml += `
+            <div class="computer-item ${statusClass}" data-id="${computer.id}" data-number="${computer.computer_number}">
+                <i class="${statusIcon}"></i>
+                <div class="computer-number">PC ${computer.computer_number}</div>
+                <div class="computer-status">${computer.status}</div>
+            </div>
+        `;
+    });
+    
+    computerGrid.innerHTML = gridHtml;
+    
+    // Update stat counters
+    const availableElement = document.getElementById('available-count');
+    const inUseElement = document.getElementById('in-use-count');
+    const unavailableElement = document.getElementById('unavailable-count');
+    
+    if (availableElement) availableElement.textContent = availableCount;
+    if (inUseElement) inUseElement.textContent = inUseCount;
+    if (unavailableElement) unavailableElement.textContent = unavailableCount;
+    
+    // Add click event to computers
+    document.querySelectorAll('.computer-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const computerId = parseInt(this.dataset.id);
+            const computerNumber = parseInt(this.dataset.number);
+            showComputerModal(computerId, computerNumber);
+        });
+    });
+    
+    console.log(`DEBUG: Rendered ${data.computers.length} computers`);
+}
+
+function showComputerModal(computerId, computerNumber) {
+    const modal = document.getElementById('computer-modal');
+    const title = document.getElementById('computer-modal-title');
+    const content = document.getElementById('computer-modal-content');
+    const actions = document.getElementById('computer-modal-actions');
+    
+    // Find computer details
+    const computer = selectedLabComputers.find(c => c.id === computerId);
+    
+    if (!computer) {
+        console.error('Computer not found:', computerId);
+        return;
+    }
+    
+    // Set title
+    title.textContent = `Computer ${computerNumber}`;
+    
+    // Set content based on status
+    if (computer.status === 'In Use') {
+        // Show student info
+        content.innerHTML = `
+            <div class="student-info">
+                <p><strong>Status:</strong> <span class="status-badge in-use">${computer.status}</span></p>
+                <p><strong>Student ID:</strong> ${computer.student_idno || 'N/A'}</p>
+                <p><strong>Student Name:</strong> ${computer.firstname ? `${computer.firstname} ${computer.lastname}` : 'N/A'}</p>
+                <p><strong>Time:</strong> ${formatTimestamp(computer.timestamp)}</p>
+            </div>
+        `;
+        
+        // Set actions
+        actions.innerHTML = `
+            <button class="btn-action" onclick="setComputerStatus(${computerId}, 'Available')">
+                <i class="ri-checkbox-circle-line"></i> Set Available
+            </button>
+            <button class="btn-action btn-delete" onclick="setComputerStatus(${computerId}, 'Unavailable')">
+                <i class="ri-close-circle-line"></i> Set Unavailable
+            </button>
+        `;
+    } else if (computer.status === 'Available') {
+        // Show available info
+        content.innerHTML = `
+            <div class="student-info">
+                <p><strong>Status:</strong> <span class="status-badge available">${computer.status}</span></p>
+                <p>This computer is available for use.</p>
+            </div>
+        `;
+        
+        // Set actions
+        actions.innerHTML = `
+            <button class="btn-action" onclick="showStudentAssignmentModal(${computerId})">
+                <i class="ri-user-add-line"></i> Assign Student
+            </button>
+            <button class="btn-action btn-delete" onclick="setComputerStatus(${computerId}, 'Unavailable')">
+                <i class="ri-close-circle-line"></i> Set Unavailable
+            </button>
+        `;
+    } else if (computer.status === 'Unavailable') {
+        // Show unavailable info
+        content.innerHTML = `
+            <div class="student-info">
+                <p><strong>Status:</strong> <span class="status-badge unavailable">${computer.status}</span></p>
+                <p>This computer is marked as unavailable.</p>
+            </div>
+        `;
+        
+        // Set actions
+        actions.innerHTML = `
+            <button class="btn-action" onclick="setComputerStatus(${computerId}, 'Available')">
+                <i class="ri-checkbox-circle-line"></i> Set Available
+            </button>
+        `;
+    }
+    
+    // Show modal
+    modal.style.display = 'block';
+}
+
+function setComputerStatus(computerId, status) {
+    fetch(`/api/computer_status/${computerId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            status: status,
+            student_idno: null // Clear student if setting to available or unavailable
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            document.getElementById('computer-modal').style.display = 'none';
+            
+            // Refresh computers
+            selectLab(selectedLabId);
+            
+            // Show success message
+            showAlert('success', data.message);
+        } else {
+            showAlert('error', data.message || 'Failed to update computer status');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating computer status:', error);
+        showAlert('error', 'Failed to update computer status. Please try again.');
+    });
+}
+
+function showStudentAssignmentModal(computerId) {
+    // Store the computer ID for later use
+    document.getElementById('student-assignment-modal').dataset.computerId = computerId;
+    
+    // Reset the search and selected student
+    document.getElementById('student-search-input').value = '';
+    document.getElementById('student-search-results').innerHTML = '';
+    document.getElementById('selected-student-info').style.display = 'none';
+    document.getElementById('assign-student-btn').disabled = true;
+    
+    // Close computer modal
+    document.getElementById('computer-modal').style.display = 'none';
+    
+    // Show student assignment modal
+    document.getElementById('student-assignment-modal').style.display = 'block';
+}
+
+function searchStudents() {
+    const searchTerm = document.getElementById('student-search-input').value.trim();
+    const resultsContainer = document.getElementById('student-search-results');
+    
+    if (searchTerm.length < 2) {
+        resultsContainer.innerHTML = '';
+        return;
+    }
+    
+    resultsContainer.innerHTML = '<div class="searching">Searching...</div>';
+    
+    fetch(`/search_students?q=${encodeURIComponent(searchTerm)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.data && data.data.length > 0) {
+                let html = '';
+                data.data.forEach(student => {
+                    html += `
+                        <div class="search-result-item" data-id="${student.idno}" data-name="${student.firstname} ${student.lastname}" data-sessions="${student.sessions_left}">
+                            ${student.idno} - ${student.firstname} ${student.lastname} (${student.sessions_left} sessions)
+                        </div>
+                    `;
+                });
+                resultsContainer.innerHTML = html;
+                
+                // Add click event to results
+                document.querySelectorAll('.search-result-item').forEach(item => {
+                    item.addEventListener('click', function() {
+                        selectStudent(this.dataset.id, this.dataset.name, this.dataset.sessions);
+                    });
+                });
+            } else {
+                resultsContainer.innerHTML = '<div class="no-results">No students found</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error searching students:', error);
+            resultsContainer.innerHTML = '<div class="error">Error searching students</div>';
+        });
+}
+
+function selectStudent(id, name, sessions) {
+    // Store the selected student data
+    const selectedStudentInfo = document.getElementById('selected-student-info');
+    selectedStudentInfo.dataset.studentId = id;
+    
+    // Update display
+    document.getElementById('student-id').textContent = id;
+    document.getElementById('student-name').textContent = name;
+    document.getElementById('student-sessions').textContent = sessions;
+    
+    // Show selected student info
+    selectedStudentInfo.style.display = 'block';
+    
+    // Clear search results
+    document.getElementById('student-search-results').innerHTML = '';
+    
+    // Enable assign button if sessions > 0
+    document.getElementById('assign-student-btn').disabled = parseInt(sessions) <= 0;
+}
+
+function assignStudentToComputer() {
+    const computerId = parseInt(document.getElementById('student-assignment-modal').dataset.computerId);
+    const studentId = document.getElementById('selected-student-info').dataset.studentId;
+    
+    if (!computerId || !studentId) {
+        showAlert('error', 'Missing computer or student information');
+        return;
+    }
+    
+    fetch(`/api/computer_status/${computerId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            status: 'In Use',
+            student_idno: studentId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            document.getElementById('student-assignment-modal').style.display = 'none';
+            
+            // Refresh computers
+            selectLab(selectedLabId);
+            
+            // Show success message
+            showAlert('success', 'Student assigned successfully');
+        } else {
+            showAlert('error', data.message || 'Failed to assign student');
+        }
+    })
+    .catch(error => {
+        console.error('Error assigning student:', error);
+        showAlert('error', 'Failed to assign student. Please try again.');
+    });
+}
+
+// Lab Schedule Management
+function initializeScheduleManagement() {
+    console.log("DEBUG: Initializing schedule management");
+    
+    try {
+        // Lab selection for schedules
+        const scheduleLabButtons = document.querySelectorAll('.schedule-lab-button');
+        if (!scheduleLabButtons || scheduleLabButtons.length === 0) {
+            console.error("DEBUG: No schedule lab buttons found");
+            return;
+        }
+        
+        console.log(`DEBUG: Found ${scheduleLabButtons.length} schedule lab buttons`);
+        
+        scheduleLabButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const labId = parseInt(this.dataset.labId);
+                console.log(`DEBUG: Selected schedule lab ID: ${labId}`);
+                selectedScheduleLabId = labId;
+                
+                // Update active button
+                document.querySelectorAll('.schedule-lab-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                this.classList.add('active');
+                
+                // Load schedules for selected lab and day
+                loadLabSchedules(labId, currentScheduleDay);
+            });
+        });
+        
+        // Day selection
+        const dayButtons = document.querySelectorAll('.day-button');
+        if (!dayButtons || dayButtons.length === 0) {
+            console.error("DEBUG: No day buttons found");
+            return;
+        }
+        
+        console.log(`DEBUG: Found ${dayButtons.length} day buttons`);
+        
+        dayButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const day = this.dataset.day;
+                console.log(`DEBUG: Selected day: ${day}`);
+                currentScheduleDay = day;
+                
+                // Update active button
+                document.querySelectorAll('.day-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                this.classList.add('active');
+                
+                // Load schedules if lab is selected
+                if (selectedScheduleLabId) {
+                    loadLabSchedules(selectedScheduleLabId, day);
+                }
+            });
+        });
+        
+        // Add schedule button
+        const addScheduleBtn = document.getElementById('add-schedule-btn');
+        if (addScheduleBtn) {
+            addScheduleBtn.addEventListener('click', function() {
+                if (!selectedScheduleLabId) {
+                    showAlert('error', 'Please select a laboratory first');
+                    return;
+                }
+                
+                showScheduleModal();
+            });
+        } else {
+            console.warn("DEBUG: add-schedule-btn element not found");
+        }
+        
+        // Import schedules button
+        const importSchedulesBtn = document.getElementById('import-schedules-btn');
+        if (importSchedulesBtn) {
+            importSchedulesBtn.addEventListener('click', function() {
+                console.log("DEBUG: Import schedules button clicked");
+                importDefaultSchedules();
+            });
+        } else {
+            console.warn("DEBUG: import-schedules-btn element not found");
+        }
+        
+        // Schedule form submit
+        const scheduleForm = document.getElementById('schedule-form');
+        if (scheduleForm) {
+            scheduleForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveSchedule();
+            });
+        } else {
+            console.warn("DEBUG: schedule-form element not found");
+        }
+        
+        // Cancel schedule button
+        const cancelScheduleBtn = document.getElementById('cancel-schedule-btn');
+        if (cancelScheduleBtn) {
+            cancelScheduleBtn.addEventListener('click', function() {
+                document.getElementById('schedule-modal').style.display = 'none';
+            });
+        } else {
+            console.warn("DEBUG: cancel-schedule-btn element not found");
+        }
+        
+        // Close schedule modal
+        const closeScheduleModal = document.getElementById('close-schedule-modal');
+        if (closeScheduleModal) {
+            closeScheduleModal.addEventListener('click', function() {
+                document.getElementById('schedule-modal').style.display = 'none';
+            });
+        } else {
+            console.warn("DEBUG: close-schedule-modal element not found");
+        }
+        
+        // Show/hide fields based on status selection
+        const scheduleStatus = document.getElementById('schedule-status');
+        if (scheduleStatus) {
+            scheduleStatus.addEventListener('change', function() {
+                const status = this.value;
+                console.log(`DEBUG: Schedule status changed to ${status}`);
+                
+                const subjectFields = document.getElementById('subject-fields');
+                const unavailableReasonField = document.getElementById('unavailable-reason-field');
+                
+                if (status === 'Reserved') {
+                    if (subjectFields) subjectFields.style.display = 'block';
+                    if (unavailableReasonField) unavailableReasonField.style.display = 'none';
+                } else if (status === 'Unavailable') {
+                    if (subjectFields) subjectFields.style.display = 'none';
+                    if (unavailableReasonField) unavailableReasonField.style.display = 'block';
+                } else {
+                    if (subjectFields) subjectFields.style.display = 'none';
+                    if (unavailableReasonField) unavailableReasonField.style.display = 'none';
+                }
+            });
+        } else {
+            console.warn("DEBUG: schedule-status element not found");
+        }
+        
+        // Set the initialized flag
+        scheduleManagementInitialized = true;
+        
+        console.log("DEBUG: Schedule management initialization complete");
+        
+        // Auto-select the first lab and day if available
+        if (scheduleLabButtons.length > 0) {
+            console.log("DEBUG: Auto-selecting first lab button");
+            scheduleLabButtons[0].click();
+        } else {
+            console.warn("DEBUG: No lab buttons available to auto-select");
+        }
+        
+        // Make sure a day is selected
+        const activeDay = document.querySelector('.day-button.active');
+        if (!activeDay && dayButtons.length > 0) {
+            console.log("DEBUG: Auto-selecting first day button");
+            dayButtons[0].click();
+        }
+    } catch (e) {
+        console.error("DEBUG: Error in schedule management initialization:", e);
+        showAlert('error', 'Error initializing schedule management. Please try again.');
+        scheduleManagementInitialized = false;
+    }
+}
+
+function loadLabSchedules(labId, day) {
+    if (!labId) {
+        console.error("DEBUG: No lab ID provided to loadLabSchedules");
+        return;
+    }
+    
+    if (!day) {
+        console.error("DEBUG: No day provided to loadLabSchedules");
+        return;
+    }
+    
+    const tableBody = document.getElementById('schedule-table-body');
+    if (!tableBody) {
+        console.error("DEBUG: schedule-table-body element not found");
+        return;
+    }
+    
+    console.log(`DEBUG: Loading schedules for lab ${labId} on ${day}`);
+    tableBody.innerHTML = '<tr><td colspan="4" class="loading-message">Loading schedules...</td></tr>';
+    
+    fetch(`/api/lab_schedules/${labId}?day=${day}`)
+        .then(response => {
+            console.log(`DEBUG: API response status: ${response.status}`);
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("DEBUG: Received schedule data:", data);
+            
+            if (data.success) {
+                // Get the schedules from the response
+                const schedules = data.schedules || [];
+                
+                // If we have schedules, render them
+                if (schedules.length > 0) {
+                    renderSchedules(schedules);
+                } else {
+                    // If no schedules found for this day, show a message
+                    console.log(`DEBUG: No schedules found for lab ${labId} on ${day}`);
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="4" class="no-schedules-message">
+                                No schedules found for this day. 
+                                <button onclick="showScheduleModal()" class="quick-add-btn">
+                                    <i class="ri-add-line"></i> Add Schedule
+                                </button>
+                            </td>
+                        </tr>`;
+                }
+            } else {
+                console.error(`DEBUG: Failed to load schedules: ${data.message || 'Unknown error'}`);
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="error-message">
+                            Error loading schedules: ${data.message || 'Unknown error'}
+                            <button onclick="loadLabSchedules(${labId}, '${day}')" class="retry-btn">
+                                <i class="ri-refresh-line"></i> Retry
+                            </button>
+                        </td>
+                    </tr>`;
+                showAlert('error', 'Failed to load schedule details');
+            }
+        })
+        .catch(error => {
+            console.error('DEBUG: Error loading schedules:', error);
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="error-message">
+                        Error loading schedules: ${error.message}
+                        <button onclick="loadLabSchedules(${labId}, '${day}')" class="retry-btn">
+                            <i class="ri-refresh-line"></i> Retry
+                        </button>
+                    </td>
+                </tr>`;
+            showAlert('error', 'Failed to load schedule details');
+        });
+}
+
+function renderSchedules(schedules) {
+    const tableBody = document.getElementById('schedule-table-body');
+    
+    if (!schedules || schedules.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="4" class="loading-message">No schedules found for this day</td></tr>';
+        return;
+    }
+    
+    // Sort schedules by start time
+    schedules.sort((a, b) => {
+        return a.start_time.localeCompare(b.start_time);
+    });
+    
+    let html = '';
+    schedules.forEach(schedule => {
+        // Format the time slot
+        const timeSlot = `${formatTime(schedule.start_time)} - ${formatTime(schedule.end_time)}`;
+        
+        // Format subject info
+        let subjectInfo = 'N/A';
+        if (schedule.status === 'Reserved' && schedule.subject_code) {
+            subjectInfo = `${schedule.subject_code} - ${schedule.subject_name}`;
+        } else if (schedule.status === 'Unavailable' && schedule.reason) {
+            subjectInfo = `Reason: ${schedule.reason}`;
+        }
+        
+        // Determine status badge class
+        let statusClass = '';
+        switch(schedule.status) {
+            case 'Available':
+                statusClass = 'available';
+                break;
+            case 'Reserved':
+                statusClass = 'reserved';
+                break;
+            case 'Unavailable':
+                statusClass = 'unavailable';
+                break;
+        }
+        
+        html += `
+            <tr data-id="${schedule.id}">
+                <td>${timeSlot}</td>
+                <td>${subjectInfo}</td>
+                <td><span class="status-badge ${statusClass.toLowerCase()}">${schedule.status}</span></td>
+                <td class="schedule-actions">
+                    <button class="action-btn edit" onclick="editSchedule(${schedule.id})">
+                        <i class="ri-edit-line"></i>
+                    </button>
+                    <button class="action-btn delete" onclick="deleteSchedule(${schedule.id})">
+                        <i class="ri-delete-bin-line"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tableBody.innerHTML = html;
+}
+
+function saveSchedule() {
+    // Get form data
+    const scheduleId = document.getElementById('schedule-id').value;
+    const labId = document.getElementById('schedule-lab-id').value || selectedScheduleLabId;
+    const dayOfWeek = document.getElementById('schedule-day').value || currentScheduleDay;
+    const startTime = document.getElementById('start-time').value;
+    const endTime = document.getElementById('end-time').value;
+    const status = document.getElementById('schedule-status').value;
+    
+    // Validate required fields
+    if (!labId) {
+        showAlert('error', 'No laboratory selected');
+        return;
+    }
+    
+    if (!dayOfWeek) {
+        showAlert('error', 'No day selected');
+        return;
+    }
+    
+    if (!startTime || !endTime) {
+        showAlert('error', 'Start time and end time are required');
+        return;
+    }
+    
+    if (!status) {
+        showAlert('error', 'Status is required');
+        return;
+    }
+    
+    // Get subject fields based on status
+    let subjectCode = null;
+    let subjectName = null;
+    let reason = null;
+    
+    if (status === 'Reserved') {
+        subjectCode = document.getElementById('subject-code').value;
+        subjectName = document.getElementById('subject-name').value;
+        
+        if (!subjectCode || !subjectName) {
+            showAlert('error', 'Subject code and name are required for reserved status');
+            return;
+        }
+    } else if (status === 'Unavailable') {
+        reason = document.getElementById('unavailable-reason').value;
+        
+        if (!reason) {
+            showAlert('error', 'Reason is required for unavailable status');
+            return;
+        }
+    }
+    
+    // Create schedule data
+    const scheduleData = {
+        lab_id: parseInt(labId),
+        day_of_week: dayOfWeek,
+        start_time: startTime,
+        end_time: endTime,
+        status: status,
+        subject_code: subjectCode,
+        subject_name: subjectName,
+        reason: reason
+    };
+    
+    // Add schedule ID if editing existing schedule
+    if (scheduleId) {
+        scheduleData.schedule_id = parseInt(scheduleId);
+    }
+    
+    console.log('Saving schedule with data:', scheduleData);
+    
+    // Show loading state
+    const submitBtn = document.querySelector('#schedule-form button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving...';
+    }
+    
+    // Send request to save schedule
+    fetch('/api/lab_schedules', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(scheduleData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Hide modal
+            document.getElementById('schedule-modal').style.display = 'none';
+            
+            // Refresh schedules
+            loadLabSchedules(selectedScheduleLabId, currentScheduleDay);
+            
+            // Show success message
+            showAlert('success', data.message || 'Schedule saved successfully');
+        } else {
+            showAlert('error', data.message || 'Failed to save schedule');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving schedule:', error);
+        showAlert('error', 'Failed to save schedule. Please try again.');
+    })
+    .finally(() => {
+        // Reset loading state
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Save Schedule';
+        }
+    });
+}
+
+function editSchedule(scheduleId) {
+    console.log(`DEBUG: Editing schedule ID: ${scheduleId}`);
+    if (!scheduleId) {
+        showAlert('error', 'Invalid schedule ID');
+        return;
+    }
+    
+    // Show schedule modal with the schedule ID
+    showScheduleModal(scheduleId);
+}
+
+function deleteSchedule(scheduleId) {
+    console.log(`DEBUG: Deleting schedule ID: ${scheduleId}`);
+    if (!scheduleId) {
+        showAlert('error', 'Invalid schedule ID');
+        return;
+    }
+    
+    // Confirm deletion
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: 'Delete Schedule',
+            text: 'Are you sure you want to delete this schedule?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performScheduleDeletion(scheduleId);
+            }
+        });
+    } else {
+        // Fallback to regular confirm dialog
+        if (confirm('Are you sure you want to delete this schedule?')) {
+            performScheduleDeletion(scheduleId);
+        }
+    }
+}
+
+function performScheduleDeletion(scheduleId) {
+    fetch(`/api/lab_schedules/${scheduleId}`, {
+        method: 'DELETE'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Refresh schedules
+            loadLabSchedules(selectedScheduleLabId, currentScheduleDay);
+            
+            // Show success message
+            showAlert('success', data.message || 'Schedule deleted successfully');
+        } else {
+            showAlert('error', data.message || 'Failed to delete schedule');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting schedule:', error);
+        showAlert('error', 'Failed to delete schedule. Please try again.');
+    });
+}
+
+function importDefaultSchedules() {
+    console.log("DEBUG: Importing default schedules");
+    
+    // Disable the button while importing
+    const importBtn = document.getElementById('import-schedules-btn');
+    if (importBtn) {
+        importBtn.disabled = true;
+        importBtn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> Importing...';
+    }
+    
+    fetch('/import_default_schedules', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({}) // Empty body since we're just triggering the import
+    })
+    .then(response => {
+        console.log(`DEBUG: Import response status: ${response.status}`);
+        return response.json().catch(error => {
+            // Handle case where the response isn't valid JSON
+            console.error("DEBUG: Error parsing JSON response:", error);
+            return { success: false, message: "Failed to parse server response" };
+        });
+    })
+    .then(data => {
+        console.log("DEBUG: Import response data:", data);
+        if (data.success) {
+            // Refresh schedules if lab is selected
+            if (selectedScheduleLabId) {
+                loadLabSchedules(selectedScheduleLabId, currentScheduleDay);
+            }
+            
+            // Show success message
+            showAlert('success', data.message || 'Default schedules imported successfully');
+        } else {
+            showAlert('error', data.message || 'Failed to import default schedules. Schedules may already exist or another error occurred.');
+        }
+    })
+    .catch(error => {
+        console.error("DEBUG: Error importing default schedules:", error);
+        showAlert('error', 'Failed to import default schedules. Please try again.');
+    })
+    .finally(() => {
+        // Re-enable the button
+        if (importBtn) {
+            importBtn.disabled = false;
+            importBtn.innerHTML = '<i class="ri-download-line"></i> Import Default Schedules';
+        }
+    });
+}
+// Helper functions
+function formatTimestamp(timestamp) {
+    if (!timestamp) return 'N/A';
+    
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+}
+
+function formatTime(timeString) {
+    if (!timeString) return 'N/A';
+    
+    // Convert 24-hour time to 12-hour format
+    const [hours, minutes] = timeString.split(':');
+    const hour = parseInt(hours);
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    
+    return `${hour12}:${minutes} ${period}`;
+}
+
+function showAlert(type, message) {
+    console.log(`DEBUG: Showing alert - Type: ${type}, Message: ${message}`);
+    
+    // Check if SweetAlert is available
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: type,
+            title: type.charAt(0).toUpperCase() + type.slice(1),
+            text: message,
+            timer: 3000,
+            timerProgressBar: true
+        });
+    } else {
+        // Fallback to regular alert
+        alert(`${type.toUpperCase()}: ${message}`);
+    }
+}
+
+function debounce(func, delay) {
+    let timeout;
+    return function() {
+        const context = this;
+        const args = arguments;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), delay);
+    };
+}
+
+// Initialize lab management when the management tab is shown
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DEBUG: Document loaded, setting up management initialization");
+    
+    // Initialize when management page is shown
+    const managementLink = document.querySelector('[data-page="management"]');
+    if (managementLink) {
+        console.log("DEBUG: Found management link, adding click listener");
+        managementLink.addEventListener('click', function() {
+            console.log("DEBUG: Management link clicked, initializing lab management");
+            // Give time for the page to be displayed before initializing
+            setTimeout(() => {
+                try {
+                    initializeLabManagement();
+                } catch (e) {
+                    console.error("DEBUG: Error initializing lab management:", e);
+                }
+            }, 300);
+        });
+        
+        // Check if we're already on the management page from hash in URL
+        if (window.location.hash === '#management') {
+            console.log("DEBUG: Starting on management page, initializing lab management");
+            setTimeout(() => {
+                try {
+                    // First ensure the page is shown
+                    const managementPage = document.getElementById('management');
+                    if (managementPage) {
+                        managementPage.style.display = 'block';
+                        // Then initialize
+                        initializeLabManagement();
+                    }
+                } catch (e) {
+                    console.error("DEBUG: Error initializing lab management from hash:", e);
+                }
+            }, 500);
+        }
+    } else {
+        console.error("DEBUG: Management link not found");
+    }
+});
+
+// Document ready event
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DEBUG: Document ready event fired");
+    
+    // Setup all event listeners
+    setupEventListeners();
+    
+    // Load page from hash URL if present
+    loadPageFromHash();
+    
+    // Get user count initially
+    updateUserCount();
+    
+    // Set up search functionality
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce(function() {
+            fetchReservations(this.value);
+        }, 300));
+    }
+    
+    // Get leaderboard data
+    fetchLeaderboard();
+    
+    // Initialize WebSocket
+    initializeSocket();
+    
+    // Check if we need to initialize the management page based on hash
+    const hash = window.location.hash;
+    if (hash === '#management') {
+        console.log("DEBUG: Hash points to management page, initializing");
+        setTimeout(() => {
+            try {
+                initializeManagementPage();
+            } catch (e) {
+                console.error("DEBUG: Error initializing management page:", e);
+            }
+        }, 300);
+    }
+});
+
+// Setup event listeners for the entire dashboard
+function setupEventListeners() {
+    console.log("DEBUG: Setting up event listeners");
+
+    // Management tab event listeners
+    const managementLink = document.querySelector('[data-page="management"]');
+    if (managementLink) {
+        managementLink.addEventListener('click', function() {
+            console.log("DEBUG: Management link clicked");
+            setTimeout(() => {
+                initializeManagementPage();
+            }, 300);
+        });
+    }
+
+    // Lab management tab switching
+    const computerManagementTab = document.getElementById('computer-management-tab');
+    const scheduleManagementTab = document.getElementById('schedule-management-tab');
+    
+    if (computerManagementTab && scheduleManagementTab) {
+        computerManagementTab.addEventListener('click', function() {
+            console.log("DEBUG: Switched to Computer Lab Management tab");
+            document.getElementById('computer-management-section').style.display = 'block';
+            document.getElementById('schedule-management-section').style.display = 'none';
+            computerManagementTab.classList.add('active');
+            scheduleManagementTab.classList.remove('active');
+        });
+        
+        scheduleManagementTab.addEventListener('click', function() {
+            console.log("DEBUG: Switched to Lab Schedule Management tab");
+            document.getElementById('computer-management-section').style.display = 'none';
+            document.getElementById('schedule-management-section').style.display = 'block';
+            computerManagementTab.classList.remove('active');
+            scheduleManagementTab.classList.add('active');
+            
+            // Initialize schedule management if not already done
+            if (!scheduleManagementInitialized) {
+                initializeScheduleManagement();
+            }
+        });
+    }
+}
+
+// Initialize management page components
+function initializeManagementPage() {
+    console.log("DEBUG: Initializing management page");
+    
+    // Initialize lab management
+    try {
+        initializeLabManagement();
+    } catch (e) {
+        console.error("DEBUG: Error initializing lab management:", e);
+    }
+    
+    // Initialize schedule management (but don't display it yet)
+    try {
+        initializeScheduleManagement();
+    } catch (e) {
+        console.error("DEBUG: Error initializing schedule management:", e);
+    }
+}
+
+// Track if schedule management has been initialized
+let scheduleManagementInitialized = false;
+
+
