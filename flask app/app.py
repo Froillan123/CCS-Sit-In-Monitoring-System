@@ -36,12 +36,17 @@ profanity.load_censor_words()
 app = Flask(__name__)
 CORS(app)
 app.config["SESSION_COOKIE_NAME"] = "main_app_session"
-app.config['UPLOAD_FOLDER'] = 'static/images'
-app.secret_key = Fernet.generate_key()
+app.config['UPLOAD_FOLDER'] = 'temp_uploads'
+app.secret_key = 'CCS-SIT-IN-MONITORING-SYSTEM'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
 socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins="*")
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 app.config['JSON_SORT_KEYS'] = False
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB limit
+
+# Create uploads directory if it doesn't exist
+if not os.path.exists(app.config['UPLOAD_FOLDER']):
+    os.makedirs(app.config['UPLOAD_FOLDER'])
 
 # Simple in-memory cache
 class SimpleCache:
@@ -2910,6 +2915,303 @@ def get_single_reservation(reservation_id):
     except Exception as e:
         print(f"Error getting reservation: {e}")
         return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+@app.route('/api/get_pending_reservations', methods=['GET'])
+def get_pending_reservations():
+    if 'admin_username' not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+    
+    try:
+        query = """
+            SELECT sr.id, sr.student_idno, s.firstname || ' ' || s.lastname as student_name,
+                   l.lab_name, lc.computer_number, sr.reservation_date, sr.time_slot, 
+                   sr.purpose, sr.created_at, sr.status
+            FROM student_reservation sr
+            JOIN students s ON sr.student_idno = s.idno
+            JOIN laboratories l ON sr.lab_id = l.id
+            JOIN lab_computers lc ON sr.computer_id = lc.id
+            WHERE sr.status = 'Pending'
+            ORDER BY sr.created_at DESC
+        """
+        
+        reservations = getprocess(query)
+        
+        # Format created_at timestamps for easy display
+        for reservation in reservations:
+            if 'created_at' in reservation and reservation['created_at']:
+                # Convert to more readable format
+                try:
+                    dt = datetime.strptime(reservation['created_at'], '%Y-%m-%d %H:%M:%S')
+                    reservation['created_at'] = dt.strftime('%Y-%m-%d %H:%M')
+                except:
+                    pass
+        
+        return jsonify({
+            'success': True,
+            'reservations': reservations
+        })
+    except Exception as e:
+        print(f"Error fetching pending reservations: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/update_reservation_status', methods=['POST'])
+def update_reservation_status_endpoint():
+    if 'admin_username' not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+    
+    try:
+        data = request.json
+        reservation_id = data.get('reservation_id')
+        status = data.get('status')
+        
+        if not reservation_id or not status:
+            return jsonify({'success': False, 'message': 'Reservation ID and status are required'}), 400
+        
+        if status not in ['Approved', 'Rejected']:
+            return jsonify({'success': False, 'message': 'Invalid status. Must be Approved or Rejected'}), 400
+        
+        # Update the reservation status
+        success = postprocess(
+            "UPDATE student_reservation SET status = ? WHERE id = ?",
+            (status, reservation_id)
+        )
+        
+        if success:
+            # Get the updated reservation details for notification
+            query = """
+                SELECT sr.*, s.idno as student_idno
+                FROM student_reservation sr
+                JOIN students s ON sr.student_idno = s.idno
+                WHERE sr.id = ?
+            """
+            reservation = getprocess(query, (reservation_id,))
+            
+            if reservation and len(reservation) > 0:
+                # Emit socket event to notify the student
+                socketio.emit(f'student_reservation_updated_{reservation[0]["student_idno"]}', {
+                    'reservation_id': reservation_id,
+                    'status': status,
+                    'message': f'Your reservation has been {status.lower()}'
+                })
+            
+            return jsonify({
+                'success': True,
+                'message': f'Reservation {status.lower()} successfully'
+            })
+        else:
+            return jsonify({'success': False, 'message': 'Failed to update reservation status'}), 500
+            
+    except Exception as e:
+        print(f"Error updating reservation status: {e}")
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+@app.route('/api/reset_lab_schedules', methods=['POST'])
+def reset_lab_schedules():
+    if 'admin_username' not in session:
+        return jsonify({'success': False, 'message': 'Unauthorized. Admin login required.'}), 401
+    
+    try:
+        # Import and use the new module
+        from lab_scheduler import reset_all_lab_schedules
+        result = reset_all_lab_schedules()
+        
+        if result["success"]:
+            return jsonify({
+                'success': True, 
+                'message': result["message"]
+            })
+        else:
+            return jsonify({
+                'success': False, 
+                'message': result["message"]
+            }), 500
+    except Exception as e:
+        return jsonify({
+            'success': False, 
+            'message': f'Error resetting lab schedules: {str(e)}'
+        }), 500
+
+@app.route('/api/import_lab_schedules', methods=['POST'])
+def import_lab_schedules():
+    if 'admin_username' not in session:
+        return jsonify({'success': False, 'message': 'Unauthorized. Admin login required.'}), 401
+    
+    try:
+        # Check if the request has the file part
+        if 'schedule_file' not in request.files:
+            return jsonify({'success': False, 'message': 'No file part'}), 400
+        
+        file = request.files['schedule_file']
+        
+        # If the user does not select a file, the browser submits an
+        # empty file without a filename
+        if file.filename == '':
+            return jsonify({'success': False, 'message': 'No selected file'}), 400
+        
+        # Check if the file is an allowed file type
+        allowed_extensions = {'csv', 'xlsx', 'xls'}
+        if not file.filename.rsplit('.', 1)[1].lower() in allowed_extensions:
+            return jsonify({'success': False, 'message': 'Invalid file type. Please upload a CSV or Excel file.'}), 400
+        
+        # Save the file temporarily
+        filename = secure_filename(file.filename)
+        temp_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(temp_path)
+        
+        # Process the file based on its type
+        try:
+            import pandas as pd
+            
+            if filename.endswith('.csv'):
+                df = pd.read_csv(temp_path)
+            else:  # Excel file
+                df = pd.read_excel(temp_path)
+            
+            # Check required columns
+            required_columns = ['lab_name', 'day_of_week', 'start_time', 'end_time', 'status']
+            for col in required_columns:
+                if col not in df.columns:
+                    return jsonify({'success': False, 'message': f'Missing required column: {col}'}), 400
+            
+            # Get lab IDs
+            conn = sqlite3.connect('student.db')
+            cursor = conn.cursor()
+            cursor.execute('SELECT id, lab_name FROM laboratories')
+            labs = {lab_name: lab_id for lab_id, lab_name in cursor.fetchall()}
+            
+            # Parse the data and insert into the database
+            schedules_added = 0
+            schedules_failed = 0
+            
+            for _, row in df.iterrows():
+                try:
+                    # Get the lab_id from the lab_name
+                    lab_name = row['lab_name'].strip()
+                    if lab_name not in labs:
+                        # Try to add the lab if it doesn't exist
+                        cursor.execute('INSERT INTO laboratories (lab_name, status) VALUES (?, ?)', 
+                                    (lab_name, 'Available'))
+                        lab_id = cursor.lastrowid
+                        labs[lab_name] = lab_id
+                    else:
+                        lab_id = labs[lab_name]
+                    
+                    # Parse the data
+                    day_of_week = row['day_of_week'].strip()
+                    start_time = row['start_time'].strip()
+                    end_time = row['end_time'].strip()
+                    status = row['status'].strip()
+                    
+                    # Optional fields
+                    subject_code = row.get('subject_code', None)
+                    subject_name = row.get('subject_name', None)
+                    reason = row.get('reason', None)
+                    
+                    # Insert into database
+                    cursor.execute('''
+                        INSERT INTO lab_schedules 
+                        (lab_id, day_of_week, start_time, end_time, subject_code, subject_name, status, reason)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (lab_id, day_of_week, start_time, end_time, subject_code, subject_name, status, reason))
+                    
+                    schedules_added += 1
+                    
+                except Exception as e:
+                    schedules_failed += 1
+                    print(f"Error processing row: {row}")
+                    print(f"Error: {str(e)}")
+            
+            conn.commit()
+            conn.close()
+            
+            # Cleanup
+            os.remove(temp_path)
+            
+            return jsonify({
+                'success': True, 
+                'message': f'Successfully imported {schedules_added} schedules. {schedules_failed} failed.'
+            })
+            
+        except Exception as e:
+            # Cleanup on error
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            
+            print(f"Error processing file: {str(e)}")
+            return jsonify({'success': False, 'message': f'Error processing file: {str(e)}'}), 500
+        
+    except Exception as e:
+        print(f"Error in import_lab_schedules: {str(e)}")
+        return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 500
+
+
+
+# Route to get approved and rejected reservations for logs
+@app.route('/api/get_processed_reservations', methods=['GET'])
+def get_processed_reservations():
+    if 'admin_username' not in session:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+
+    try:
+        # Get query parameters for filtering
+        status_filter = request.args.get('status', 'all')  # 'all', 'approved', 'rejected'
+        date_filter = request.args.get('date', '')  # Date in YYYY-MM-DD format
+        
+        # Base query - excluding pending reservations from student_reservation table
+        query = """
+            SELECT 
+                sr.id, 
+                sr.student_idno,
+                s.firstname || ' ' || s.lastname as student_name,
+                l.lab_name,
+                sr.purpose,
+                sr.reservation_date,
+                sr.time_slot,
+                sr.status,
+                s.course,
+                s.year_level,
+                lc.computer_number,
+                sr.created_at
+            FROM student_reservation sr
+            JOIN laboratories l ON sr.lab_id = l.id
+            JOIN students s ON sr.student_idno = s.idno
+            JOIN lab_computers lc ON sr.computer_id = lc.id
+            WHERE sr.status != 'Pending'
+        """
+        
+        params = []
+        
+        # Add status filter
+        if status_filter != 'all':
+            query += " AND sr.status = ?"
+            params.append(status_filter)
+            
+        # Add date filter
+        if date_filter:
+            query += " AND DATE(sr.reservation_date) = ?"
+            params.append(date_filter)
+            
+        # Add final sorting
+        query += " ORDER BY sr.reservation_date DESC, sr.created_at DESC"
+        
+        # Execute query
+        reservations = getprocess(query, tuple(params)) if params else getprocess(query)
+        
+        # Format reservations for frontend
+        formatted_reservations = []
+        for res in reservations:
+            formatted_res = dict(res)
+            formatted_reservations.append(formatted_res)
+            
+        return jsonify({
+            'success': True,
+            'reservations': formatted_reservations,
+            'totalCount': len(formatted_reservations)
+        })
+        
+    except Exception as e:
+        print(f"Error fetching processed reservations: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

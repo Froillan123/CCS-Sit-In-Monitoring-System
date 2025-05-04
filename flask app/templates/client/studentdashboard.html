@@ -2529,11 +2529,15 @@ function updateHistoryTable(reservations) {
 
         const row = document.createElement('tr');
         row.setAttribute('data-reservation-id', reservation.id);
+        
+        // Check for rejected status and apply appropriate CSS class
+        const statusClass = reservation.status === 'Rejected' ? 'status rejected' : 'status';
+        
         row.innerHTML = `
             <td>${reservation.lab_name}</td>
             <td>${reservation.purpose}</td>
             <td>${reservation.reservation_date}</td>
-            <td class="status">${reservation.status}</td>
+            <td class="${statusClass}">${reservation.status}</td>
             <td class="logout-time">${reservation.logout_time || 'N/A'}</td>
             <td>${reservation.feedback_submitted ? '✅' : '❌'}</td>
             <td>
@@ -2925,6 +2929,30 @@ function addReservationToHistory(reservation) {
     }
 }
 
+// Prevent Sunday selection in all date pickers
+document.addEventListener('DOMContentLoaded', function() {
+    // Find all date inputs
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    
+    dateInputs.forEach(input => {
+        input.addEventListener('input', function(e) {
+            const selectedDate = new Date(this.value);
+            // Check if the date is a Sunday (0 = Sunday, 1 = Monday, etc.)
+            if (selectedDate.getDay() === 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Day',
+                    text: 'Reservations are not available on Sundays. Please select another day.',
+                    customClass: {
+                        popup: 'swal-default-size'
+                    }
+                });
+                // Reset the input to blank or to the previous value
+                this.value = '';
+            }
+        });
+    });
+});
 
 
 

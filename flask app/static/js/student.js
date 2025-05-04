@@ -190,6 +190,81 @@ document.addEventListener('DOMContentLoaded', function() {
         labStatsBox.style.position = 'relative';
         labStatsBox.appendChild(icon);
     }
+
+    // Initialize date pickers - prevent Sunday selection
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    
+    dateInputs.forEach(input => {
+        // Disable Sundays by setting the input's min attribute
+        input.addEventListener('focus', function() {
+            // Only add the change listener once
+            if (!this.dataset.sundayCheckAdded) {
+                this.dataset.sundayCheckAdded = 'true';
+                
+                this.addEventListener('change', function() {
+                    const selectedDate = new Date(this.value);
+                    // Check if the date is a Sunday (0 = Sunday, 1 = Monday, etc.)
+                    if (selectedDate.getDay() === 0) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Invalid Day',
+                            text: 'Reservations are not available on Sundays. Please select another day.',
+                            confirmButtonColor: '#7c4dff'
+                        });
+                        // Reset the input to empty
+                        this.value = '';
+                    }
+                });
+            }
+        });
+    });
+
+    // Initialize lab schedules on page load
+    loadAllLabSchedules();
+    
+    // Restore selected lab from localStorage if available
+    const storedLabId = localStorage.getItem('selectedLabId');
+    if (storedLabId) {
+        const labSelect = document.getElementById('lab-select');
+        if (labSelect) {
+            labSelect.value = storedLabId;
+            
+            // Activate the corresponding lab tab
+            const labTabs = document.querySelectorAll('.lab-tab');
+            labTabs.forEach(tab => {
+                if (tab.getAttribute('data-lab') === `lab${storedLabId}`) {
+                    tab.click();
+                }
+            });
+        }
+    }
+    
+    // Set up tab switching for lab schedules
+    const labTabs = document.querySelectorAll('.lab-tab');
+    const labContents = document.querySelectorAll('.lab-schedule-content');
+    
+    labTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const labId = this.getAttribute('data-lab');
+            
+            // Deactivate all tabs and hide all content
+            labTabs.forEach(t => t.classList.remove('active'));
+            labContents.forEach(c => c.classList.remove('active'));
+            
+            // Activate this tab and show its content
+            this.classList.add('active');
+            document.getElementById(`${labId}-schedule`).classList.add('active');
+            
+            // Extract the lab ID number and load the schedule
+            const labIdNumber = labId.replace('lab', '');
+            loadLabSchedule(labIdNumber);
+        });
+    });
+    
+    // Activate the first lab tab by default if none is active
+    if (labTabs.length > 0 && !document.querySelector('.lab-tab.active')) {
+        labTabs[0].click();
+    }
 });
 
 /**
@@ -686,6 +761,30 @@ document.addEventListener('DOMContentLoaded', function () {
     document.body.style.overflow = 'hidden';
     goToStep(1);
     resetModalState();
+    
+    // Load all lab schedules when the modal is opened
+    // This ensures lab schedules are fetched and displayed
+    loadAllLabSchedules();
+    
+    // Add event listener to lab select dropdown if not already added
+    if (!labSelect.dataset.listenerAdded) {
+      labSelect.dataset.listenerAdded = 'true';
+      labSelect.addEventListener('change', function() {
+        const selectedLabId = this.value;
+        if (selectedLabId) {
+          // Activate the corresponding lab tab to show its schedule
+          const labTabs = document.querySelectorAll('.lab-tab');
+          labTabs.forEach(tab => {
+            if (tab.getAttribute('data-lab') === `lab${selectedLabId}`) {
+              tab.click();
+            }
+          });
+          
+          // If schedules aren't loaded yet, load them
+          loadLabSchedule(selectedLabId);
+        }
+      });
+    }
   }
   function closeReservationModal() {
     reservationModal.style.display = 'none';
@@ -738,10 +837,25 @@ document.addEventListener('DOMContentLoaded', function () {
     if (step === 1) {
       selectedLab = labSelect.value;
       selectedDate = dateInput.value;
+      
+      // Check if required fields are filled
       if (!selectedLab || !selectedDate) {
         if (!selectedDate) dateError.style.display = 'block';
         return false;
       }
+      
+      // Check if selected date is a Sunday
+      const selectedDay = new Date(selectedDate).getDay();
+      if (selectedDay === 0) { // 0 = Sunday
+        Swal.fire({
+          icon: 'error',
+          title: 'Invalid Day',
+          text: 'Reservations are not available on Sundays. Please select another day.',
+          confirmButtonColor: '#7c4dff'
+        });
+        return false;
+      }
+      
       dateError.style.display = 'none';
       return true;
     }
@@ -783,50 +897,43 @@ document.addEventListener('DOMContentLoaded', function () {
     noTimeSlotsMessage.style.display = 'none';
     selectedTimeSlot = '';
     selectedTimeSlotLabel = '';
+    
+    // Store the selected lab in localStorage for persistence across refreshes
+    if (selectedLab) {
+      localStorage.setItem('selectedLabId', selectedLab);
+    }
+    
     fetch(`/get_available_time_slots?lab_id=${selectedLab}&date=${selectedDate}`)
       .then(res => res.json())
       .then(data => {
         timeSlotsLoading.style.display = 'none';
-        // Show all possible slots, not just available
-        const allSlots = [
-          { start: '07:00', end: '08:30' },
-          { start: '08:30', end: '10:00' },
-          { start: '10:00', end: '11:30' },
-          { start: '11:30', end: '13:00' },
-          { start: '13:00', end: '14:30' },
-          { start: '14:30', end: '16:00' },
-          { start: '16:00', end: '17:30' },
-          { start: '17:30', end: '19:00' },
-          { start: '19:00', end: '21:00' }
-        ];
-        // Map available slots for quick lookup
-        const available = (data.success && data.time_slots) ? data.time_slots.map(s => `${s.start_time} - ${s.end_time}`) : [];
-        if (allSlots.length > 0) {
-          allSlots.forEach(slot => {
-            const slotLabel = `${slot.start} - ${slot.end}`;
-            let status = 'Unavailable';
-            let color = '#ccc';
-            let icon = '⛔';
-            if (available.includes(slotLabel)) {
-              status = 'Available';
-              color = '#43a047';
-              icon = '✔️';
-            } else if (data.time_slots && data.time_slots.some(s => s.time_slot === slotLabel && s.status === 'Reserved')) {
-              status = 'Reserved';
-              color = '#e53935';
-              icon = '❌';
-            }
+        
+        if (data.success && data.time_slots && data.time_slots.length > 0) {
+          // Display only the slots returned from the server
+          data.time_slots.forEach(slot => {
+            const slotLabel = `${slot.start_time} - ${slot.end_time}`;
+            const isAvailable = slot.status === 'Available';
+            
             const btn = document.createElement('button');
             btn.className = 'time-slot-btn';
-            btn.textContent = `${icon} ${slotLabel} (${status})`;
-            btn.style.backgroundColor = status === 'Available' ? '#e8f5e9' : (status === 'Reserved' ? '#ffebee' : '#f5f5f5');
-            btn.style.color = status === 'Available' ? '#2e7d32' : (status === 'Reserved' ? '#c62828' : '#888');
-            btn.disabled = status !== 'Available';
+            
+            if (isAvailable) {
+              btn.innerHTML = `✅ ${slotLabel} (Available)`;
+              btn.style.backgroundColor = '#e8f5e9';
+              btn.style.color = '#2e7d32';
+              btn.disabled = false;
+            } else {
+              btn.innerHTML = `⛔ ${slotLabel} (Unavailable)`;
+              btn.style.backgroundColor = '#ffebee';
+              btn.style.color = '#c62828';
+              btn.disabled = true;
+            }
+            
             btn.setAttribute('data-value', slotLabel);
             btn.onclick = () => {
               if (btn.disabled) return;
               selectedTimeSlot = slotLabel;
-              selectedTimeSlotLabel = btn.textContent;
+              selectedTimeSlotLabel = slotLabel;
               Array.from(timeSlotsList.children).forEach(b => b.classList.remove('selected'));
               btn.classList.add('selected');
               updateSummary();
@@ -837,7 +944,8 @@ document.addEventListener('DOMContentLoaded', function () {
           noTimeSlotsMessage.style.display = 'block';
         }
       })
-      .catch(() => {
+      .catch(error => {
+        console.error('Error loading time slots:', error);
         timeSlotsLoading.style.display = 'none';
         noTimeSlotsMessage.style.display = 'block';
       });
@@ -854,7 +962,7 @@ document.addEventListener('DOMContentLoaded', function () {
       .then(data => {
         computersLoading.style.display = 'none';
         // Show all computers, not just available
-        const totalPCs = 20; // or fetch from backend if dynamic
+        const totalPCs = 50; // Changed from 20 to 50 to match the database (50 computers per lab)
         const allPCs = Array.from({ length: totalPCs }, (_, i) => i + 1);
         const available = (data.success && data.computers) ? data.computers.map(pc => pc.computer_number) : [];
         if (allPCs.length > 0) {

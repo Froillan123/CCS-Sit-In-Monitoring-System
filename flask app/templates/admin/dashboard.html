@@ -839,12 +839,21 @@
 
                         <!-- Schedule Table -->
                         <div class="schedule-table-container">
-                            <button id="add-schedule-btn" class="btn-action">
-                                <i class="ri-add-line"></i> Add Schedule
-                            </button>
-                            <button id="import-schedules-btn" class="btn-action">
-                                <i class="ri-download-line"></i> Import Default Schedules
-                            </button>
+                            <div class="schedule-actions" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <div class="left-actions">
+                                    <button id="add-schedule-btn" class="btn-action">
+                                        <i class="ri-add-line"></i> Add Schedule
+                                    </button>
+                                </div>
+                                <div class="right-actions">
+                                    <button id="import-schedules-btn" class="btn-action">
+                                        <i class="ri-download-line"></i> Import Default Schedules
+                                    </button>
+                                    <button id="reset-schedules-btn" class="btn-action" style="background-color: #ff6b6b;">
+                                        <i class="ri-restart-line"></i> Reset All Lab Schedules
+                                    </button>
+                                </div>
+                            </div>
                             <table class="schedule-table">
                                 <thead>
                                     <tr>
@@ -924,10 +933,92 @@
 
         <div id="reservation-request" class="page-content" style="display: none;">
             <h2>Reservation Requests</h2>
+            <div class="table-container">
+                <table id="reservationRequestsTable">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Student Name</th>
+                            <th>Lab</th>
+                            <th>Computer</th>
+                            <th>Date</th>
+                            <th>Time Slot</th>
+                            <th>Purpose</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reservationRequestsBody">
+                        <!-- Reservation requests will be loaded here -->
+                        <tr class="loading-row">
+                            <td colspan="9" class="text-center">
+                                <div class="loading-spinner">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading reservation requests...
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
+        <!-- Logs Section -->
         <div id="logs" class="page-content" style="display: none;">
-            <h2>Logs</h2>
+            <h2><i class="fas fa-history"></i> Reservation Logs</h2>
+            
+            <!-- Filters section -->
+            <div class="log-filters">
+                <div class="filter-group">
+                    <label for="logStatusFilter"><i class="fas fa-filter"></i> Status:</label>
+                    <select id="logStatusFilter">
+                        <option value="all">All</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="logDateFilter"><i class="fas fa-calendar"></i> Date:</label>
+                    <input type="date" id="logDateFilter">
+                </div>
+                <button id="resetLogFilters" class="btn-action">
+                    <i class="fas fa-sync"></i> Reset Filters
+                </button>
+            </div>
+            
+            <!-- Table container -->
+            <div class="logs-table-container">
+                <table id="logsTable">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Course</th>
+                            <th>Laboratory</th>
+                            <th>Computer</th>
+                            <th>Purpose</th>
+                            <th>Date</th>
+                            <th>Time Slot</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsTableBody">
+                        <!-- Log entries will be loaded here -->
+                        <tr>
+                            <td colspan="9" class="loading-message">
+                                <div class="spinner"></div>
+                                <span>Loading reservation logs...</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <!-- Empty state message -->
+                <div id="noLogsMessage" class="no-data-message" style="display: none;">
+                    <i class="fas fa-clipboard-list"></i>
+                    <h3>No logs found</h3>
+                    <p>Try changing the filters or check back later when there are processed reservations.</p>
+                </div>
+            </div>
         </div>
 
 
@@ -1344,6 +1435,24 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }, 100);
+
+    // Show reservation requests if hash is set on load
+    if (window.location.hash === '#reservation-request') {
+        document.querySelectorAll('.page-content').forEach(el => el.style.display = 'none');
+        const reqPage = document.getElementById('reservation-request');
+        if (reqPage) reqPage.style.display = '';
+        loadPendingReservations();
+    }
+
+    // Listen for hash changes
+    window.addEventListener('hashchange', function() {
+        if (window.location.hash === '#reservation-request') {
+            document.querySelectorAll('.page-content').forEach(el => el.style.display = 'none');
+            const reqPage = document.getElementById('reservation-request');
+            if (reqPage) reqPage.style.display = '';
+            loadPendingReservations();
+        }
+    });
 });
 
 // Improved loadStudents function with better error handling
@@ -2285,7 +2394,257 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
-    </script>
+
+    // Function to load pending reservation requests
+    function loadPendingReservations() {
+        const requestsBody = document.getElementById('reservationRequestsBody');
+        
+        if (!requestsBody) return; // Skip if element doesn't exist
+        
+        // Show loading state
+        requestsBody.innerHTML = `
+            <tr class="loading-row">
+                <td colspan="9" class="text-center">
+                    <div class="loading-spinner">
+                        <i class="fas fa-spinner fa-spin"></i> Loading reservation requests...
+                    </div>
+                </td>
+            </tr>
+        `;
+        
+        // Fetch pending reservations
+        fetch('/api/get_pending_reservations')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                requestsBody.innerHTML = ''; // Clear loading
+                
+                if (data.success && data.reservations && data.reservations.length > 0) {
+                    // Add each reservation row
+                    data.reservations.forEach(res => {
+                        const row = document.createElement('tr');
+                        row.setAttribute('data-id', res.id);
+                        
+                        row.innerHTML = `
+                            <td data-label="Student ID">${res.student_idno}</td>
+                            <td data-label="Student Name">${res.student_name}</td>
+                            <td data-label="Lab">${res.lab_name}</td>
+                            <td data-label="Computer">PC #${res.computer_number}</td>
+                            <td data-label="Date">${res.reservation_date}</td>
+                            <td data-label="Time Slot">${res.time_slot}</td>
+                            <td data-label="Purpose">${res.purpose}</td>
+                            <td data-label="Created">${res.created_at}</td>
+                            <td data-label="Actions">
+                                <div class="action-buttons">
+                                    <button class="btn approve-btn" onclick="updateReservationStatus(${res.id}, 'Approved')">
+                                        <i class="fas fa-check"></i> Approve
+                                    </button>
+                                    <button class="btn reject-btn" onclick="updateReservationStatus(${res.id}, 'Rejected')">
+                                        <i class="fas fa-times"></i> Reject
+                                    </button>
+                                </div>
+                            </td>
+                        `;
+                        
+                        requestsBody.appendChild(row);
+                    });
+                } else {
+                    // Also show empty state in table
+                    requestsBody.innerHTML = `
+                        <tr>
+                            <td colspan="9" class="text-center">
+                                <div class="empty-state">
+                                    <i class="fas fa-calendar-times"></i>
+                                    <p>No pending reservation requests found.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching reservation requests:', error);
+                requestsBody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="text-center">
+                            <div class="error-state">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <p>Error loading reservation requests.</p>
+                                <button onclick="loadPendingReservations()" class="btn refresh-btn">
+                                    <i class="fas fa-sync"></i> Try Again
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+    }
+    
+    // Function to update a reservation status (approve/reject)
+    function updateReservationStatus(reservationId, status) {
+        // Show confirmation dialog
+        if (!confirm(`Are you sure you want to ${status.toLowerCase()} this reservation?`)) {
+            return; // User canceled
+        }
+        
+        // Find the row and update its appearance
+        const row = document.querySelector(`tr[data-id="${reservationId}"]`);
+        if (row) {
+            // Disable buttons to prevent double-clicking
+            const buttons = row.querySelectorAll('button');
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Processing...`;
+            });
+            
+            // Add processing class to row
+            row.classList.add('processing');
+        }
+        
+        // Send request to update status
+        fetch('/api/update_reservation_status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                reservation_id: reservationId,
+                status: status
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Flash success message
+                showToast(`Reservation ${status.toLowerCase()} successfully`, 'success');
+                
+                // Remove the row with animation
+                if (row) {
+                    row.classList.add('fade-out');
+                    setTimeout(() => {
+                        row.remove();
+                        
+                        // Check if there are any rows left
+                        const remainingRows = document.querySelectorAll('#reservationRequestsBody tr:not(.loading-row)');
+                        if (remainingRows.length === 0) {
+                            // Show no requests message
+                            document.getElementById('reservationRequestsBody').innerHTML = `
+                                <tr>
+                                    <td colspan="9" class="text-center">
+                                        <div class="empty-state">
+                                            <i class="fas fa-calendar-times"></i>
+                                            <p>No pending reservation requests found.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        }
+                    }, 500);
+                }
+            } else {
+                showToast(data.message || 'Failed to update reservation status', 'error');
+                
+                // Reset buttons
+                if (row) {
+                    row.classList.remove('processing');
+                    const approveBtn = row.querySelector('.approve-btn');
+                    const rejectBtn = row.querySelector('.reject-btn');
+                    
+                    if (approveBtn) approveBtn.innerHTML = '<i class="fas fa-check"></i> Approve';
+                    if (rejectBtn) rejectBtn.innerHTML = '<i class="fas fa-times"></i> Reject';
+                    
+                    buttons.forEach(btn => {
+                        btn.disabled = false;
+                    });
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error updating reservation status:', error);
+            showToast('An error occurred while updating the reservation', 'error');
+            
+            // Reset buttons
+            if (row) {
+                row.classList.remove('processing');
+                const approveBtn = row.querySelector('.approve-btn');
+                const rejectBtn = row.querySelector('.reject-btn');
+                
+                if (approveBtn) approveBtn.innerHTML = '<i class="fas fa-check"></i> Approve';
+                if (rejectBtn) rejectBtn.innerHTML = '<i class="fas fa-times"></i> Reject';
+                
+                buttons.forEach(btn => {
+                    btn.disabled = false;
+                });
+            }
+        });
+    }
+    
+    // Show toast notification
+    function showToast(message, type = 'info') {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: type,
+                title: message,
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
+            });
+        } else {
+            alert(message);
+        }
+    }
+    
+    // Load pending reservations when the reservation requests tab is clicked
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get all nav links
+        const navLinks = document.querySelectorAll('.sidebar-nav a');
+        
+        navLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-target');
+                
+                // If reservation-request is clicked, load the pending reservations
+                if (targetId === 'reservation-request') {
+                    loadPendingReservations();
+                }
+            });
+        });
+        
+        // If the current page is reservation-request, load it immediately
+        const currentPage = window.location.hash.substring(1);
+        if (currentPage === 'reservation-request') {
+            loadPendingReservations();
+        }
+    });
+    
+    // Add socket.io event listener for new reservations
+    if (typeof socket !== 'undefined') {
+        // Listen for new student reservations
+        socket.on('new_student_reservation', function(data) {
+            console.log('New student reservation received:', data);
+            
+            // Show notification
+            showToast('New reservation request received', 'info');
+            
+            // If the reservation requests page is currently visible, reload the data
+            const reservationRequestPage = document.getElementById('reservation-request');
+            if (reservationRequestPage && reservationRequestPage.style.display !== 'none') {
+                loadPendingReservations();
+            }
+        });
+    }
+</script>
     <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 </body>
 </html>

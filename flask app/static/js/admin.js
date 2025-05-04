@@ -109,6 +109,9 @@ document.addEventListener('DOMContentLoaded', function () {
         } else if (page === 'lab-resources') {
             // Fetch lab resources
             fetchLabResources();
+        } else if (page === 'reservation-request') {
+            // Fetch student reservation requests
+            fetchReservationRequests();
         }
     }
 
@@ -2561,168 +2564,291 @@ function assignStudentToComputer() {
 
 // Lab Schedule Management
 function initializeScheduleManagement() {
-    console.log("DEBUG: Initializing schedule management");
+    // Prevent multiple initializations (fixes multiple submit bug)
+    if (scheduleManagementInitialized) return;
+    scheduleManagementInitialized = true;
     
-    try {
-        // Lab selection for schedules
-        const scheduleLabButtons = document.querySelectorAll('.schedule-lab-button');
-        if (!scheduleLabButtons || scheduleLabButtons.length === 0) {
-            console.error("DEBUG: No schedule lab buttons found");
-            return;
-        }
-        
-        console.log(`DEBUG: Found ${scheduleLabButtons.length} schedule lab buttons`);
-        
-        scheduleLabButtons.forEach(button => {
+    const scheduleTabs = document.querySelectorAll('.schedule-lab-button');
+    const dayButtons = document.querySelectorAll('.day-button');
+    const scheduleTableBody = document.getElementById('schedule-table-body');
+    const addScheduleBtn = document.getElementById('add-schedule-btn');
+    const importSchedulesBtn = document.getElementById('import-schedules-btn');
+    const resetSchedulesBtn = document.getElementById('reset-schedules-btn');
+    
+    let selectedLab = null;
+    let selectedDay = 'Monday'; // Default selected day
+    
+    // Add event listeners to lab buttons
+    if (scheduleTabs) {
+        scheduleTabs.forEach(button => {
             button.addEventListener('click', function() {
-                const labId = parseInt(this.dataset.labId);
-                console.log(`DEBUG: Selected schedule lab ID: ${labId}`);
-                selectedScheduleLabId = labId;
+                // Remove active class from all buttons
+                scheduleTabs.forEach(btn => btn.classList.remove('active'));
                 
-                // Update active button
-                document.querySelectorAll('.schedule-lab-button').forEach(btn => {
-                    btn.classList.remove('active');
-                });
+                // Add active class to clicked button
                 this.classList.add('active');
                 
-                // Load schedules for selected lab and day
-                loadLabSchedules(labId, currentScheduleDay);
+                // Get the lab ID
+                const labId = this.getAttribute('data-lab-id');
+                selectedLab = labId;
+                
+                // Load schedules for the selected lab and day
+                loadLabSchedules(labId, selectedDay);
             });
         });
-        
-        // Day selection
-        const dayButtons = document.querySelectorAll('.day-button');
-        if (!dayButtons || dayButtons.length === 0) {
-            console.error("DEBUG: No day buttons found");
-            return;
-        }
-        
-        console.log(`DEBUG: Found ${dayButtons.length} day buttons`);
-        
+    } else {
+        console.warn("DEBUG: schedule-lab-button elements not found");
+    }
+    
+    // Add event listeners to day buttons
+    if (dayButtons) {
         dayButtons.forEach(button => {
             button.addEventListener('click', function() {
-                const day = this.dataset.day;
-                console.log(`DEBUG: Selected day: ${day}`);
-                currentScheduleDay = day;
+                // Remove active class from all day buttons
+                dayButtons.forEach(btn => btn.classList.remove('active'));
                 
-                // Update active button
-                document.querySelectorAll('.day-button').forEach(btn => {
-                    btn.classList.remove('active');
-                });
+                // Add active class to clicked button
                 this.classList.add('active');
                 
-                // Load schedules if lab is selected
-                if (selectedScheduleLabId) {
-                    loadLabSchedules(selectedScheduleLabId, day);
+                // Get the selected day
+                const day = this.getAttribute('data-day');
+                selectedDay = day;
+                
+                // If a lab is selected, load schedules for the selected day
+                if (selectedLab) {
+                    loadLabSchedules(selectedLab, day);
                 }
             });
         });
-        
-        // Add schedule button
-        const addScheduleBtn = document.getElementById('add-schedule-btn');
+    } else {
+        console.warn("DEBUG: day-button elements not found");
+    }
+    
+    // Initialize schedule modal
+    const scheduleModal = document.getElementById('schedule-modal');
+    const closeScheduleModal = document.getElementById('close-schedule-modal');
+    const cancelScheduleBtn = document.getElementById('cancel-schedule-btn');
+    const scheduleForm = document.getElementById('schedule-form');
+    const statusSelect = document.getElementById('schedule-status');
+    const subjectFields = document.getElementById('subject-fields');
+    const unavailableReasonField = document.getElementById('unavailable-reason-field');
+    
+    // Show/hide fields based on status selection
+    if (statusSelect) {
+        statusSelect.addEventListener('change', function() {
+            const status = this.value;
+            
+            if (status === 'Reserved') {
+                subjectFields.style.display = 'block';
+                unavailableReasonField.style.display = 'none';
+            } else if (status === 'Unavailable') {
+                subjectFields.style.display = 'none';
+                unavailableReasonField.style.display = 'block';
+            } else {
+                subjectFields.style.display = 'none';
+                unavailableReasonField.style.display = 'none';
+            }
+        });
+    }
+    
+    // Close modal functions
+    if (closeScheduleModal) {
+        closeScheduleModal.addEventListener('click', function() {
+            scheduleModal.style.display = 'none';
+        });
+    }
+    
+    if (cancelScheduleBtn) {
+        cancelScheduleBtn.addEventListener('click', function() {
+            scheduleModal.style.display = 'none';
+        });
+    }
+    
+    // Add Schedule button event listener
         if (addScheduleBtn) {
             addScheduleBtn.addEventListener('click', function() {
-                if (!selectedScheduleLabId) {
-                    showAlert('error', 'Please select a laboratory first');
+            if (!selectedLab) {
+                Swal.fire({
+                    title: 'No Lab Selected',
+                    text: 'Please select a laboratory first',
+                    icon: 'warning',
+                    confirmButtonColor: '#7c4dff'
+                });
                     return;
                 }
                 
-                showScheduleModal();
+            // Reset form
+            if (scheduleForm) scheduleForm.reset();
+            
+            // Set default values
+            document.getElementById('schedule-id').value = '';
+            document.getElementById('schedule-lab-id').value = selectedLab;
+            document.getElementById('schedule-day').value = selectedDay;
+            
+            // Reset fields display
+            if (subjectFields) subjectFields.style.display = 'none';
+            if (unavailableReasonField) unavailableReasonField.style.display = 'none';
+            
+            // Set modal title to "Add Schedule"
+            document.getElementById('schedule-modal-title').textContent = 'Add Schedule';
+            
+            // Show the modal
+            scheduleModal.style.display = 'block';
             });
         } else {
             console.warn("DEBUG: add-schedule-btn element not found");
         }
         
-        // Import schedules button
-        const importSchedulesBtn = document.getElementById('import-schedules-btn');
-        if (importSchedulesBtn) {
-            importSchedulesBtn.addEventListener('click', function() {
-                console.log("DEBUG: Import schedules button clicked");
-                importDefaultSchedules();
-            });
-        } else {
-            console.warn("DEBUG: import-schedules-btn element not found");
-        }
-        
-        // Schedule form submit
-        const scheduleForm = document.getElementById('schedule-form');
+    // Schedule form submission
         if (scheduleForm) {
             scheduleForm.addEventListener('submit', function(e) {
                 e.preventDefault();
-                saveSchedule();
-            });
-        } else {
-            console.warn("DEBUG: schedule-form element not found");
-        }
-        
-        // Cancel schedule button
-        const cancelScheduleBtn = document.getElementById('cancel-schedule-btn');
-        if (cancelScheduleBtn) {
-            cancelScheduleBtn.addEventListener('click', function() {
-                document.getElementById('schedule-modal').style.display = 'none';
-            });
-        } else {
-            console.warn("DEBUG: cancel-schedule-btn element not found");
-        }
-        
-        // Close schedule modal
-        const closeScheduleModal = document.getElementById('close-schedule-modal');
-        if (closeScheduleModal) {
-            closeScheduleModal.addEventListener('click', function() {
-                document.getElementById('schedule-modal').style.display = 'none';
-            });
-        } else {
-            console.warn("DEBUG: close-schedule-modal element not found");
-        }
-        
-        // Show/hide fields based on status selection
-        const scheduleStatus = document.getElementById('schedule-status');
-        if (scheduleStatus) {
-            scheduleStatus.addEventListener('change', function() {
-                const status = this.value;
-                console.log(`DEBUG: Schedule status changed to ${status}`);
+            
+            // Validate form
+            const startTime = document.getElementById('start-time').value;
+            const endTime = document.getElementById('end-time').value;
+            const status = document.getElementById('schedule-status').value;
+            
+            // Basic validation
+            if (!startTime || !endTime) {
+                Swal.fire({
+                    title: 'Missing Information',
+                    text: 'Please fill in all required fields',
+                    icon: 'error',
+                    confirmButtonColor: '#7c4dff'
+                });
+                return;
+            }
+            
+            // Additional validation: end time must be after start time
+            if (startTime >= endTime) {
+                Swal.fire({
+                    title: 'Invalid Time Range',
+                    text: 'End time must be after start time',
+                    icon: 'error',
+                    confirmButtonColor: '#7c4dff'
+                });
+                return;
+            }
+            
+            // Validate subject fields if status is "Reserved"
+            if (status === 'Reserved') {
+                const subjectCode = document.getElementById('subject-code').value;
+                const subjectName = document.getElementById('subject-name').value;
                 
-                const subjectFields = document.getElementById('subject-fields');
-                const unavailableReasonField = document.getElementById('unavailable-reason-field');
+                if (!subjectCode || !subjectName) {
+                    Swal.fire({
+                        title: 'Missing Subject Information',
+                        text: 'Please provide both subject code and name for reserved slots',
+                        icon: 'warning',
+                        confirmButtonColor: '#7c4dff'
+                    });
+                    return;
+                }
+            }
+            
+            // Validate reason if status is "Unavailable"
+            if (status === 'Unavailable') {
+                const reason = document.getElementById('unavailable-reason').value;
                 
-                if (status === 'Reserved') {
-                    if (subjectFields) subjectFields.style.display = 'block';
-                    if (unavailableReasonField) unavailableReasonField.style.display = 'none';
-                } else if (status === 'Unavailable') {
-                    if (subjectFields) subjectFields.style.display = 'none';
-                    if (unavailableReasonField) unavailableReasonField.style.display = 'block';
-                } else {
-                    if (subjectFields) subjectFields.style.display = 'none';
-                    if (unavailableReasonField) unavailableReasonField.style.display = 'none';
+                if (!reason) {
+                    Swal.fire({
+                        title: 'Missing Reason',
+                        text: 'Please provide a reason for unavailable slots',
+                        icon: 'warning',
+                        confirmButtonColor: '#7c4dff'
+                    });
+                    return;
+                }
+            }
+            
+            // Save the schedule
+            saveSchedule();
+        });
+    }
+    
+    // Import Schedules button event listener
+    if (importSchedulesBtn) {
+        importSchedulesBtn.addEventListener('click', function() {
+            console.log("DEBUG: Import schedules button clicked");
+            importDefaultSchedules();
+            });
+        } else {
+        console.warn("DEBUG: import-schedules-btn element not found");
+    }
+    
+    // Reset Schedules button event listener
+    if (resetSchedulesBtn) {
+        resetSchedulesBtn.addEventListener('click', function() {
+            console.log("DEBUG: Reset schedules button clicked");
+            
+            Swal.fire({
+                title: 'Reset All Lab Schedules?',
+                text: "This will reset schedules for all labs (Lab544, Lab542, Lab530, Lab524, Lab526, Lab525). This cannot be undone!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, reset all!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading state
+                    Swal.fire({
+                        title: 'Resetting Schedules...',
+                        text: 'Please wait while we reset all lab schedules',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        willOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Call API to reset schedules
+                    fetch('/api/reset_lab_schedules', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Success!',
+                                text: data.message,
+                                icon: 'success',
+                                confirmButtonColor: '#7c4dff'
+                            }).then(() => {
+                                // Reload schedules if a lab is selected
+                                if (selectedLab) {
+                                    loadLabSchedules(selectedLab, selectedDay);
+                                }
+                            });
+        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: data.message || 'Failed to reset lab schedules',
+                                icon: 'error',
+                                confirmButtonColor: '#7c4dff'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error resetting schedules:", error);
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Failed to reset lab schedules. Please try again.',
+                            icon: 'error',
+                            confirmButtonColor: '#7c4dff'
+                        });
+                    });
                 }
             });
-        } else {
-            console.warn("DEBUG: schedule-status element not found");
-        }
-        
-        // Set the initialized flag
-        scheduleManagementInitialized = true;
-        
-        console.log("DEBUG: Schedule management initialization complete");
-        
-        // Auto-select the first lab and day if available
-        if (scheduleLabButtons.length > 0) {
-            console.log("DEBUG: Auto-selecting first lab button");
-            scheduleLabButtons[0].click();
-        } else {
-            console.warn("DEBUG: No lab buttons available to auto-select");
-        }
-        
-        // Make sure a day is selected
-        const activeDay = document.querySelector('.day-button.active');
-        if (!activeDay && dayButtons.length > 0) {
-            console.log("DEBUG: Auto-selecting first day button");
-            dayButtons[0].click();
-        }
-    } catch (e) {
-        console.error("DEBUG: Error in schedule management initialization:", e);
-        showAlert('error', 'Error initializing schedule management. Please try again.');
-        scheduleManagementInitialized = false;
+        });
+    } else {
+        console.warn("DEBUG: reset-schedules-btn element not found");
     }
 }
 
@@ -2808,17 +2934,14 @@ function loadLabSchedules(labId, day) {
 
 function renderSchedules(schedules) {
     const tableBody = document.getElementById('schedule-table-body');
-    
     if (!schedules || schedules.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="4" class="loading-message">No schedules found for this day</td></tr>';
+        // Save empty to localStorage for this lab/day
+        saveSchedulesToLocal(selectedScheduleLabId, currentScheduleDay, []);
         return;
     }
-    
     // Sort schedules by start time
-    schedules.sort((a, b) => {
-        return a.start_time.localeCompare(b.start_time);
-    });
-    
+    schedules.sort((a, b) => a.start_time.localeCompare(b.start_time));
     let html = '';
     schedules.forEach(schedule => {
         // Format the time slot
@@ -2864,6 +2987,48 @@ function renderSchedules(schedules) {
     });
     
     tableBody.innerHTML = html;
+    // Save to localStorage for this lab/day
+    saveSchedulesToLocal(selectedScheduleLabId, currentScheduleDay, schedules);
+}
+
+// Save schedules to localStorage for a specific lab and day
+function saveSchedulesToLocal(labId, day, schedules) {
+    if (!labId || !day) return;
+    const key = `labSchedules_${labId}_${day}`;
+    localStorage.setItem(key, JSON.stringify(schedules));
+}
+
+// Load schedules from localStorage for a specific lab and day
+function loadSchedulesFromLocal(labId, day) {
+    if (!labId || !day) return null;
+    const key = `labSchedules_${labId}_${day}`;
+    const data = localStorage.getItem(key);
+    return data ? JSON.parse(data) : null;
+}
+
+// On page load, try to load from localStorage first
+function loadLabSchedules(labId, day) {
+    if (!labId) return;
+    selectedScheduleLabId = labId;
+    currentScheduleDay = day;
+    // Try localStorage first
+    const localSchedules = loadSchedulesFromLocal(labId, day);
+    if (localSchedules) {
+        renderSchedules(localSchedules);
+    }
+    // Always fetch from server to ensure up-to-date
+    fetch(`/api/lab_schedules/${labId}?day=${day}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderSchedules(data.schedules || []);
+            } else {
+                // ... existing error handling ...
+            }
+        })
+        .catch(error => {
+            // ... existing error handling ...
+        });
 }
 
 function saveSchedule() {
@@ -2963,11 +3128,15 @@ function saveSchedule() {
             // Hide modal
             document.getElementById('schedule-modal').style.display = 'none';
             
-            // Refresh schedules
+            // After confirmation, refresh and update localStorage
+            Swal.fire({
+                title: 'Success!',
+                text: data.message || 'Schedule saved successfully',
+                icon: 'success',
+                confirmButtonColor: '#7c4dff'
+            }).then(() => {
             loadLabSchedules(selectedScheduleLabId, currentScheduleDay);
-            
-            // Show success message
-            showAlert('success', data.message || 'Schedule saved successfully');
+            });
         } else {
             showAlert('error', data.message || 'Failed to save schedule');
         }
@@ -3038,11 +3207,15 @@ function performScheduleDeletion(scheduleId) {
     })
     .then(data => {
         if (data.success) {
-            // Refresh schedules
+            // After confirmation, refresh and update localStorage
+            Swal.fire({
+                title: 'Deleted!',
+                text: data.message || 'Schedule deleted successfully',
+                icon: 'success',
+                confirmButtonColor: '#7c4dff'
+            }).then(() => {
             loadLabSchedules(selectedScheduleLabId, currentScheduleDay);
-            
-            // Show success message
-            showAlert('success', data.message || 'Schedule deleted successfully');
+            });
         } else {
             showAlert('error', data.message || 'Failed to delete schedule');
         }
@@ -3054,15 +3227,124 @@ function performScheduleDeletion(scheduleId) {
 }
 
 function importDefaultSchedules() {
-    console.log("DEBUG: Importing default schedules");
-    
-    // Disable the button while importing
-    const importBtn = document.getElementById('import-schedules-btn');
-    if (importBtn) {
-        importBtn.disabled = true;
-        importBtn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> Importing...';
-    }
-    
+    // Show options dialog for importing schedules
+    Swal.fire({
+        title: 'Import Lab Schedules',
+        html: `
+            <p>Choose how to import schedules:</p>
+            <div style="text-align: left; margin-top: 20px;">
+                <div>
+                    <input type="radio" id="upload-file" name="import-type" value="upload" checked>
+                    <label for="upload-file">Upload Excel/CSV file</label>
+                </div>
+                <div>
+                    <input type="radio" id="use-default" name="import-type" value="default">
+                    <label for="use-default">Use default UC Main schedules</label>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Continue',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#7c4dff',
+        cancelButtonColor: '#d33',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const importType = document.querySelector('input[name="import-type"]:checked').value;
+            
+            if (importType === 'upload') {
+                // Create a hidden file input element
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel';
+                fileInput.style.display = 'none';
+                
+                // Add to body and trigger click
+                document.body.appendChild(fileInput);
+                fileInput.click();
+                
+                // Handle file selection
+                fileInput.addEventListener('change', function() {
+                    if (fileInput.files.length === 0) {
+                        document.body.removeChild(fileInput);
+                        return;
+                    }
+                    
+                    const file = fileInput.files[0];
+                    const formData = new FormData();
+                    formData.append('schedule_file', file);
+                    
+                    // Show loading state
+                    Swal.fire({
+                        title: 'Uploading File...',
+                        text: 'Please wait while we process your file',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        willOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Upload the file
+                    fetch('/api/import_lab_schedules', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Success!',
+                                text: data.message,
+                                icon: 'success',
+                                confirmButtonColor: '#7c4dff'
+                            }).then(() => {
+                                // Reload the current schedules if a lab is selected
+                                const selectedLab = document.querySelector('.schedule-lab-button.active')?.getAttribute('data-lab-id');
+                                const selectedDay = document.querySelector('.day-button.active')?.getAttribute('data-day') || 'Monday';
+                                
+                                if (selectedLab) {
+                                    loadLabSchedules(selectedLab, selectedDay);
+                                }
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: data.message || 'Failed to import schedules',
+                                icon: 'error',
+                                confirmButtonColor: '#7c4dff'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error importing schedules:', error);
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Failed to import schedules. Please try again.',
+                            icon: 'error',
+                            confirmButtonColor: '#7c4dff'
+                        });
+                    })
+                    .finally(() => {
+                        document.body.removeChild(fileInput);
+                    });
+                });
+            } else {
+                // Use default schedules
+                Swal.fire({
+                    title: 'Importing Default Schedules...',
+                    text: 'Please wait while we import the default schedules',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    willOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                // Call the import API
     fetch('/import_default_schedules', {
         method: 'POST',
         headers: {
@@ -3070,37 +3352,42 @@ function importDefaultSchedules() {
         },
         body: JSON.stringify({}) // Empty body since we're just triggering the import
     })
-    .then(response => {
-        console.log(`DEBUG: Import response status: ${response.status}`);
-        return response.json().catch(error => {
-            // Handle case where the response isn't valid JSON
-            console.error("DEBUG: Error parsing JSON response:", error);
-            return { success: false, message: "Failed to parse server response" };
-        });
-    })
+                .then(response => response.json())
     .then(data => {
-        console.log("DEBUG: Import response data:", data);
         if (data.success) {
-            // Refresh schedules if lab is selected
-            if (selectedScheduleLabId) {
-                loadLabSchedules(selectedScheduleLabId, currentScheduleDay);
-            }
-            
-            // Show success message
-            showAlert('success', data.message || 'Default schedules imported successfully');
+                        Swal.fire({
+                            title: 'Success!',
+                            text: data.message || 'Default schedules imported successfully',
+                            icon: 'success',
+                            confirmButtonColor: '#7c4dff'
+                        }).then(() => {
+                            // Reload the current schedules if a lab is selected
+                            const selectedLab = document.querySelector('.schedule-lab-button.active')?.getAttribute('data-lab-id');
+                            const selectedDay = document.querySelector('.day-button.active')?.getAttribute('data-day') || 'Monday';
+                            
+                            if (selectedLab) {
+                                loadLabSchedules(selectedLab, selectedDay);
+                            }
+                        });
         } else {
-            showAlert('error', data.message || 'Failed to import default schedules. Schedules may already exist or another error occurred.');
+                        Swal.fire({
+                            title: 'Error!',
+                            text: data.message || 'Failed to import default schedules',
+                            icon: 'error',
+                            confirmButtonColor: '#7c4dff'
+                        });
         }
     })
     .catch(error => {
-        console.error("DEBUG: Error importing default schedules:", error);
-        showAlert('error', 'Failed to import default schedules. Please try again.');
-    })
-    .finally(() => {
-        // Re-enable the button
-        if (importBtn) {
-            importBtn.disabled = false;
-            importBtn.innerHTML = '<i class="ri-download-line"></i> Import Default Schedules';
+                    console.error('Error importing default schedules:', error);
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Failed to import default schedules. Please try again.',
+                        icon: 'error',
+                        confirmButtonColor: '#7c4dff'
+                    });
+                });
+            }
         }
     });
 }
@@ -3299,5 +3586,164 @@ function initializeManagementPage() {
 
 // Track if schedule management has been initialized
 let scheduleManagementInitialized = false;
+
+// Logs Management Functions
+function fetchAndDisplayLogs(statusFilter = 'all', dateFilter = '') {
+    // Show loading message
+    document.getElementById('logsTableBody').innerHTML = `
+        <tr>
+            <td colspan="9" class="loading-message">
+                <div class="spinner"></div>
+                <span>Loading reservation logs...</span>
+            </td>
+        </tr>
+    `;
+    
+    // Hide no logs message
+    document.getElementById('noLogsMessage').style.display = 'none';
+    
+    // Build query parameters
+    let queryParams = new URLSearchParams();
+    if (statusFilter !== 'all') {
+        queryParams.append('status', statusFilter);
+    }
+    if (dateFilter) {
+        queryParams.append('date', dateFilter);
+    }
+    
+    // Fetch logs data from API
+    fetch(`/api/get_processed_reservations?${queryParams.toString()}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                displayLogs(data.reservations);
+            } else {
+                throw new Error(data.message || 'Failed to fetch logs');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching logs:', error);
+            document.getElementById('logsTableBody').innerHTML = `
+                <tr>
+                    <td colspan="9" class="loading-message error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        Error loading logs: ${error.message}
+                    </td>
+                </tr>
+            `;
+        });
+}
+
+function displayLogs(logs) {
+    const tableBody = document.getElementById('logsTableBody');
+    const noLogsMessage = document.getElementById('noLogsMessage');
+    
+    // Clear the table
+    tableBody.innerHTML = '';
+    
+    if (!logs || logs.length === 0) {
+        // Show empty state message
+        noLogsMessage.style.display = 'block';
+        return;
+    }
+    
+    // Hide empty state message
+    noLogsMessage.style.display = 'none';
+    
+    // Populate the table with log data
+    logs.forEach(log => {
+        const statusClass = getStatusClass(log.status);
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td data-label="Student ID">${log.student_idno}</td>
+            <td data-label="Name">${log.student_name}</td>
+            <td data-label="Course">${log.course || ''} ${log.year_level ? '(' + log.year_level + ')' : ''}</td>
+            <td data-label="Laboratory">${log.lab_name}</td>
+            <td data-label="Computer">PC #${log.computer_number || 'N/A'}</td>
+            <td data-label="Purpose">${log.purpose}</td>
+            <td data-label="Date">${log.reservation_date}</td>
+            <td data-label="Time Slot">${log.time_slot || 'N/A'}</td>
+            <td data-label="Status"><span class="log-status ${statusClass}">${log.status}</span></td>
+        `;
+        
+        tableBody.appendChild(row);
+    });
+}
+
+function getStatusClass(status) {
+    switch (status) {
+        case 'Approved':
+            return 'approved';
+        case 'Rejected':
+            return 'rejected';
+        default:
+            return '';
+    }
+}
+
+// Initialize logs section when it's shown
+function initializeLogsSection() {
+    // Set up filter event listeners
+    const statusFilter = document.getElementById('logStatusFilter');
+    const dateFilter = document.getElementById('logDateFilter');
+    const resetButton = document.getElementById('resetLogFilters');
+    
+    // Initial load
+    fetchAndDisplayLogs();
+    
+    if (statusFilter) {
+        // Status filter change
+        statusFilter.addEventListener('change', () => {
+            fetchAndDisplayLogs(statusFilter.value, dateFilter.value);
+        });
+    }
+    
+    if (dateFilter) {
+        // Date filter change
+        dateFilter.addEventListener('change', () => {
+            fetchAndDisplayLogs(statusFilter.value, dateFilter.value);
+        });
+    }
+    
+    if (resetButton) {
+        // Reset filters
+        resetButton.addEventListener('click', () => {
+            if (statusFilter) statusFilter.value = 'all';
+            if (dateFilter) dateFilter.value = '';
+            fetchAndDisplayLogs();
+        });
+    }
+}
+
+// Make sure logs section is initialized when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Event listener for logs tab
+    const links = document.querySelectorAll('a[data-page="logs"], .sidebar a[href="#logs"]');
+    
+    links.forEach(link => {
+        link.addEventListener('click', function(e) {
+            setTimeout(() => {
+                initializeLogsSection();
+            }, 300);
+        });
+    });
+    
+    // Check if we need to initialize logs section based on hash
+    if (window.location.hash === '#logs') {
+        setTimeout(() => {
+            const logsSection = document.getElementById('logs');
+            if (logsSection) {
+                logsSection.style.display = 'block';
+                initializeLogsSection();
+            }
+        }, 500);
+    }
+});
 
 

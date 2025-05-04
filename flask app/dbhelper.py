@@ -817,17 +817,17 @@ def get_available_time_slots(lab_id, reservation_date):
     """
     schedules = getprocess(sql, (lab_id, day_of_week))
     
-    # Filter to only include available time slots
-    available_slots = []
+    # Return all time slots with their status
+    time_slots = []
     for schedule in schedules:
-        if schedule['status'] == 'Available':
-            available_slots.append({
-                'start_time': schedule['start_time'],
-                'end_time': schedule['end_time'],
-                'time_slot': f"{schedule['start_time']} - {schedule['end_time']}"
-            })
+        time_slots.append({
+            'start_time': schedule['start_time'],
+            'end_time': schedule['end_time'],
+            'time_slot': f"{schedule['start_time']} - {schedule['end_time']}",
+            'status': schedule['status']
+        })
     
-    return available_slots
+    return time_slots
 
 # Function to get available computers for a lab
 def get_available_computers(lab_id):
@@ -1276,4 +1276,47 @@ def create_and_populate_laboratories():
         return False
     finally:
         if conn:
+            conn.close()
+
+def drop_and_recreate_lab_schedules():
+    """Drop and recreate lab_schedules table structure without inserting any data."""
+    try:
+        print("DEBUG: Starting to drop and recreate lab_schedules table")
+        conn = sqlite3.connect('student.db')
+        cursor = conn.cursor()
+        
+        # Drop the lab_schedules table if it exists
+        cursor.execute('DROP TABLE IF EXISTS lab_schedules')
+        print("DEBUG: lab_schedules table dropped")
+        
+        # Create the lab_schedules table again
+        cursor.execute('''
+        CREATE TABLE lab_schedules (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lab_id INTEGER NOT NULL,
+            day_of_week TEXT NOT NULL CHECK(day_of_week IN ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday')),
+            start_time TEXT NOT NULL,
+            end_time TEXT NOT NULL,
+            subject_code TEXT,
+            subject_name TEXT,
+            status TEXT DEFAULT 'Available' CHECK(status IN ('Available', 'Reserved', 'Unavailable')),
+            reason TEXT,
+            FOREIGN KEY (lab_id) REFERENCES laboratories(id)
+        )''')
+        print("DEBUG: lab_schedules table recreated")
+        
+        conn.commit()
+        print("DEBUG: Successfully recreated lab_schedules table structure")
+        return True
+    except Exception as e:
+        import traceback
+        print(f"ERROR: Error recreating lab schedules table: {str(e)}")
+        print(traceback.format_exc())
+        if 'conn' in locals() and conn:
+            conn.rollback()
+        return False
+    finally:
+        if 'cursor' in locals() and cursor:
+            cursor.close()
+        if 'conn' in locals() and conn:
             conn.close()

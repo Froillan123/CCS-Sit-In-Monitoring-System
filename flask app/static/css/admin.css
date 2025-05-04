@@ -406,3 +406,220 @@ img{
   }
 }
 
+/* Reservation Requests Styles */
+#reservation-request .table-container {
+    overflow-x: auto;
+    margin: 20px 0;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+#reservationRequestsTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#reservationRequestsTable th {
+    background-color: #f5f5f5;
+    padding: 12px 15px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 1px solid #ddd;
+}
+
+#reservationRequestsTable td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+}
+
+#reservationRequestsTable tr:last-child td {
+    border-bottom: none;
+}
+
+#reservationRequestsTable tr:hover {
+    background-color: #f9f9f9;
+}
+
+/* Action buttons */
+.approve-btn, .reject-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 5px;
+    transition: all 0.2s ease;
+}
+
+.approve-btn {
+    background-color: #4caf50;
+    color: white;
+}
+
+.approve-btn:hover {
+    background-color: #43a047;
+}
+
+.reject-btn {
+    background-color: #f44336;
+    color: white;
+}
+
+.reject-btn:hover {
+    background-color: #e53935;
+}
+
+.approve-btn i, .reject-btn i {
+    margin-right: 5px;
+}
+
+/* Empty state */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    text-align: center;
+}
+
+.empty-state i {
+    font-size: 48px;
+    color: #ccc;
+    margin-bottom: 15px;
+}
+
+.empty-state p {
+    font-size: 16px;
+    color: #666;
+}
+
+/* Error state */
+.error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    text-align: center;
+}
+
+.error-state i {
+    font-size: 48px;
+    color: #f44336;
+    margin-bottom: 15px;
+}
+
+.error-state p {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.refresh-btn {
+    background-color: #7c4dff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.refresh-btn:hover {
+    background-color: #6c3ee9;
+}
+
+/* Loading spinner */
+.loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+}
+
+.loading-spinner i {
+    font-size: 24px;
+    color: #7c4dff;
+    margin-bottom: 10px;
+}
+
+/* Row animations */
+tr.processing {
+    background-color: #f5f5f5 !important;
+    opacity: 0.7;
+}
+
+tr.fade-out {
+    animation: fadeOut 0.5s ease forwards;
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(-20px);
+        height: 0;
+        padding: 0;
+        margin: 0;
+    }
+}
+
+/* Responsive styles for mobile */
+@media (max-width: 768px) {
+    #reservationRequestsTable {
+        display: block;
+    }
+    
+    #reservationRequestsTable thead {
+        display: none;
+    }
+    
+    #reservationRequestsTable tbody, 
+    #reservationRequestsTable tr, 
+    #reservationRequestsTable td {
+        display: block;
+        width: 100%;
+    }
+    
+    #reservationRequestsTable tr {
+        margin-bottom: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 8px;
+    }
+    
+    #reservationRequestsTable td {
+        text-align: right;
+        padding: 8px;
+        position: relative;
+        border-bottom: 1px solid #eee;
+    }
+    
+    #reservationRequestsTable td:last-child {
+        border-bottom: none;
+    }
+    
+    #reservationRequestsTable td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 8px;
+        font-weight: 600;
+        color: #666;
+    }
+    
+    .action-buttons {
+        display: flex;
+        justify-content: flex-end;
+    }
+}
+

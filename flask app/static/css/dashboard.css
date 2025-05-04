@@ -3208,3 +3208,267 @@ tr[data-foul-language="true"] {
     border: 1px solid rgba(255, 107, 107, 0.3);
 }
 
+/* Reservation Requests Table Enhancements */
+#reservation-request .table-container {
+    background: var(--sidebar-bg);
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+    padding: 2rem 1.5rem;
+    margin: 2rem 0;
+    overflow-x: auto;
+}
+
+#reservationRequestsTable {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--sidebar-bg);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    font-size: 1rem;
+}
+
+#reservationRequestsTable th {
+    position: sticky;
+    top: 0;
+    background: var(--first-color);
+    color: var(--white-color);
+    font-weight: 700;
+    padding: 1rem 1.2rem;
+    text-align: left;
+    z-index: 2;
+    border-bottom: 2px solid var(--second-color);
+}
+
+#reservationRequestsTable td {
+    padding: 1rem 1.2rem;
+    color: var(--sidebar-text);
+    background: var(--sidebar-bg);
+    border-bottom: 1px solid var(--sidebar-hover);
+    vertical-align: middle;
+}
+
+#reservationRequestsTable tbody tr:nth-child(even) td {
+    background: rgba(255,255,255,0.03);
+}
+
+#reservationRequestsTable tbody tr:hover td {
+    background: rgba(124,77,255,0.07);
+    transition: background 0.2s;
+}
+
+#reservationRequestsTable tr:last-child td {
+    border-bottom: none;
+}
+
+/* Action Buttons Styling */
+#reservationRequestsTable .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+#reservationRequestsTable .approve-btn {
+    background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 1.1rem;
+    font-weight: 600;
+    font-size: 0.98rem;
+    box-shadow: 0 2px 8px rgba(67,233,123,0.08);
+    transition: background 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+#reservationRequestsTable .approve-btn:hover {
+    background: linear-gradient(90deg, #38f9d7 0%, #43e97b 100%);
+    transform: translateY(-2px) scale(1.04);
+}
+
+#reservationRequestsTable .reject-btn {
+    background: linear-gradient(90deg, #ff5858 0%, #f09819 100%);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 1.1rem;
+    font-weight: 600;
+    font-size: 0.98rem;
+    box-shadow: 0 2px 8px rgba(255,88,88,0.08);
+    transition: background 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+#reservationRequestsTable .reject-btn:hover {
+    background: linear-gradient(90deg, #f09819 0%, #ff5858 100%);
+    transform: translateY(-2px) scale(1.04);
+}
+
+#reservationRequestsTable .approve-btn i,
+#reservationRequestsTable .reject-btn i {
+    margin-right: 0.3rem;
+    font-size: 1.1em;
+}
+
+/* Empty state and loading spinner tweaks */
+#reservationRequestsTable .empty-state,
+#reservationRequestsTable .loading-spinner {
+    background: none;
+    color: var(--sidebar-text);
+    font-size: 1.1rem;
+    padding: 2rem 0;
+}
+
+/* Status badges */
+.status-badge.status-rejected {
+    background-color: #ff3b30; /* Red color for rejected status */
+    color: white;
+    border-color: #e01e0b;
+}
+
+/* Make rejected status text appear with red background */
+.status.rejected {
+    background-color: #ff3b30;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    display: inline-block;
+}
+
+/* Logs section styles */
+.log-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+    background-color: var(--body-color);
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.logs-table-container {
+    background-color: var(--body-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    padding: 20px;
+    margin-bottom: 30px;
+    overflow-x: auto;
+}
+
+#logsTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    color: #333;
+}
+
+#logsTable th {
+    background-color: #7c4dff;
+    color: white;
+    text-align: left;
+    padding: 12px 15px;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+#logsTable tbody tr {
+    border-bottom: 1px solid #f1f1f1;
+    transition: background-color 0.3s;
+}
+
+#logsTable td {
+    padding: 12px 15px;
+    vertical-align: middle;
+    color: var(--white-color);
+}
+
+/* Status badges for logs */
+.log-status {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    text-align: center;
+    min-width: 100px;
+}
+
+.log-status.approved {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #a5d6a7;
+}
+
+.log-status.rejected {
+    background-color: #ffebee;
+    color: #c62828;
+    border: 1px solid #ef9a9a;
+}
+
+.log-status.loggedout {
+    background-color: #e3f2fd;
+    color: #0d47a1;
+    border: 1px solid #90caf9;
+}
+
+/* Empty state styling */
+.no-data-message {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+}
+
+.no-data-message i {
+    font-size: 48px;
+    color: #ccc;
+    margin-bottom: 15px;
+}
+
+.no-data-message h3 {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .log-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    #logsTable thead {
+        display: none;
+    }
+    
+    #logsTable tbody tr {
+        display: block;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        padding: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    #logsTable tbody td {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 10px;
+        border-bottom: 1px solid #f1f1f1;
+    }
+    
+    #logsTable tbody td:last-child {
+        border-bottom: none;
+    }
+    
+    #logsTable tbody td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        margin-right: 10px;
+    }
+}
+
