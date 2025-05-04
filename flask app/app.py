@@ -61,8 +61,8 @@ class SimpleCache:
 # Initialize cache
 cache = SimpleCache()
 
-# Create points tables if they don't exist
-create_points_tables()
+# Initialize all tables
+initialize_tables()
 
 # Create lab resources table if it doesn't exist
 def create_lab_resources_table():
@@ -92,10 +92,6 @@ create_lab_resources_table()
 # Ensure laboratories table exists with data
 create_and_populate_laboratories()
 print("DEBUG: Laboratories table initialized")
-
-# Create lab computers and schedules tables
-create_lab_computers_table()
-print("DEBUG: Lab computers and schedules tables initialized")
 
 # Initialize computers for all labs
 initialize_all_labs_computers()
@@ -1944,21 +1940,21 @@ def convert_points():
 @app.route('/points_balance', methods=['GET'])
 def points_balance():
     """Get current points balance"""
-    user_id = session.get('user_id')
-    if not user_id:
+    if 'student_idno' not in session:
         return jsonify({"success": False, "message": "Unauthorized"}), 401
 
     try:
-        # Get student points via user_id
+        student_idno = session.get('student_idno')
+        
+        # Get student points
         points_data = getprocess(
-            """SELECT sp.points 
-               FROM student_points sp
-               JOIN students s ON sp.student_idno = s.idno
-               WHERE s.user_id = ?""",
-            (user_id,)
+            """SELECT points 
+               FROM student_points
+               WHERE student_idno = ?""",
+            (student_idno,)
         )
         
-        if not points_data:
+        if not points_data or len(points_data) == 0:
             return jsonify({
                 "success": True,
                 "points": 0,
@@ -2602,6 +2598,318 @@ def api_get_lab_schedule(schedule_id):
     finally:
         if 'conn' in locals():
             conn.close()
+
+# Route to get available time slots for a lab on a specific date
+@app.route('/get_available_time_slots', methods=['GET'])
+def get_available_time_slots_route():
+    lab_id = request.args.get('lab_id')
+    reservation_date = request.args.get('date')
+    
+    if not lab_id or not reservation_date:
+        return jsonify({'success': False, 'message': 'Lab ID and date are required'}), 400
+    
+    try:
+        # Convert reservation_date to datetime for validation
+        date_obj = datetime.strptime(reservation_date, '%Y-%m-%d')
+        
+        # Check if the date is in the past
+        if date_obj.date() < datetime.now().date():
+            return jsonify({'success': False, 'message': 'Cannot make reservations for past dates'}), 400
+        
+        # Get available time slots
+        time_slots = get_available_time_slots(lab_id, reservation_date)
+        
+        return jsonify({
+            'success': True,
+            'time_slots': time_slots
+        })
+    except ValueError:
+        return jsonify({'success': False, 'message': 'Invalid date format (YYYY-MM-DD expected)'}), 400
+    except Exception as e:
+        print(f"Error getting available time slots: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# Route to get available computers for a lab
+@app.route('/get_available_computers', methods=['GET'])
+def get_available_computers_route():
+    lab_id = request.args.get('lab_id')
+    
+    if not lab_id:
+        return jsonify({'success': False, 'message': 'Lab ID is required'}), 400
+    
+    try:
+        # Get available computers
+        computers = get_available_computers(lab_id)
+        
+        return jsonify({
+            'success': True,
+            'computers': computers
+        })
+    except Exception as e:
+        print(f"Error getting available computers: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# Route to create a student reservation
+@app.route('/create_student_reservation', methods=['POST'])
+def create_student_reservation_route():
+    if 'student_idno' not in session:
+        return jsonify({'success': False, 'message': 'Please log in first'}), 401
+    
+    try:
+        data = request.json
+        student_idno = session.get('student_idno')
+        lab_id = data.get('lab_id')
+        computer_id = data.get('computer_id')
+        purpose = data.get('purpose')
+        reservation_date = data.get('reservation_date')
+        time_slot = data.get('time_slot')
+        
+        print(f"Received reservation data: {data}")
+        
+        # Validate required fields
+        missing_fields = []
+        if not lab_id:
+            missing_fields.append("Laboratory")
+        if not computer_id:
+            missing_fields.append("Computer")
+        if not purpose:
+            missing_fields.append("Purpose")
+        if not reservation_date:
+            missing_fields.append("Reservation date")
+        if not time_slot:
+            missing_fields.append("Time slot")
+            
+        if missing_fields:
+            error_message = f"Missing required fields: {', '.join(missing_fields)}"
+            print(error_message)
+            return jsonify({'success': False, 'message': error_message}), 400
+        
+        # Check if the student has enough sessions left
+        student = get_student_by_idno(student_idno)
+        if not student:
+            return jsonify({'success': False, 'message': 'Student record not found'}), 404
+            
+        if student['sessions_left'] <= 0:
+            return jsonify({'success': False, 'message': 'You have no sessions left'}), 400
+        
+        # Check if the student already has a pending reservation
+        if has_pending_student_reservation(student_idno):
+            return jsonify({'success': False, 'message': 'You already have a pending reservation'}), 400
+        
+        # Create the reservation
+        success = create_student_reservation(
+            student_idno, lab_id, computer_id, purpose, reservation_date, time_slot
+        )
+        
+        if success:
+            # Get the student name for notification
+            student_name = f"{student['firstname']} {student['midname'] if student['midname'] else ''} {student['lastname']}".strip()
+            
+            # Get lab name for notification
+            lab = getprocess("SELECT lab_name FROM laboratories WHERE id = ?", (lab_id,))
+            lab_name = lab[0]['lab_name'] if lab and len(lab) > 0 else "Unknown Lab"
+            
+            # Get computer number for notification
+            computer = getprocess("SELECT computer_number FROM lab_computers WHERE id = ?", (computer_id,))
+            computer_number = computer[0]['computer_number'] if computer and len(computer) > 0 else "Unknown"
+            
+            # Emit a socket.io event for real-time update
+            socketio.emit('new_student_reservation', {
+                'student_idno': student_idno,
+                'student_name': student_name,
+                'lab_id': lab_id,
+                'lab_name': lab_name,
+                'computer_id': computer_id,
+                'computer_number': computer_number,
+                'purpose': purpose,
+                'reservation_date': reservation_date,
+                'time_slot': time_slot
+            })
+            
+            return jsonify({
+                'success': True,
+                'message': 'Reservation created successfully'
+            })
+        else:
+            return jsonify({'success': False, 'message': 'Failed to create reservation'}), 500
+    except Exception as e:
+        print(f"Error creating reservation: {e}")
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+# Route to get student reservations
+@app.route('/get_student_reservations', methods=['GET'])
+def get_student_reservations_route():
+    if 'student_idno' not in session:
+        return jsonify({'success': False, 'message': 'Please log in first'}), 401
+    
+    student_idno = session.get('student_idno')
+    
+    try:
+        # Get student reservations
+        reservations = get_student_reservations(student_idno)
+        
+        return jsonify({
+            'success': True,
+            'reservations': reservations
+        })
+    except Exception as e:
+        print(f"Error getting student reservations: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# Student version of lab schedules API
+@app.route('/api/student/lab_schedules/<int:lab_id>', methods=['GET'])
+def api_student_lab_schedules(lab_id):
+    try:
+        # Get day parameter if provided
+        day_of_week = request.args.get('day')
+        
+        # Get schedules for the lab
+        schedules = get_lab_schedules(lab_id, day_of_week)
+        
+        # Get lab name
+        lab_name = "Unknown Lab"
+        labs = get_lab_names()
+        for lab in labs:
+            if lab['id'] == lab_id:
+                lab_name = lab['lab_name']
+                break
+        
+        return jsonify({
+            "success": True, 
+            "lab_id": lab_id,
+            "lab_name": lab_name,
+            "schedules": schedules,
+            "day": day_of_week
+        })
+    except Exception as e:
+        print(f"Error fetching lab schedules for student: {str(e)}")
+        return jsonify({
+            "success": False, 
+            "message": f"Error fetching schedules: {str(e)}"
+        }), 500
+
+@app.route('/get_points_history', methods=['GET'])
+def get_points_history():
+    # Dummy data for now
+    return jsonify({
+        'success': True,
+        'history': []
+    })
+
+# Route to update student reservation
+@app.route('/update_student_reservation', methods=['PUT'])
+def update_student_reservation():
+    if 'student_idno' not in session:
+        return jsonify({'success': False, 'message': 'Please log in first'}), 401
+    
+    try:
+        data = request.json
+        reservation_id = data.get('reservation_id')
+        purpose = data.get('purpose')
+        
+        if not reservation_id:
+            return jsonify({'success': False, 'message': 'Reservation ID is required'}), 400
+        
+        # Check if the reservation exists and belongs to the student
+        reservation = getprocess(
+            "SELECT * FROM student_reservation WHERE id = ? AND student_idno = ?", 
+            (reservation_id, session.get('student_idno'))
+        )
+        
+        if not reservation:
+            return jsonify({'success': False, 'message': 'Reservation not found or unauthorized'}), 404
+        
+        # Check if the reservation is in Pending status (only pending can be updated)
+        if reservation[0]['status'] != 'Pending':
+            return jsonify({'success': False, 'message': 'Only pending reservations can be updated'}), 400
+        
+        # Update the reservation purpose
+        if purpose:
+            success = postprocess(
+                "UPDATE student_reservation SET purpose = ? WHERE id = ?",
+                (purpose, reservation_id)
+            )
+            
+            if success:
+                return jsonify({
+                    'success': True,
+                    'message': 'Reservation updated successfully'
+                })
+            else:
+                return jsonify({'success': False, 'message': 'Failed to update reservation'}), 500
+        else:
+            return jsonify({'success': False, 'message': 'No fields to update'}), 400
+            
+    except Exception as e:
+        print(f"Error updating reservation: {e}")
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+# Route to delete student reservation
+@app.route('/delete_student_reservation/<int:reservation_id>', methods=['DELETE'])
+def delete_student_reservation(reservation_id):
+    if 'student_idno' not in session:
+        return jsonify({'success': False, 'message': 'Please log in first'}), 401
+    
+    try:
+        # Check if the reservation exists and belongs to the student
+        reservation = getprocess(
+            "SELECT * FROM student_reservation WHERE id = ? AND student_idno = ?", 
+            (reservation_id, session.get('student_idno'))
+        )
+        
+        if not reservation:
+            return jsonify({'success': False, 'message': 'Reservation not found or unauthorized'}), 404
+        
+        # Check if the reservation is in Pending status (only pending can be deleted)
+        if reservation[0]['status'] != 'Pending':
+            return jsonify({'success': False, 'message': 'Only pending reservations can be deleted'}), 400
+        
+        # Delete the reservation
+        success = postprocess(
+            "DELETE FROM student_reservation WHERE id = ?",
+            (reservation_id,)
+        )
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Reservation deleted successfully'
+            })
+        else:
+            return jsonify({'success': False, 'message': 'Failed to delete reservation'}), 500
+            
+    except Exception as e:
+        print(f"Error deleting reservation: {e}")
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+# Route to get a single student reservation
+@app.route('/get_reservation/<int:reservation_id>', methods=['GET'])
+def get_single_reservation(reservation_id):
+    if 'student_idno' not in session:
+        return jsonify({'success': False, 'message': 'Please log in first'}), 401
+    
+    try:
+        # Check if the reservation exists and belongs to the student
+        query = """
+            SELECT sr.*, l.lab_name, lc.computer_number as computer_name
+            FROM student_reservation sr
+            JOIN laboratories l ON sr.lab_id = l.id
+            JOIN lab_computers lc ON sr.computer_id = lc.id
+            WHERE sr.id = ? AND sr.student_idno = ?
+        """
+        reservation = getprocess(query, (reservation_id, session.get('student_idno')))
+        
+        if not reservation or len(reservation) == 0:
+            return jsonify({'success': False, 'message': 'Reservation not found or unauthorized'}), 404
+        
+        return jsonify({
+            'success': True,
+            'reservation': reservation[0]
+        })
+            
+    except Exception as e:
+        print(f"Error getting reservation: {e}")
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

@@ -3,6 +3,9 @@
 {% block content %}
 
 <meta charset="UTF-8">
+<!-- SweetAlert2 CSS and JS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.18/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.18/dist/sweetalert2.all.min.js"></script>
 
 <style>
   :root
@@ -487,7 +490,8 @@ pre {
                 <a href="#" data-section="announcements"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
                 <a href="#" data-section="lab-rules"><i class="fas fa-clipboard-list"></i><span>Lab Rules</span></a>
                 <a href="#" data-section="history"><i class="fas fa-history"></i><span>History</span></a>
-                <a href="#" data-section="reservations"><i class="fas fa-calendar-alt"></i><span>Reservations</span></a>
+                <a href="#" data-section="reservations" style="display: none;"><i class="fas fa-calendar-alt"></i><span>Reservations</span></a>
+                <a href="#" data-section="reservation-student"><i class="fas fa-calendar-alt"></i><span>Reservation Student</span></a>
                 <a href="#" data-section="sessions"><i class="fas fa-eye"></i><span>View Session</span></a>
                 <a href="#" data-section="lab-resources">
                     <i class="fas fa-folder-open"></i>
@@ -832,7 +836,7 @@ pre {
 
 
      <!-- Reservation Section -->
-    <div id="reservations" class="dashboard-section">
+    <div id="reservations" class="dashboard-section" style="display: none;">
       <div class="view-reservations-button" style="display: none;">
           <!-- Add a "View Reservations" Button -->
           <button id="viewReservationsBtn">
@@ -889,6 +893,197 @@ pre {
                   <i class="fas fa-calendar-check"></i> Submit Reservation
               </button>
           </form>
+      </div>
+    </div>
+
+    <div id="reservation-student" class="dashboard-section" style="display: none;">
+      <h1>Computer Lab Reservation</h1>
+      <!-- Reservation Actions -->
+      <div class="reservation-actions-container" style="width: 150px;">
+        <button id="createReservationBtn" class="action-button primary">
+          <i class="fas fa-plus-circle"></i> Make Reservation
+        </button>
+      </div>
+      <!-- Reservations Table Container -->
+      <div class="reservations-table-container">
+        <h2>My Reservations</h2>
+        <div class="table-responsive">
+          <table class="reservations-table" id="studentReservationsTable">
+            <thead>
+              <tr>
+                <th>Lab</th>
+                <th>Computer</th>
+                <th>Date</th>
+                <th>Time Slot</th>
+                <th>Purpose</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="studentReservationsBody">
+              <!-- Reservations will be dynamically loaded here -->
+            </tbody>
+          </table>
+          <div id="noReservationsMessage" class="no-data-message" style="display: none;">
+            <i class="fas fa-calendar-times"></i>
+            <p>You don't have any reservations yet.</p>
+            <p>Click the "Make Reservation" button to create one.</p>
+          </div>
+        </div>
+      </div>
+      <!-- Multi-step Reservation Modal -->
+      <div id="reservationModal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-container">
+          <div class="modal-header">
+            <h2>Computer Lab Reservation</h2>
+            <span class="modal-close">&times;</span>
+          </div>
+          <!-- Steps Progress Bar -->
+          <div class="steps-progress">
+            <div class="step active" data-step="1">
+              <div class="step-number">1</div>
+              <div class="step-label">Lab & Date</div>
+            </div>
+            <div class="step" data-step="2">
+              <div class="step-number">2</div>
+              <div class="step-label">Time Slot</div>
+            </div>
+            <div class="step" data-step="3">
+              <div class="step-number">3</div>
+              <div class="step-label">Computer</div>
+            </div>
+            <div class="step" data-step="4">
+              <div class="step-number">4</div>
+              <div class="step-label">Purpose</div>
+            </div>
+            <div class="step" data-step="5">
+              <div class="step-number">5</div>
+              <div class="step-label">Summary</div>
+            </div>
+          </div>
+          <div class="modal-body">
+            <!-- Step 1: Lab & Date Selection -->
+            <div class="step-content" data-step="1">
+              <h3>Select Lab and Date</h3>
+              <div class="form-group">
+                <label for="modal_lab_id">Laboratory:</label>
+                <select id="modal_lab_id" required>
+                  <option value="" disabled selected>Select a Laboratory</option>
+                  {% for lab in labs %}
+                  <option value="{{ lab.id }}">{{ lab.lab_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="modal_reservation_date">Reservation Date:</label>
+                <input type="date" id="modal_reservation_date" required min="{{ current_date }}" />
+                <small class="error-text" id="modal_date_error" style="display: none; color: red;">You cannot select a past date.</small>
+              </div>
+            </div>
+            <!-- Step 2: Time Slot Selection -->
+            <div class="step-content" data-step="2" style="display: none;">
+              <h3>Select Time Slot</h3>
+              <div class="time-slots-container" style="max-height: 300px; overflow-y: auto;">
+                <div id="time-slots-loading" class="loading" style="display: none;">
+                  <div class="spinner"></div>
+                  <p>Loading available time slots...</p>
+                </div>
+                <div id="time-slots-list" class="time-slots-list">
+                  <!-- Time slots will be dynamically loaded here -->
+                </div>
+                <div id="no-time-slots-message" class="no-data-message" style="display: none;">
+                  <i class="fas fa-clock"></i>
+                  <p>No available time slots for this date.</p>
+                  <p>Please select a different date or laboratory.</p>
+                </div>
+              </div>
+            </div>
+            <!-- Step 3: Computer Selection -->
+            <div class="step-content" data-step="3" style="display: none;">
+              <h3>Select Computer</h3>
+              <div class="computers-container" style="max-height: 300px; overflow-x: auto;">
+                <div id="computers-loading" class="loading" style="display: none;">
+                  <div class="spinner"></div>
+                  <p>Loading available computers...</p>
+                </div>
+                <div id="computers-grid" class="computers-grid">
+                  <!-- Computers will be dynamically loaded here -->
+                </div>
+                <div id="no-computers-message" class="no-data-message" style="display: none;">
+                  <i class="fas fa-desktop"></i>
+                  <p>No available computers in this laboratory.</p>
+                  <p>Please select a different laboratory.</p>
+                </div>
+              </div>
+            </div>
+            <!-- Step 4: Purpose Selection -->
+            <div class="step-content" data-step="4" style="display: none;">
+              <h3>Purpose</h3>
+              <div class="form-group">
+                <label for="modal_purpose">Purpose:</label>
+                <select id="modal_purpose" required>
+                  <option value="" disabled selected>Select Purpose</option>
+                  <option value="Java Programming">Java Programming</option>
+                  <option value="C# Programming">C# Programming</option>
+                  <option value="Systems Integration & Architecture">Systems Integration & Architecture</option>
+                  <option value="Embedded Systems & IoT">Embedded Systems & IoT</option>
+                  <option value="Digital Logic & Design">Digital Logic & Design</option>
+                  <option value="Computer Application">Computer Application</option>
+                  <option value="Database">Database</option>
+                  <option value="Project Management">Project Management</option>
+                  <option value="Python Programming">Python Programming</option>
+                  <option value="Mobile Application">Mobile Application</option>
+                  <option value="Web Design">Web Design</option>
+                  <option value="PHP Programming">PHP Programming</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Sessions Left:</label>
+                <div class="sessions-left-display">
+                  <span id="sessions_left_value">{{ current_session.sessions_left if current_session else 'No session found' }}</span>
+                </div>
+              </div>
+            </div>
+            <!-- Step 5: Summary & Submit -->
+            <div class="step-content" data-step="5" style="display: none;">
+              <h3>Reservation Summary</h3>
+              <div class="reservation-summary">
+                <div class="summary-item">
+                  <span class="summary-label">Laboratory:</span>
+                  <span id="summary_lab" class="summary-value">-</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">Date:</span>
+                  <span id="summary_date" class="summary-value">-</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">Time Slot:</span>
+                  <span id="summary_time_slot" class="summary-value">-</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">Computer:</span>
+                  <span id="summary_computer" class="summary-value">-</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">Purpose:</span>
+                  <span id="summary_purpose" class="summary-value">-</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button id="prevStepBtn" class="btn secondary" style="display: none;">
+              <i class="fas fa-arrow-left"></i> Previous
+            </button>
+            <button id="nextStepBtn" class="btn primary">
+              Next <i class="fas fa-arrow-right"></i>
+            </button>
+            <button id="submitReservationBtn" class="btn primary" style="display: none;">
+              <i class="fas fa-check-circle"></i> Submit Reservation
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -990,6 +1185,135 @@ pre {
             </div>
           </div>
 
+          <!-- Lab Schedules Modal -->
+          <div class="lab-schedules-modal" style="display: none;">
+            <div class="lab-schedules-modal-content">
+              <div class="lab-schedules-modal-header">
+                <h2>Lab Schedules</h2>
+                <button class="lab-schedules-modal-close">&times;</button>
+              </div>
+              <div class="lab-schedules-modal-body">
+                <div class="lab-schedules-tabs">
+                  {% for lab in labs %}
+                  <div class="lab-tab {% if loop.first %}active{% endif %}" data-lab="lab{{ lab.id }}">
+                    {{ lab.lab_name }}
+                  </div>
+                  {% endfor %}
+                </div>
+                <div class="lab-schedules-content">
+                  {% for lab in labs %}
+                  <div id="lab{{ lab.id }}-schedule" class="lab-schedule {% if loop.first %}active{% endif %}">
+                    <h3>{{ lab.lab_name }} Schedule</h3>
+                    <div class="schedule-description" style="margin-bottom: 20px; color: #666; font-size: 1.1rem;">
+                      <p>This schedule shows availability times and reserved class sessions for {{ lab.lab_name }}.</p>
+                      <p><strong>Green cells</strong> indicate time slots available for reservations. <strong>Red cells</strong> indicate class sessions or unavailable time slots.</p>
+                    </div>
+                    <div class="schedule-table-container">
+                      <table class="schedule-table">
+                        <thead>
+                          <tr>
+                            <th>Time</th>
+                            <th>Monday</th>
+                            <th>Tuesday</th>
+                            <th>Wednesday</th>
+                            <th>Thursday</th>
+                            <th>Friday</th>
+                            <th>Saturday</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <!-- Time slots will be loaded dynamically from the API -->
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+              <div class="lab-schedules-modal-footer">
+                <div class="schedule-legend">
+                  <div class="legend-item">
+                    <div class="legend-color empty-slot"></div>
+                    <span class="legend-text">Available</span>
+                  </div>
+                  <div class="legend-item">
+                    <div class="legend-color class-slot"></div>
+                    <span class="legend-text">Class in Session</span>
+                  </div>
+                </div>
+                <button class="schedule-print-btn">
+                  <i class="fas fa-print"></i> Print Schedule
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reservation Action Modal -->
+          <div id="reservationActionModal" class="modal" style="display: none;">
+            <div class="modal-overlay"></div>
+            <div class="modal-container">
+              <div class="modal-header">
+                <h2>Reservation Actions</h2>
+                <span class="modal-close" onclick="closeActionModal()">&times;</span>
+              </div>
+              <div class="modal-body">
+                <div class="reservation-details">
+                  <h3>Reservation Details</h3>
+                  <div class="summary-item">
+                    <span class="summary-label">Laboratory:</span>
+                    <span id="action_lab" class="summary-value">-</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">Date:</span>
+                    <span id="action_date" class="summary-value">-</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">Time Slot:</span>
+                    <span id="action_time" class="summary-value">-</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">Computer:</span>
+                    <span id="action_computer" class="summary-value">-</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">Purpose:</span>
+                    <span id="action_purpose_text" class="summary-value">-</span>
+                    <select id="action_purpose" style="display: none;">
+                      <option value="" disabled selected>Select Purpose</option>
+                  <option value="Java Programming">Java Programming</option>
+                  <option value="C# Programming">C# Programming</option>
+                  <option value="Systems Integration & Architecture">Systems Integration & Architecture</option>
+                  <option value="Embedded Systems & IoT">Embedded Systems & IoT</option>
+                  <option value="Digital Logic & Design">Digital Logic & Design</option>
+                  <option value="Computer Application">Computer Application</option>
+                  <option value="Database">Database</option>
+                  <option value="Project Management">Project Management</option>
+                  <option value="Python Programming">Python Programming</option>
+                  <option value="Mobile Application">Mobile Application</option>
+                  <option value="Web Design">Web Design</option>
+                  <option value="PHP Programming">PHP Programming</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <!-- Store reservation ID -->
+                <input type="hidden" id="current_reservation_id" value="">
+                
+                <div class="modal-footer">
+                  <button id="editPurposeBtn" class="btn" onclick="toggleEditPurpose()">
+                    <i class="fas fa-edit"></i> Edit Purpose
+                  </button>
+                  <button id="saveChangesBtn" class="btn primary" onclick="saveReservationChanges()" style="display: none;">
+                    <i class="fas fa-save"></i> Save Changes
+                  </button>
+                  <button id="deleteReservationBtn" class="btn danger" onclick="deleteReservation(document.getElementById('current_reservation_id').value)">
+                    <i class="fas fa-trash"></i> Delete Reservation
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="chat-icon" onclick="toggleChat()">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="24" height="24">
                 <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
@@ -1059,11 +1383,15 @@ const currentUserId = "{{ session.user_id }}";
 
 // Socket.io setup with better error handling
 let socket;
+let socketURL;
 try {
-    const socketURL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:5000' // Local WebSocket URL
-        : 'https://ccs-sit-in-monitoring-system.onrender.com'; // Render WebSocket URL
+    const socketHost = window.location.hostname;
+    const socketProtocol = window.location.protocol === 'https:' ? 'https' : 'http';
+    const socketPort = window.location.port || (socketProtocol === 'https' ? '443' : '80');
+    socketURL = `${socketProtocol}://${socketHost}${socketPort !== '80' && socketPort !== '443' ? `:${socketPort}` : ''}`;
 
+    console.log('Connecting to WebSocket at:', socketURL);
+    
     socket = io(socketURL, {
         transports: ['websocket', 'polling'], // Fallback to polling if websocket fails
         upgrade: true,
@@ -2339,35 +2667,38 @@ function closeFeedbackModal() {
 
 document.addEventListener('DOMContentLoaded', fetchReservationHistory);
 
-socket.on('update_session_count', function(data) {
-    try {
-        console.log('Received data:', data);  // Debug: Log the received data
+// Check socket exists before adding the listener
+if (socket) {
+    socket.on('update_session_count', function(data) {
+        try {
+            console.log('Received data:', data);  // Debug: Log the received data
 
-        // Ensure you're checking the correct student ID
-        if (data.student_idno === studentIdno) {  // Ensure this event is for the current student
-            const sessionsLeftElement = document.getElementById('sessions-left');
-            console.log('Sessions Left Element:', sessionsLeftElement);  // Debug: Check if the element exists
+            // Ensure you're checking the correct student ID
+            if (data.student_idno === studentIdno) {  // Ensure this event is for the current student
+                const sessionsLeftElement = document.getElementById('sessions-left');
+                console.log('Sessions Left Element:', sessionsLeftElement);  // Debug: Check if the element exists
 
-            if (sessionsLeftElement) {
-                // Update the sessions left in the DOM
-                sessionsLeftElement.textContent = data.sessions_left;
-                console.log('Updated sessions left:', data.sessions_left);
+                if (sessionsLeftElement) {
+                    // Update the sessions left in the DOM
+                    sessionsLeftElement.textContent = data.sessions_left;
+                    console.log('Updated sessions left:', data.sessions_left);
 
-                // Optionally update the progress bar (if needed)
-                const progressValueElement = document.querySelector('.progress-value');
-                if (progressValueElement) {
-                    progressValueElement.textContent = data.sessions_left;
+                    // Optionally update the progress bar (if needed)
+                    const progressValueElement = document.querySelector('.progress-value');
+                    if (progressValueElement) {
+                        progressValueElement.textContent = data.sessions_left;
+                    }
+                } else {
+                    console.error("Element with id 'sessions-left' not found in the DOM.");
                 }
             } else {
-                console.error("Element with id 'sessions-left' not found in the DOM.");
+                console.error(`Received event for student ID ${data.student_idno}, but the current student ID is ${studentIdno}`);
             }
-        } else {
-            console.error(`Received event for student ID ${data.student_idno}, but the current student ID is ${studentIdno}`);
+        } catch (error) {
+            console.error("Error handling 'update_session_count' event:", error);
         }
-    } catch (error) {
-        console.error("Error handling 'update_session_count' event:", error);
-    }
-});
+    });
+}
 
 // Optionally, handle page load event to ensure everything is ready before using socket
 document.addEventListener('DOMContentLoaded', function() {
@@ -2377,55 +2708,90 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 // Example: Emit event when a student submits a reservation
-document.getElementById('reservationForm').addEventListener('submit', function (e) {
-    e.preventDefault();
+// Check if reservationForm exists before adding the event listener
+const reservationForm = document.getElementById('reservationForm');
+if (reservationForm) {
+    reservationForm.addEventListener('submit', function (e) {
+        e.preventDefault();
 
-    const formData = new FormData(this);
+        const formData = new FormData(this);
 
-    fetch('/reservations', {
-        method: 'POST',
-        body: formData,
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Emit event to notify the admin
-            socket.emit('new_reservation', {
-                reservation_id: data.reservation_id,
-                student_idno: data.student_idno,
-                lab_name: data.lab_name,
-                purpose: data.purpose,
-                reservation_date: data.reservation_date,
-            });
-        } 
-    })
-    .catch(error => {
-        console.error('Error submitting reservation:', error);
+        fetch('/reservations', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Emit event to notify the admin
+                socket.emit('new_reservation', {
+                    reservation_id: data.reservation_id,
+                    student_idno: data.student_idno,
+                    lab_name: data.lab_name,
+                    purpose: data.purpose,
+                    reservation_date: data.reservation_date,
+                });
+            } 
+        })
+        .catch(error => {
+            console.error('Error submitting reservation:', error);
+        });
     });
-});
+} else {
+    console.warn('reservationForm element not found in the DOM');
+}
 
 
 
 // Listen for reservation approval updates
-socket.on('reservation_approved', (data) => {
-    console.log('Reservation approved:', data);
-    // Update the student's reservation status in the UI
-    const reservationRow = document.querySelector(`tr[data-reservation-id="${data.reservation_id}"]`);
-    if (reservationRow) {
-        reservationRow.querySelector('.status').textContent = data.status;
-    }
-});
+if (socket) {
+    socket.on('reservation_approved', (data) => {
+        console.log('Reservation approved:', data);
+        // Update the student's reservation status in the UI
+        const reservationRow = document.querySelector(`tr[data-reservation-id="${data.reservation_id}"]`);
+        if (reservationRow) {
+            reservationRow.querySelector('.status').textContent = data.status;
+        }
+    });
 
-// Listen for logout updates
-socket.on('reservation_updated', (data) => {
-    console.log('Reservation updated:', data);
-    // Update the student's reservation logout time in the UI
-    const reservationRow = document.querySelector(`tr[data-reservation-id="${data.reservation_id}"]`);
-    if (reservationRow) {
-        reservationRow.querySelector('.logout-time').textContent = data.logout_time || 'N/A';
-    }
-});
-
+    // Listen for logout updates
+    socket.on('reservation_updated', (data) => {
+        console.log('Reservation updated:', data);
+        // Update the student's reservation logout time in the UI
+        const reservationRow = document.querySelector(`tr[data-reservation-id="${data.reservation_id}"]`);
+        if (reservationRow) {
+            reservationRow.querySelector('.logout-time').textContent = data.logout_time || 'N/A';
+        }
+    });
+    
+    // Listen for new sit-in events to update the current sit-in list
+    socket.on('new_sitin', function(reservation) {
+        // Add the new reservation to the current sit-in table
+        const tableBody = document.querySelector('#reservations-table tbody');
+        
+        if (tableBody) {
+            const newRow = document.createElement('tr');
+            newRow.setAttribute('data-reservation-id', reservation.id);
+            
+            newRow.innerHTML = `
+                <td>${reservation.student_idno}</td>
+                <td>${reservation.student_name}</td>
+                <td>${reservation.lab_id}</td>
+                <td>${reservation.purpose}</td>
+                <td>${reservation.reservation_date}</td>
+                <td>${reservation.login_time}</td>
+                <td class="logout-time">N/A</td>
+                <td class="status">${reservation.status}</td>
+                <td class="sessions-left">${reservation.sessions_left}</td>
+                <td>
+                    <button class="logout-btn" data-reservation-id="${reservation.id}">Logout</button>
+                </td>
+            `;
+            
+            tableBody.prepend(newRow);
+        }
+    });
+}
 
 // Initialize when DOM is loaded
 document.addEventListener("DOMContentLoaded", function() {
@@ -2513,20 +2879,24 @@ socket.on('new_sitin', function(reservation) {
 });
 
 // Listen for new reservation events on student side
-socket.on(`student_${studentId}_new_reservation`, function(reservation) {
-    // If student is viewing history, update the table
-    if (currentView === 'history') {
-        addReservationToHistory(reservation);
-    }
-    
-    // Show notification
-    Swal.fire({
-        title: 'New Sit-In Created',
-        text: `You have been checked into ${reservation.lab_name}`,
-        icon: 'info',
-        timer: 3000
+// Ensure we have the studentId or use studentIdno as fallback
+if (socket) {
+    const currentId = studentId || studentIdno || "{{ session.student_idno }}";
+    socket.on(`student_${currentId}_new_reservation`, function(reservation) {
+        // If student is viewing history, update the table
+        if (typeof currentView !== 'undefined' && currentView === 'history') {
+            addReservationToHistory(reservation);
+        }
+        
+        // Show notification
+        Swal.fire({
+            title: 'New Sit-In Created',
+            text: `You have been checked into ${reservation.lab_name}`,
+            icon: 'info',
+            timer: 3000
+        });
     });
-});
+}
 
 function addReservationToHistory(reservation) {
     const historyBody = document.getElementById('historyBody');

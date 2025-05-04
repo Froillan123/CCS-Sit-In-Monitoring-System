@@ -55,26 +55,28 @@ document.addEventListener('DOMContentLoaded', () => {
       const input = document.getElementById(passwordFieldId);
       const iconEye = document.getElementById(eyeIconId);
 
-      console.log(`Input: ${passwordFieldId}`, input); // Debugging
-      console.log(`Icon: ${eyeIconId}`, iconEye); // Debugging
-
+      // Only add the event listener if both elements exist
       if (input && iconEye) {
           iconEye.addEventListener('click', () => {
               input.type = input.type === 'password' ? 'text' : 'password';
               iconEye.classList.toggle('ri-eye-fill');
               iconEye.classList.toggle('ri-eye-off-fill');
           });
-      } else {
-          console.error(`Element not found: ${passwordFieldId} or ${eyeIconId}`); // Debugging
       }
-  };
+    };
 
-  // Initialize password visibility toggles
-  passwordAccess('login_password', 'loginPasswordEye'); // Login Password
-  passwordAccess('reg_password', 'regPasswordEye'); // Registration Password
-  passwordAccess('repeat_password', 'repeatPasswordEye'); // Repeat Password
+    // Initialize password visibility toggles conditionally
+    if (document.getElementById('login_password') && document.getElementById('loginPasswordEye')) {
+        passwordAccess('login_password', 'loginPasswordEye');
+    }
 
+    if (document.getElementById('reg_password') && document.getElementById('regPasswordEye')) {
+        passwordAccess('reg_password', 'regPasswordEye');
+    }
 
+    if (document.getElementById('repeat_password') && document.getElementById('repeatPasswordEye')) {
+        passwordAccess('repeat_password', 'repeatPasswordEye');
+    }
 
 });
 

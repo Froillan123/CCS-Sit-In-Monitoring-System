@@ -738,6 +738,122 @@ def create_lab_computers_table():
         if conn:
             conn.close()
 
+# Create student_reservation table if it doesn't exist
+def create_student_reservation_table():
+    try:
+        conn = sqlite3.connect('student.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS student_reservation (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_idno TEXT NOT NULL,
+            lab_id INTEGER NOT NULL,
+            computer_id INTEGER,
+            purpose TEXT NOT NULL,
+            reservation_date TEXT NOT NULL,
+            time_slot TEXT NOT NULL,
+            status TEXT DEFAULT 'Pending',
+            feedback_submitted INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (student_idno) REFERENCES students(idno),
+            FOREIGN KEY (lab_id) REFERENCES laboratories(id),
+            FOREIGN KEY (computer_id) REFERENCES lab_computers(id)
+        )''')
+        
+        conn.commit()
+        print("Student reservation table created or already exists")
+    except Exception as e:
+        print(f"Error creating student reservation table: {e}")
+    finally:
+        if conn:
+            conn.close()
+
+# Function to create a new student reservation
+def create_student_reservation(student_idno, lab_id, computer_id, purpose, reservation_date, time_slot):
+    sql = """
+        INSERT INTO student_reservation 
+        (student_idno, lab_id, computer_id, purpose, reservation_date, time_slot, status)
+        VALUES (?, ?, ?, ?, ?, ?, 'Pending')
+    """
+    return postprocess(sql, (student_idno, lab_id, computer_id, purpose, reservation_date, time_slot))
+
+# Function to get student reservations by student ID
+def get_student_reservations(student_idno):
+    sql = """
+        SELECT sr.*, l.lab_name, lc.computer_number
+        FROM student_reservation sr
+        JOIN laboratories l ON sr.lab_id = l.id
+        LEFT JOIN lab_computers lc ON sr.computer_id = lc.id
+        WHERE sr.student_idno = ?
+        ORDER BY sr.created_at DESC
+    """
+    return getprocess(sql, (student_idno,))
+
+# Function to check if a student has a pending reservation
+def has_pending_student_reservation(student_idno):
+    sql = """
+        SELECT COUNT(*) as count
+        FROM student_reservation
+        WHERE student_idno = ? AND status = 'Pending'
+    """
+    result = getprocess(sql, (student_idno,))
+    return result[0]['count'] > 0 if result else False
+
+# Function to get available time slots for a lab on a specific date
+def get_available_time_slots(lab_id, reservation_date):
+    # Convert reservation_date to day of week
+    try:
+        date_obj = datetime.strptime(reservation_date, '%Y-%m-%d')
+        day_of_week = date_obj.strftime('%A')
+    except ValueError:
+        return []
+    
+    # Get all schedules for this lab on the specified day
+    sql = """
+        SELECT start_time, end_time, status
+        FROM lab_schedules
+        WHERE lab_id = ? AND day_of_week = ?
+        ORDER BY start_time
+    """
+    schedules = getprocess(sql, (lab_id, day_of_week))
+    
+    # Filter to only include available time slots
+    available_slots = []
+    for schedule in schedules:
+        if schedule['status'] == 'Available':
+            available_slots.append({
+                'start_time': schedule['start_time'],
+                'end_time': schedule['end_time'],
+                'time_slot': f"{schedule['start_time']} - {schedule['end_time']}"
+            })
+    
+    return available_slots
+
+# Function to get available computers for a lab
+def get_available_computers(lab_id):
+    sql = """
+        SELECT id, computer_number, status
+        FROM lab_computers
+        WHERE lab_id = ? AND status = 'Available'
+        ORDER BY computer_number
+    """
+    return getprocess(sql, (lab_id,))
+
+# Function to update student reservation status
+def update_student_reservation_status(reservation_id, status):
+    sql = """
+        UPDATE student_reservation
+        SET status = ?
+        WHERE id = ?
+    """
+    return postprocess(sql, (status, reservation_id))
+
+# Initialize all tables when module is loaded
+def initialize_tables():
+    create_lab_computers_table()
+    create_student_reservation_table()
+    create_points_tables()
+
 # Initialize lab computers for a lab
 def initialize_lab_computers(lab_id, computer_count=50):
     try:
