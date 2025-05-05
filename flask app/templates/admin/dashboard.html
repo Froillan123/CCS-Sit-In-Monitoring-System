@@ -191,29 +191,15 @@
         
         /* For Award Points Button */
         .btn-award-points {
-            background: linear-gradient(135deg, #11998e, #38ef7d);
-            color: white;
-            border: none;
-            padding: 0.6rem 1rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            display: none; /* Hide this button completely as we've moved the functionality */
         }
         
         .btn-award-points:hover {
-            background: linear-gradient(135deg, #0f8a7f, #32d86d);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 10px rgba(0,0,0,0.15);
+            display: none; /* Hide this button completely */
         }
         
         .btn-award-points:disabled {
-            background: #4a5568;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
+            display: none; /* Hide this button completely */
         }
         
         .no-data {
@@ -296,7 +282,7 @@
 
             <a href="#" data-page="management">
                 <i class="ri-computer-line"></i>
-                Com Lab Management
+                Lab Management
             </a>
 
             <a href="#" data-page="reservation-request">
@@ -647,7 +633,8 @@
                             <th>Reservation Date</th>
                             <th>Login Time</th>
                             <th>Logout Time</th>
-                            <th>Action</th>
+                            <th>Status</th>
+                            <th>Points Awarded</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -2667,3 +2654,4 @@ document.addEventListener('DOMContentLoaded', function() {
     <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 </body>
 </html>
+</rewritten_file>

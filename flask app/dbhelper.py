@@ -1398,3 +1398,15 @@ def get_unread_notifications_count(student_idno):
     """
     result = getprocess(sql, (student_idno,))
     return result[0]['count'] if result else 0
+
+# Function to get computer by number
+def get_computer_by_number(lab_id, computer_number):
+    """Get computer ID by lab ID and computer number"""
+    sql = """
+        SELECT id, computer_number, status
+        FROM lab_computers
+        WHERE lab_id = ? AND computer_number = ?
+        LIMIT 1
+    """
+    result = getprocess(sql, (lab_id, computer_number))
+    return result[0] if result else None

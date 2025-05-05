@@ -400,6 +400,7 @@ def logout_student(reservation_id):
         if not reservation:
             return jsonify({"success": False, "message": "Reservation not found"}), 404
 
+        student_idno = reservation['student_idno']
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
         # Update reservation with logout time and status
@@ -414,7 +415,6 @@ def logout_student(reservation_id):
             return jsonify({"success": False, "message": "Failed to log out student"}), 500
 
         # Decrease student's sessions_left by 1
-        student_idno = reservation['student_idno']
         if not postprocess("UPDATE students SET sessions_left = sessions_left - 1 WHERE idno = ?", (student_idno,)):
             print(f"Warning: Failed to decrement sessions_left for student {student_idno}")
 
@@ -425,7 +425,7 @@ def logout_student(reservation_id):
 
         # Record in session history - now passing all parameters correctly
         insert_session_history(
-            student_idno=reservation['student_idno'],
+            student_idno=student_idno,
             login_time=reservation['login_time'],
             logout_time=current_time,
             duration=duration_seconds
@@ -459,7 +459,8 @@ def logout_student(reservation_id):
         return jsonify({
             "success": True, 
             "message": "Student logged out successfully",
-            "sessions_left": updated_sessions_left
+            "sessions_left": updated_sessions_left,
+            "student_idno": student_idno  # Include student_idno in the response
         })
 
     except Exception as e:
@@ -1861,6 +1862,11 @@ def award_points():
         return jsonify({"success": False, "message": "Student ID required"}), 400
 
     try:
+        # Verify the student exists
+        student = get_student_by_idno(student_idno)
+        if not student:
+            return jsonify({"success": False, "message": "Student not found"}), 404
+            
         # Check if points already awarded for this reservation
         if reservation_id:
             points_awarded = getprocess(
@@ -1889,11 +1895,15 @@ def award_points():
         
         # Mark reservation as having points awarded if applicable
         if reservation_id:
-            postprocess(
-                "UPDATE reservations SET points_awarded = 1 WHERE id = ?",
-                (reservation_id,)
-            )
-
+            try:
+                postprocess(
+                    "UPDATE reservations SET points_awarded = 1 WHERE id = ?",
+                    (reservation_id,)
+                )
+            except Exception as e:
+                print(f"Warning: Could not mark reservation as having points awarded: {e}")
+                # Continue anyway - this is not critical
+        
         # Prepare success message
         message = "Successfully awarded 1 point."
         if additional_sessions > 0:
@@ -2681,7 +2691,7 @@ def create_student_reservation_route():
         data = request.json
         student_idno = session.get('student_idno')
         lab_id = data.get('lab_id')
-        computer_id = data.get('computer_id')
+        computer_number = data.get('computer_id')  # This is actually the computer number, not ID
         purpose = data.get('purpose')
         reservation_date = data.get('reservation_date')
         time_slot = data.get('time_slot')
@@ -2692,7 +2702,7 @@ def create_student_reservation_route():
         missing_fields = []
         if not lab_id:
             missing_fields.append("Laboratory")
-        if not computer_id:
+        if not computer_number:
             missing_fields.append("Computer")
         if not purpose:
             missing_fields.append("Purpose")
@@ -2718,6 +2728,13 @@ def create_student_reservation_route():
         if has_pending_student_reservation(student_idno):
             return jsonify({'success': False, 'message': 'You already have a pending reservation'}), 400
         
+        # Get the actual computer ID from the computer number
+        computer = get_computer_by_number(lab_id, computer_number)
+        if not computer:
+            return jsonify({'success': False, 'message': f'Computer #{computer_number} not found in lab {lab_id}'}), 404
+        
+        computer_id = computer['id']
+        
         # Create the reservation
         success = create_student_reservation(
             student_idno, lab_id, computer_id, purpose, reservation_date, time_slot
@@ -2731,9 +2748,8 @@ def create_student_reservation_route():
             lab = getprocess("SELECT lab_name FROM laboratories WHERE id = ?", (lab_id,))
             lab_name = lab[0]['lab_name'] if lab and len(lab) > 0 else "Unknown Lab"
             
-            # Get computer number for notification
-            computer = getprocess("SELECT computer_number FROM lab_computers WHERE id = ?", (computer_id,))
-            computer_number = computer[0]['computer_number'] if computer and len(computer) > 0 else "Unknown"
+            # Get computer number for notification - use the original computer number
+            computer_number_display = computer_number  # Use the selected computer number
             
             # Emit a socket.io event for real-time update
             socketio.emit('new_student_reservation', {
@@ -2742,7 +2758,7 @@ def create_student_reservation_route():
                 'lab_id': lab_id,
                 'lab_name': lab_name,
                 'computer_id': computer_id,
-                'computer_number': computer_number,
+                'computer_number': computer_number_display,
                 'purpose': purpose,
                 'reservation_date': reservation_date,
                 'time_slot': time_slot
@@ -2907,19 +2923,37 @@ def delete_student_reservation(reservation_id):
 # Route to get a single student reservation
 @app.route('/get_reservation/<int:reservation_id>', methods=['GET'])
 def get_single_reservation(reservation_id):
-    if 'student_idno' not in session:
+    if 'student_idno' not in session and 'admin_username' not in session:
         return jsonify({'success': False, 'message': 'Please log in first'}), 401
     
     try:
-        # Check if the reservation exists and belongs to the student
-        query = """
-            SELECT sr.*, l.lab_name, lc.computer_number as computer_name
-            FROM student_reservation sr
-            JOIN laboratories l ON sr.lab_id = l.id
-            JOIN lab_computers lc ON sr.computer_id = lc.id
-            WHERE sr.id = ? AND sr.student_idno = ?
-        """
-        reservation = getprocess(query, (reservation_id, session.get('student_idno')))
+        # If admin is requesting, allow any reservation
+        if 'admin_username' in session:
+            query = """
+                SELECT r.*, l.lab_name, COALESCE(lc.computer_number, 'Unknown') as computer_name,
+                s.idno as student_idno, s.firstname || ' ' || s.lastname as student_name
+                FROM reservations r
+                JOIN students s ON r.student_idno = s.idno
+                JOIN laboratories l ON r.lab_id = l.id
+                LEFT JOIN lab_computers lc ON r.computer_id = lc.id
+                WHERE r.id = ?
+            """
+            params = (reservation_id,)
+        else:
+            # Check if the reservation exists and belongs to the student
+            student_idno = session.get('student_idno')
+            query = """
+                SELECT r.*, l.lab_name, COALESCE(lc.computer_number, 'Unknown') as computer_name,
+                s.idno as student_idno, s.firstname || ' ' || s.lastname as student_name
+                FROM reservations r
+                JOIN students s ON r.student_idno = s.idno
+                JOIN laboratories l ON r.lab_id = l.id
+                LEFT JOIN lab_computers lc ON r.computer_id = lc.id
+                WHERE r.id = ? AND r.student_idno = ?
+            """
+            params = (reservation_id, student_idno)
+        
+        reservation = getprocess(query, params)
         
         if not reservation or len(reservation) == 0:
             return jsonify({'success': False, 'message': 'Reservation not found or unauthorized'}), 404
