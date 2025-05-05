@@ -1146,51 +1146,284 @@ function handleLogout(reservationId) {
             // Call the logout API
             fetch(`/logout-student/${reservationId}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire(
-                        'Logged Out!',
-                        'Student has been logged out successfully.',
-                        'success'
-                    );
-                    
-                    // Remove or update the row in the table
-                    const row = document.querySelector(`tr[data-reservation-id="${reservationId}"]`);
-                    if (row) {
-                        // Option 1: Remove the row
-                        row.remove();
-                        
-                        // Option 2: Update the row status and disable logout button
-                        // const statusCell = row.querySelector('.status');
-                        // const actionCell = row.querySelector('td:last-child');
-                        // if (statusCell) statusCell.textContent = 'Logged Out';
-                        // if (actionCell) actionCell.innerHTML = '<button class="logout-btn" disabled>Completed</button>';
-                    }
-                    
-                    // Refresh the page or reload data
-                    fetchAndDisplayCurrentSitIn();
+                    // After successful logout, prompt to award points
+                    Swal.fire({
+                        title: 'Reward Student',
+                        text: 'Would you like to award 1 point to this student?',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Yes',
+                        cancelButtonText: 'No'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Get the reservation data to extract student ID
+                            fetch(`/get_reservation/${reservationId}`)
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error(`HTTP error! Status: ${response.status}`);
+                                    }
+                                    return response.json();
+                                })
+                                .then(reservationData => {
+                                    if (reservationData.success && reservationData.reservation) {
+                                        // Award points
+                                        const studentIdno = reservationData.reservation.student_idno;
+                                        
+                                        if (!studentIdno) {
+                                            throw new Error('Unable to retrieve student ID from reservation');
+                                        }
+                                        
+                                        fetch('/award_points', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                            },
+                                            body: JSON.stringify({
+                                                student_idno: studentIdno,
+                                                reservation_id: reservationId,
+                                                reason: 'Reward for lab session'
+                                            })
+                                        })
+                                        .then(response => {
+                                            if (!response.ok) {
+                                                throw new Error(`HTTP error! Status: ${response.status}`);
+                                            }
+                                            return response.json();
+                                        })
+                                        .then(awardData => {
+                                            if (awardData.success) {
+                                                Swal.fire({
+                                                    title: 'Points Awarded!',
+                                                    text: awardData.message,
+                                                    icon: 'success'
+                                                }).then(() => {
+                                                    // Refresh page or table
+                                                    refreshCurrentTab();
+                                                });
+                                            } else {
+                                                Swal.fire({
+                                                    title: 'Error!',
+                                                    text: awardData.message || 'Failed to award points',
+                                                    icon: 'error'
+                                                }).then(() => {
+                                                    // Refresh page or table anyway
+                                                    refreshCurrentTab();
+                                                });
+                                            }
+                                        })
+                                        .catch(error => {
+                                            console.error('Error awarding points:', error);
+                                            Swal.fire({
+                                                title: 'Error!',
+                                                text: 'An error occurred while awarding points: ' + error.message,
+                                                icon: 'error'
+                                            }).then(() => {
+                                                refreshCurrentTab();
+                                            });
+                                        });
+                                    } else {
+                                        // If we can't get the reservation data, try a direct award using information from 
+                                        // the student logout data
+                                        if (data.student_idno) {
+                                            // Try to award points directly using the student ID from the logout data
+                                            fetch('/award_points', {
+                                                method: 'POST',
+                                                headers: {
+                                                    'Content-Type': 'application/json',
+                                                },
+                                                body: JSON.stringify({
+                                                    student_idno: data.student_idno,
+                                                    reservation_id: reservationId,
+                                                    reason: 'Reward for lab session'
+                                                })
+                                            })
+                                            .then(response => response.json())
+                                            .then(awardData => {
+                                                if (awardData.success) {
+                                                    Swal.fire({
+                                                        title: 'Points Awarded!',
+                                                        text: awardData.message,
+                                                        icon: 'success'
+                                                    }).then(() => {
+                                                        refreshCurrentTab();
+                                                    });
+                                                } else {
+                                                    Swal.fire({
+                                                        title: 'Error!',
+                                                        text: awardData.message || 'Failed to award points',
+                                                        icon: 'error'
+                                                    }).then(() => {
+                                                        refreshCurrentTab();
+                                                    });
+                                                }
+                                            })
+                                            .catch(error => {
+                                                console.error('Error in backup award points:', error);
+                                                Swal.fire({
+                                                    title: 'Error!',
+                                                    text: 'Failed to get student information for awarding points',
+                                                    icon: 'error'
+                                                }).then(() => {
+                                                    refreshCurrentTab();
+                                                });
+                                            });
+                                        } else {
+                                            Swal.fire({
+                                                title: 'Error!',
+                                                text: reservationData.message || 'Failed to get student information',
+                                                icon: 'error'
+                                            }).then(() => {
+                                                refreshCurrentTab();
+                                            });
+                                        }
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error getting reservation:', error);
+                                    // Try a fallback approach if we have student info in the logout data
+                                    if (data.student_idno) {
+                                        // Try to award points directly using the student ID from the logout data
+                                        fetch('/award_points', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                            },
+                                            body: JSON.stringify({
+                                                student_idno: data.student_idno,
+                                                reservation_id: reservationId,
+                                                reason: 'Reward for lab session'
+                                            })
+                                        })
+                                        .then(response => response.json())
+                                        .then(awardData => {
+                                            if (awardData.success) {
+                                                Swal.fire({
+                                                    title: 'Points Awarded!',
+                                                    text: awardData.message,
+                                                    icon: 'success'
+                                                }).then(() => {
+                                                    refreshCurrentTab();
+                                                });
+                                            } else {
+                                                Swal.fire({
+                                                    title: 'Error!',
+                                                    text: awardData.message || 'Failed to award points',
+                                                    icon: 'error'
+                                                }).then(() => {
+                                                    refreshCurrentTab();
+                                                });
+                                            }
+                                        })
+                                        .catch(error => {
+                                            console.error('Error in fallback award points:', error);
+                                            Swal.fire({
+                                                title: 'Error!',
+                                                text: 'An error occurred while awarding points',
+                                                icon: 'error'
+                                            }).then(() => {
+                                                refreshCurrentTab();
+                                            });
+                                        });
+                                    } else {
+                                        Swal.fire({
+                                            title: 'Error!',
+                                            text: 'An error occurred while getting student information: ' + error.message,
+                                            icon: 'error'
+                                        }).then(() => {
+                                            refreshCurrentTab();
+                                        });
+                                    }
+                                });
+                        } else {
+                            // If points not awarded, just refresh
+                            refreshCurrentTab();
+                        }
+                    });
                 } else {
-                    Swal.fire(
-                        'Error!',
-                        data.message || 'Failed to log out student.',
-                        'error'
-                    );
+                    Swal.fire({
+                        title: 'Error!',
+                        text: data.message || 'Failed to log out student',
+                        icon: 'error'
+                    });
                 }
             })
             .catch(error => {
-                console.error('Error during logout:', error);
-                Swal.fire(
-                    'Error!',
-                    'An error occurred during logout. Please try again.',
-                    'error'
-                );
+                console.error('Error logging out student:', error);
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'An error occurred while logging out the student',
+                    icon: 'error'
+                });
             });
         }
+    });
+}
+
+// Function to award a point to a student after logout
+function awardPointToStudent(studentIdno, reservationId) {
+    fetch('/award_points', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            student_idno: studentIdno,
+            reservation_id: reservationId,
+            reason: 'Reward for lab session'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message with point information
+            Swal.fire({
+                title: 'Point Awarded!',
+                html: `
+                    <div class="points-info">
+                        <p>${data.message}</p>
+                        <p>Student now has <strong>${data.sessions_left}</strong> sessions left.</p>
+                    </div>
+                `,
+                icon: 'success',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                // Refresh the current sit-in list
+                fetchAndDisplayCurrentSitIn();
+                
+                // Also update the leaderboard if visible
+                if (document.getElementById('leaderboard-top-3')) {
+                    fetchLeaderboard();
+                }
+            });
+        } else {
+            Swal.fire({
+                title: 'Error!',
+                text: data.message || 'Failed to award point to student.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                // Refresh anyway
+                fetchAndDisplayCurrentSitIn();
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error awarding point:', error);
+        Swal.fire({
+            title: 'Error!',
+            text: 'An error occurred while awarding the point. Please try again.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        }).then(() => {
+            // Refresh anyway
+            fetchAndDisplayCurrentSitIn();
+        });
     });
 }
 
@@ -1362,8 +1595,8 @@ function fetchAndDisplaySitInRecords() {
 }
 
 function displaySitInRecordsPage(page) {
-                const tableBody = document.querySelector('#records-table tbody');
-                tableBody.innerHTML = '';
+    const tableBody = document.querySelector('#records-table tbody');
+    tableBody.innerHTML = '';
 
     // Calculate start and end indices
     const startIndex = (page - 1) * sitInRecordsPerPage;
@@ -1384,36 +1617,31 @@ function displaySitInRecordsPage(page) {
     }
     
     pageData.forEach(reservation => {
-                    const row = document.createElement('tr');
-                    row.setAttribute('data-reservation-id', reservation.id);
-                    row.innerHTML = `
-                        <td>${reservation.student_idno}</td>
-                        <td>${reservation.student_name}</td>
-                        <td>${reservation.lab_name}</td>
-                        <td>${reservation.purpose}</td>
-                        <td>${reservation.reservation_date}</td>
-                        <td>${reservation.login_time}</td>
-                        <td>${reservation.logout_time || 'N/A'}</td>
-            <td>
-                <button class="btn-award-points" data-idno="${reservation.student_idno}" 
-                    data-reservation-id="${reservation.id}"
-                    ${reservation.points_awarded ? 'disabled' : ''}>
-                    ${reservation.points_awarded ? 'Points Awarded' : 'Award Points'}
-                </button>
-            </td>
-                    `;
-                    tableBody.appendChild(row);
-                });
-
-    // Add event listeners to all award buttons
-    document.querySelectorAll('.btn-award-points').forEach(button => {
-        button.addEventListener('click', function() {
-            if (!this.disabled) {
-                const studentIdno = this.getAttribute('data-idno');
-                const reservationId = this.getAttribute('data-reservation-id');
-                awardPointsToStudent(studentIdno, this, reservationId);
-            }
-        });
+        const row = document.createElement('tr');
+        row.setAttribute('data-reservation-id', reservation.id);
+        
+        // Determine status display
+        let status = "N/A";
+        if (reservation.status) {
+            status = reservation.status;
+        } else if (reservation.logout_time) {
+            status = "Logged Out";
+        } else if (reservation.login_time) {
+            status = "Approved";
+        }
+        
+        row.innerHTML = `
+            <td>${reservation.student_idno}</td>
+            <td>${reservation.student_name}</td>
+            <td>${reservation.lab_name}</td>
+            <td>${reservation.purpose}</td>
+            <td>${reservation.reservation_date}</td>
+            <td>${reservation.login_time}</td>
+            <td>${reservation.logout_time || 'N/A'}</td>
+            <td>${status}</td>
+            <td>${reservation.points_awarded ? 'Yes' : 'No'}</td>
+        `;
+        tableBody.appendChild(row);
     });
     
     // Update current page
@@ -1478,89 +1706,6 @@ function updateSitInRecordsPagination() {
         prevButton.disabled = sitInRecordsCurrentPage === 1;
         nextButton.disabled = sitInRecordsCurrentPage === totalPages;
     }
-}
-
-function awardPointsToStudent(studentIdno, buttonElement, reservationId) {
-    Swal.fire({
-        title: 'Award Points',
-        text: 'Give this student 1 point for their lab session?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Award 1 Point',
-        cancelButtonText: 'Cancel',
-        showLoaderOnConfirm: true,
-        preConfirm: () => {
-            return fetch('/award_points', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    student_idno: studentIdno,
-                    reservation_id: reservationId,
-                    reason: 'Reward for lab session'
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(response.statusText);
-                }
-                return response.json();
-            })
-            .catch(error => {
-                Swal.showValidationMessage(
-                    `Request failed: ${error}`
-                );
-            });
-        },
-        allowOutsideClick: () => !Swal.isLoading()
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Display the detailed message from the server
-            Swal.fire({
-                title: 'Success!',
-                html: `
-                    <div class="points-info">
-                        <p>${result.value.message}</p>
-                        <p>Student now has <strong>${result.value.sessions_left}</strong> sessions left.</p>
-                    </div>
-                `,
-                icon: 'success',
-                confirmButtonText: 'OK'
-            }).then((confirmResult) => {
-                if (confirmResult.isConfirmed) {
-                    // Refresh the page after clicking OK
-                    window.location.reload();
-                }
-            });
-            
-            // Disable the button and update text
-            if (buttonElement) {
-                buttonElement.disabled = true;
-                buttonElement.textContent = 'Points Awarded';
-                buttonElement.classList.add('disabled');
-            }
-            
-            // Mark this reservation as having points awarded in the data array
-            const reservation = sitInRecordsData.find(r => r.id === parseInt(reservationId));
-            if (reservation) {
-                reservation.points_awarded = true;
-            }
-            
-            // Update the leaderboard if we're on the dashboard page
-            if (document.getElementById('leaderboard-top-3')) {
-                fetchLeaderboard();
-            }
-            
-            // Refresh sit-in records to update any session counts
-            fetchAndDisplaySitInRecords();
-            
-            // Also refresh current sit-in display if we're on that page
-            if (window.location.hash === '#sit-in') {
-                fetchAndDisplayCurrentSitIn();
-            }
-        }
-    });
 }
 
 // Function to fetch and display the student points leaderboard
@@ -4758,4 +4903,22 @@ function formatTime(timeString) {
     }
     
     return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+// Helper function to refresh the current active tab
+function refreshCurrentTab() {
+    // Determine which tab is active and refresh accordingly
+    if (document.querySelector('#currentSitInSection').style.display !== 'none') {
+        // Current Sit-In tab is active
+        fetchAndDisplayCurrentSitIn();
+    } else if (document.querySelector('#sitInRecordsSection').style.display !== 'none') {
+        // Sit-In Records tab is active
+        fetchAndDisplaySitInRecords();
+    } else if (document.querySelector('#reservationsSection').style.display !== 'none') {
+        // Reservations tab is active
+        fetchAndDisplayReservations();
+    } else {
+        // Default: refresh the page as fallback
+        location.reload();
+    }
 }
