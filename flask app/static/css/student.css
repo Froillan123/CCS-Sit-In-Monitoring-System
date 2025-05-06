@@ -1,0 +1,271 @@
+/* Notification Styles */
+.notification-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  background-color: #6b08ff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+.notification-button:hover {
+  background-color: #5b06e5;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background-color: #ff4757;
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.notification-button i {
+  margin-right: 8px;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 350px;
+  max-height: 400px;
+  overflow-y: auto;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  display: none;
+}
+
+.dropdown-menu.show {
+  display: block;
+}
+
+.dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+  font-weight: bold;
+}
+
+.mark-read {
+  color: #6b08ff;
+  cursor: pointer;
+  font-size: 12px;
+  transition: color 0.3s;
+}
+
+.mark-read:hover {
+  color: #5b06e5;
+  text-decoration: underline;
+}
+
+.notification-item {
+  display: flex;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.notification-item:hover {
+  background-color: #f8f9fa;
+}
+
+.notification-item.unread {
+  background-color: #f0e6ff;
+}
+
+.notification-item.unread:hover {
+  background-color: #e2d5ff;
+}
+
+.notification-icon {
+  color: #6b08ff;
+  font-size: 16px;
+  margin-right: 12px;
+  align-self: flex-start;
+  padding-top: 2px;
+}
+
+.notification-content {
+  flex: 1;
+}
+
+.notification-title {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.notification-text {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.notification-time {
+  font-size: 12px;
+  color: #999;
+}
+
+.notification-footer {
+  padding: 12px 16px;
+  text-align: center;
+  color: #6b08ff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.notification-footer:hover {
+  background-color: #f8f9fa;
+  text-decoration: underline;
+}
+
+.notification-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: #999;
+}
+
+.notification-empty i {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.notifications-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  overflow-y: auto;
+}
+
+.notifications-modal-content {
+  position: relative;
+  background-color: white;
+  margin: 80px auto;
+  padding: 0;
+  width: 90%;
+  max-width: 600px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.notifications-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #eee;
+}
+
+.notifications-modal-title {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.notifications-modal-close {
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.notifications-modal-close:hover {
+  color: #333;
+}
+
+.notifications-modal-body {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.notification-modal-item {
+  display: flex;
+  padding: 16px 24px;
+  border-bottom: 1px solid #eee;
+  transition: background-color 0.2s ease;
+}
+
+.notification-modal-item:hover {
+  background-color: #f8f9fa;
+}
+
+.notification-modal-item.unread {
+  background-color: #f0e6ff;
+}
+
+.notification-modal-item.unread:hover {
+  background-color: #e2d5ff;
+}
+
+.notification-modal-icon {
+  color: #6b08ff;
+  font-size: 18px;
+  margin-right: 16px;
+  padding-top: 2px;
+}
+
+.notification-modal-content {
+  flex: 1;
+}
+
+.notification-modal-title {
+  font-weight: bold;
+  margin-bottom: 6px;
+  font-size: 16px;
+}
+
+.notification-modal-text {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.notification-modal-time {
+  font-size: 12px;
+  color: #999;
+}
+
+.notifications-modal-footer {
+  padding: 16px 24px;
+  text-align: center;
+  border-top: 1px solid #eee;
+}
+
+.mark-all-read-modal {
+  padding: 8px 16px;
+  background-color: #6b08ff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+.mark-all-read-modal:hover {
+  background-color: #5b06e5;
+} 

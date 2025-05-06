@@ -695,6 +695,140 @@ pre {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
+
+  /* Notification Modal Styles */
+  .notifications-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1050;
+    display: none;
+    overflow-y: auto;
+  }
+  
+  .notifications-modal-content {
+    position: relative;
+    width: 90%;
+    max-width: 600px;
+    margin: 50px auto;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+  }
+  
+  .notifications-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background-color: var(--first-color);
+    color: white;
+  }
+  
+  .notifications-modal-title {
+    font-size: 18px;
+    font-weight: 600;
+  }
+  
+  .notifications-modal-close {
+    font-size: 24px;
+    cursor: pointer;
+  }
+  
+  .notifications-modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 0;
+  }
+  
+  .notifications-modal-footer {
+    padding: 15px 20px;
+    display: flex;
+    justify-content: flex-end;
+    border-top: 1px solid #e0e0e0;
+    background-color: #f9f9f9;
+  }
+  
+  .mark-all-read-modal {
+    background-color: var(--first-color);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .mark-all-read-modal:hover {
+    background-color: var(--second-color);
+  }
+  
+  /* Notification Modal Item Styles */
+  .notification-modal-item {
+    padding: 15px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .notification-modal-item:last-child {
+    border-bottom: none;
+  }
+  
+  .notification-modal-item:hover {
+    background-color: #f5f5f5;
+  }
+  
+  .notification-modal-item.unread {
+    background-color: #f0f7ff;
+  }
+  
+  .notification-modal-icon {
+    flex: 0 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: var(--first-color);
+  }
+  
+  .notification-modal-content {
+    flex: 1;
+  }
+  
+  .notification-modal-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+  }
+  
+  .notification-modal-text {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 5px;
+  }
+  
+  .notification-modal-time {
+    font-size: 12px;
+    color: #777;
+  }
+  
+  /* Empty notification state */
+  .text-center {
+    text-align: center;
+  }
+  
+  .py-5 {
+    padding: 3rem 0;
+  }
+  
+  .mb-3 {
+    margin-bottom: 1rem;
+  }
 </style>
       <!-- Dashboard Container -->
           <div class="dashboard-wrapper">
@@ -772,24 +906,29 @@ pre {
 
                 <!-- Notification Items will be dynamically inserted here -->
                 <div id="notificationItems">
-                  <!-- Example of a single notification item -->
-                  <!--
-                  <div class="notification-item unread">
-                    <div class="notification-icon">
-                      <i class="fas fa-bell"></i>
-                    </div>
-                    <div class="notification-content">
-                      <div class="notification-title">New Announcement</div>
-                      <div class="notification-text">This is a sample notification.</div>
-                      <div class="notification-time">Just now</div>
-                    </div>
-                  </div>
-                  -->
+                  <!-- This area will be populated by JavaScript -->
                 </div>
 
-                <!-- Notification Footer -->
-                <div class="notification-footer">
+                <div class="notification-footer" id="viewAllNotifications">
                   View All Notifications
+                </div>
+              </div>
+
+              <!-- Notifications Modal -->
+              <div class="notifications-modal" id="notificationsModal">
+                <div class="notifications-modal-content">
+                  <div class="notifications-modal-header">
+                    <div class="notifications-modal-title">All Notifications</div>
+                    <div class="notifications-modal-close" id="closeNotificationsModal">×</div>
+                  </div>
+                  <div class="notifications-modal-body">
+                    <div id="notificationsModalList">
+                      <!-- Notifications will be dynamically loaded here -->
+                    </div>
+                  </div>
+                  <div class="notifications-modal-footer">
+                    <button class="mark-all-read-modal" id="markAllReadModal">Mark all as read</button>
+                  </div>
                 </div>
               </div>
 
@@ -1944,7 +2083,7 @@ function renderChart() {
           },
           x: {
             grid: {
-              display: false,
+              display: false, // Hide vertical grid lines
             },
             title: {
               display: window.innerWidth > 768,
@@ -1952,36 +2091,25 @@ function renderChart() {
             },
             ticks: {
               display: window.innerWidth > 768,
-              color: 'hsl(273, 77%, 65%)',
+              color: 'hsl(273, 77%, 65%)', // Purple tick labels
             }
           }
         },
         plugins: {
           legend: {
-            display: window.innerWidth > 768,
+            display: window.innerWidth > 768, // Hide legend on small screens
             position: 'top',
             labels: {
-              color: 'hsl(273, 77%, 65%)',
-            }
+              color: 'hsl(273, 77%, 65%)', // Purple legend text
+            },
           },
           tooltip: {
             enabled: true,
-            mode: 'nearest',
-            intersect: false,
-            backgroundColor: 'hsl(273, 77%, 65%)',
-            titleColor: '#fff',
-            bodyColor: '#fff',
-            callbacks: {
-              label: function (context) {
-                const durationInSeconds = context.raw;
-                const hours = Math.floor(durationInSeconds / 3600);
-                const minutes = Math.floor((durationInSeconds % 3600) / 60);
-                const seconds = durationInSeconds % 60;
-                return `Duration: ${hours}h ${minutes}m ${seconds}s`;
-              }
-            }
-          }
-        }
+            backgroundColor: 'hsl(273, 77%, 65%)', // Purple tooltip background
+            titleColor: '#fff', // White tooltip title
+            bodyColor: '#fff', // White tooltip body
+          },
+        },
       }
     });
   }
@@ -3201,5 +3329,71 @@ document.addEventListener('DOMContentLoaded', function() {
     // Existing code...
 });
 
+// Document ready function
+document.addEventListener('DOMContentLoaded', function() {
+    // Load notification data on page load
+    loadReservationNotifications();
+    
+    // Set up notification click events
+    setupNotificationEvents();
+    
+    // Setup socket events for notifications
+    setupReservationNotifications();
+    
+    // Other initialization code...
+});
+
+// Function to set up notification events
+function setupNotificationEvents() {
+    // View All Notifications button
+    const viewAllNotificationsBtn = document.getElementById('viewAllNotifications');
+    const notificationsModal = document.getElementById('notificationsModal');
+    const closeNotificationsModalBtn = document.getElementById('closeNotificationsModal');
+    
+    if (viewAllNotificationsBtn) {
+        viewAllNotificationsBtn.addEventListener('click', function() {
+            // Load all notifications including read ones
+            loadAllNotifications();
+            // Show the modal
+            notificationsModal.style.display = 'block';
+            // Prevent scrolling of background
+            document.body.style.overflow = 'hidden';
+        });
+    }
+    
+    // Close modal button
+    if (closeNotificationsModalBtn) {
+        closeNotificationsModalBtn.addEventListener('click', function() {
+            notificationsModal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        });
+    }
+    
+    // Mark all as read button in modal
+    const markAllReadModalBtn = document.getElementById('markAllReadModal');
+    if (markAllReadModalBtn) {
+        markAllReadModalBtn.addEventListener('click', function() {
+            markAllNotificationsAsRead();
+        });
+    }
+    
+    // Close modal when clicking outside of it
+    window.addEventListener('click', function(event) {
+        if (event.target === notificationsModal) {
+            notificationsModal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    });
+    
+    // ESC key to close modal
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && notificationsModal.style.display === 'block') {
+            notificationsModal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    });
+}
+
+// ... remaining existing script code ...
 </script>
 {% endblock %}

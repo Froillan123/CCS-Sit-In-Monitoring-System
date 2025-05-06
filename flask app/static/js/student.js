@@ -1227,7 +1227,7 @@ document.addEventListener('DOMContentLoaded', function () {
               <td>${r.reservation_date || '-'}</td>
               <td>${r.time_slot || '-'}</td>
               <td>${r.purpose || '-'}</td>
-              <td><span class="status-badge status-${(r.status || 'unknown').toLowerCase()}">${r.status || 'Unknown'}</span></td>
+            <td><span class="status-badge status-${(r.status || 'unknown').toLowerCase()}">${r.status || 'Unknown'}</span></td>
               <td>${actionsHtml}</td>
             `;
             reservationsTableBody.appendChild(tr);
@@ -1241,8 +1241,8 @@ document.addEventListener('DOMContentLoaded', function () {
               <tr>
                 <td colspan="7" class="text-center">
                   <div class="no-data-message">
-                    <i class="fas fa-calendar-times"></i>
-                    <p>You don't have any reservations yet.</p>
+                  <i class="fas fa-calendar-times"></i>
+                  <p>You don't have any reservations yet.</p>
                   </div>
                 </td>
               </tr>
@@ -1252,17 +1252,17 @@ document.addEventListener('DOMContentLoaded', function () {
       })
       .catch(error => {
         console.error('Error loading reservations:', error);
-        
-        // Show error message in the table
+      
+      // Show error message in the table
         reservationsTableBody.innerHTML = `
           <tr>
-            <td colspan="7" class="text-center">
+          <td colspan="7" class="text-center">
               <div class="error-message">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p>Error loading reservations. ${error.message || ''}</p>
-                <button onclick="loadStudentReservations()" class="btn primary">
-                  <i class="fas fa-sync"></i> Try Again
-                </button>
+              <i class="fas fa-exclamation-triangle"></i>
+              <p>Error loading reservations. ${error.message || ''}</p>
+              <button onclick="loadStudentReservations()" class="btn primary">
+                <i class="fas fa-sync"></i> Try Again
+              </button>
               </div>
             </td>
           </tr>
@@ -1755,21 +1755,21 @@ function closeActionModal() {
  * Handle reservation notifications 
  */
 function loadReservationNotifications() {
-    fetch('/api/student/notifications')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to fetch notifications');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                updateNotificationsUI(data.notifications);
-            }
-        })
-        .catch(error => {
-            console.error('Error loading notifications:', error);
-        });
+  fetch('/api/student/notifications')
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to fetch notifications');
+        }
+        return response.json();
+    })
+    .then(data => {
+          if (data.success) {
+            updateNotificationsUI(data.notifications);
+        }
+    })
+    .catch(error => {
+        console.error('Error loading notifications:', error);
+    });
 }
 
 /**
@@ -1782,7 +1782,7 @@ function updateNotificationsUI(notifications) {
     // Clear existing notifications
     notificationItems.innerHTML = '';
     
-    if (notifications.length === 0) {
+    if (!notifications || notifications.length === 0) {
         notificationItems.innerHTML = `
             <div class="notification-empty">
                 <i class="fas fa-bell-slash"></i>
@@ -1812,12 +1812,24 @@ function updateNotificationsUI(notifications) {
             iconClass = 'fas fa-exclamation-circle';
         }
         
+        // Add reservation type badge if applicable
+        let reservationTypeBadge = '';
+        if (notification.details && notification.details.reservation_type) {
+            const type = notification.details.reservation_type;
+            const badgeClass = type === 'sitin' ? 'type-sitin' : 'type-reservation';
+            const typeLabel = type === 'sitin' ? 'Sit-in' : 'Reservation';
+            reservationTypeBadge = `<span class="reservation-type-badge ${badgeClass}">${typeLabel}</span>`;
+        }
+        
         notificationItem.innerHTML = `
             <div class="notification-icon">
                 <i class="${iconClass}"></i>
             </div>
             <div class="notification-content">
-                <div class="notification-title">${notification.title}</div>
+                <div class="notification-title">
+                    ${notification.title}
+                    ${reservationTypeBadge}
+                </div>
                 <div class="notification-text">${notification.message}</div>
                 <div class="notification-time">${formatDateTime(notification.created_at)}</div>
             </div>
@@ -1874,7 +1886,7 @@ function markAllNotificationsAsRead() {
     .then(data => {
         if (data.success) {
             // Remove unread class from all notification items
-            document.querySelectorAll('.notification-item.unread').forEach(item => {
+          document.querySelectorAll('.notification-item.unread').forEach(item => {
                 item.classList.remove('unread');
             });
             updateNotificationCount();
@@ -1936,50 +1948,50 @@ function formatDateTime(dateTimeStr) {
 }
 
 /**
- * Set up socket.io event listeners for reservation notifications
+* Set up socket.io event listeners for reservation notifications
  */
 function setupReservationNotifications() {
-    // Check if socket.io is available
+  // Check if socket.io is available
     if (typeof socket === 'undefined') {
-        console.error('Socket.io not initialized');
+      console.error('Socket.io not initialized');
         return;
     }
     
-    // Listen for reservation status updates
-    socket.on('reservation_status_updated', function(data) {
-        // First check if this notification is for the current student
+  // Listen for reservation status updates
+  socket.on('reservation_status_updated', function(data) {
+      // First check if this notification is for the current student
         if (data.student_idno === currentStudentId) {
-            // Show a notification
-            showReservationNotification(data.title, data.message);
-            
-            // Refresh notifications list
-            loadReservationNotifications();
-            
-            // Refresh reservations if on the reservations page
-            if (document.getElementById('reservation-student').style.display === 'block') {
-                loadStudentReservations();
-            }
+          // Show a notification
+          showReservationNotification(data.title, data.message);
+          
+          // Refresh notifications list
+          loadReservationNotifications();
+          
+          // Refresh reservations if on the reservations page
+          if (document.getElementById('reservation-student').style.display === 'block') {
+              loadStudentReservations();
+          }
+      }
+  });
+  
+  // Listen for upcoming reservation notifications
+  socket.on('reservation_upcoming', function(data) {
+      if (data.student_idno === currentStudentId) {
+                showReservationNotification(data.title, data.message);
+          loadReservationNotifications();
         }
     });
     
-    // Listen for upcoming reservation notifications
-    socket.on('reservation_upcoming', function(data) {
+  // Listen for reservation ended notifications
+  socket.on('reservation_ended', function(data) {
         if (data.student_idno === currentStudentId) {
-            showReservationNotification(data.title, data.message);
+          showReservationNotification(data.title, data.message);
             loadReservationNotifications();
-        }
-    });
-    
-    // Listen for reservation ended notifications
-    socket.on('reservation_ended', function(data) {
-        if (data.student_idno === currentStudentId) {
-            showReservationNotification(data.title, data.message);
-            loadReservationNotifications();
-            
-            // Refresh reservations if on the reservations page
-            if (document.getElementById('reservation-student').style.display === 'block') {
-                loadStudentReservations();
-            }
+          
+          // Refresh reservations if on the reservations page
+          if (document.getElementById('reservation-student').style.display === 'block') {
+              loadStudentReservations();
+          }
         }
     });
 }
@@ -1987,11 +1999,20 @@ function setupReservationNotifications() {
 /**
  * Show a notification using SweetAlert2
  */
-function showReservationNotification(title, message) {
+function showReservationNotification(title, message, details = {}) {
+    // Prepare the type badge if available
+    let typeBadge = '';
+    if (details.reservation_type) {
+        const type = details.reservation_type;
+        const badgeClass = type === 'sitin' ? 'type-sitin' : 'type-reservation';
+        const typeLabel = type === 'sitin' ? 'Sit-in' : 'Reservation';
+        typeBadge = `<span class="reservation-type-badge ${badgeClass}">${typeLabel}</span>`;
+    }
+    
     if (typeof Swal !== 'undefined') {
         Swal.fire({
-            title: title,
-            text: message,
+            title: `${title} ${typeBadge}`,
+            html: message,
             icon: 'info',
             toast: true,
             position: 'top-end',
@@ -1999,13 +2020,16 @@ function showReservationNotification(title, message) {
             timer: 5000,
             timerProgressBar: true,
             customClass: {
-                popup: 'swal-default-size'
+                popup: 'swal-notification-popup'
             }
         });
     } else {
         // Fallback to alert if SweetAlert2 is not available
         alert(`${title}: ${message}`);
     }
+    
+    // Also trigger a refresh of the notifications list
+    loadReservationNotifications();
 }
 
 /**
@@ -2061,4 +2085,218 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(updateCurrentSitInSection, 500); // Wait for the table to load
         });
     }
-}); 
+});
+
+// Initialize notification functionality for the modal
+document.addEventListener('DOMContentLoaded', function () {
+    // View all notifications button event
+    const viewAllNotificationsBtn = document.getElementById('viewAllNotifications');
+    const notificationsModal = document.getElementById('notificationsModal');
+    const closeNotificationsModalBtn = document.getElementById('closeNotificationsModal');
+    const markAllReadModalBtn = document.getElementById('markAllReadModal');
+    
+    if (viewAllNotificationsBtn) {
+        viewAllNotificationsBtn.addEventListener('click', function() {
+            loadAllNotifications();
+            notificationsModal.style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        });
+    }
+
+    if (closeNotificationsModalBtn) {
+        closeNotificationsModalBtn.addEventListener('click', function() {
+            notificationsModal.style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        });
+    }
+
+    // Close modal when clicking outside
+    window.addEventListener('click', function(event) {
+        if (event.target === notificationsModal) {
+            notificationsModal.style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        }
+    });
+
+    if (markAllReadModalBtn) {
+        markAllReadModalBtn.addEventListener('click', function() {
+            markAllNotificationsAsRead();
+        });
+    }
+});
+
+/**
+ * Load all notifications for the modal view
+ */
+function loadAllNotifications() {
+    const notificationsContainer = document.getElementById('notificationsModalList');
+    
+    if (!notificationsContainer) {
+        console.error('Notifications container not found');
+        return;
+    }
+    
+    // Show loading indicator
+    notificationsContainer.innerHTML = `
+        <div class="text-center py-5">
+            <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+            <p>Loading notifications...</p>
+        </div>
+    `;
+    
+    // Fetch all notifications (including read ones)
+    // Set include_read=true to get all notifications, not just unread ones
+    fetch('/api/student/notifications?limit=100&include_read=true', {
+        method: 'GET',
+        headers: {
+            'Cache-Control': 'no-cache'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to fetch notifications');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success && data.notifications) {
+            displayAllNotifications(data.notifications);
+        } else {
+            notificationsContainer.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                    <p>No notifications found</p>
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Error loading notifications:', error);
+        notificationsContainer.innerHTML = `
+            <div class="text-center py-5">
+                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                <p>Failed to load notifications</p>
+            </div>
+        `;
+    });
+}
+
+/**
+ * Display all notifications in the modal
+ * @param {Array} notifications - List of notifications
+ */
+function displayAllNotifications(notifications) {
+    const modalList = document.getElementById('notificationsModalList');
+    
+    if (!modalList) {
+        console.error('Notifications modal list container not found');
+        return;
+    }
+    
+    if (!notifications || notifications.length === 0) {
+        modalList.innerHTML = `
+            <div class="text-center py-5">
+                <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                <p>No notifications to display</p>
+            </div>
+        `;
+        return;
+    }
+    
+    modalList.innerHTML = '';
+    
+    notifications.forEach(notification => {
+        const notificationItem = document.createElement('div');
+        notificationItem.className = `notification-modal-item ${notification.is_read ? '' : 'unread'}`;
+        notificationItem.dataset.id = notification.id;
+        
+        const currentTime = new Date().toISOString();
+        const timestamp = notification.created_at || currentTime;
+        
+        notificationItem.innerHTML = `
+            <div class="notification-modal-icon">
+                <i class="fas fa-${getNotificationIcon(notification.notification_type)}"></i>
+            </div>
+            <div class="notification-modal-content">
+                <div class="notification-modal-title">${notification.title}</div>
+                <div class="notification-modal-text">${notification.message}</div>
+                <div class="notification-modal-time" data-timestamp="${timestamp}">${formatTimeAgo(timestamp)}</div>
+            </div>
+        `;
+        
+        notificationItem.addEventListener('click', () => {
+            if (!notification.is_read) {
+                markNotificationAsRead(notification.id);
+                notificationItem.classList.remove('unread');
+            }
+        });
+        
+        modalList.appendChild(notificationItem);
+    });
+}
+
+/**
+ * Format notification date for display
+ * @param {Date} date - The notification date
+ * @returns {string} - Formatted date string
+ */
+function formatTimeAgo(dateString) {
+    const now = new Date();
+    const date = new Date(dateString);
+    const secondsAgo = Math.floor((now - date) / 1000);
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+        return 'Invalid date';
+    }
+
+    // Less than a minute
+    if (secondsAgo < 60) {
+        return 'Just now';
+    }
+    
+    // Less than an hour
+    if (secondsAgo < 3600) {
+        const minutes = Math.floor(secondsAgo / 60);
+        return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+    }
+    
+    // Less than a day
+    if (secondsAgo < 86400) {
+        const hours = Math.floor(secondsAgo / 3600);
+        return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+    }
+    
+    // Less than a week
+    if (secondsAgo < 604800) {
+        const days = Math.floor(secondsAgo / 86400);
+        return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+    }
+    
+    // For older dates, return the actual date
+        return date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+        day: 'numeric'
+    });
+}
+
+// Helper function to get notification icon based on type
+function getNotificationIcon(type) {
+  switch(type) {
+    case 'status_update':
+      return 'sync';
+    case 'upcoming':
+      return 'clock';
+    case 'start_time':
+      return 'play-circle';
+    case 'end_time':
+      return 'stop-circle';
+    case 'system':
+      return 'exclamation-circle';
+    case 'sit_in':
+      return 'chair';
+    default:
+      return 'bell';
+    }
+}
