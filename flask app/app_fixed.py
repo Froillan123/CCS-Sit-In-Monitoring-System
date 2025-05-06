@@ -498,13 +498,13 @@ def logout_student(reservation_id):
             update_computer_status(reservation['computer_id'], 'Available')
         
         # Decrement the student's sessions
-        sessions_result = get_total_session(student_idno)
-        if sessions_result:
-            current_sessions = sessions_result['sessions_left']
-            # Update sessions if greater than 0
-            if current_sessions > 0:
-                new_sessions = current_sessions - 1
-                update_student_sessions(student_idno, new_sessions)
+            sessions_result = get_total_session(student_idno)
+            if sessions_result:
+                current_sessions = sessions_result['sessions_left']
+                # Update sessions if greater than 0
+                if current_sessions > 0:
+                    new_sessions = current_sessions - 1
+                    update_student_sessions(student_idno, new_sessions)
         
         # Create notification for the student
         add_reservation_notification(
@@ -1972,26 +1972,25 @@ def award_points():
         # Check if points already awarded for this reservation
         if reservation_id:
             # Check reservations table for points already awarded
-                points_awarded = getprocess(
-                    "SELECT 1 FROM reservations WHERE id = ? AND points_awarded = 1",
-                    (reservation_id,)
-                )
-                if points_awarded:
-                    return jsonify({
-                        "success": False, 
+            points_awarded = getprocess(
+                "SELECT 1 FROM reservations WHERE id = ? AND points_awarded = 1",
+                (reservation_id,)
+            )
+            if points_awarded:
+                return jsonify({
+                    "success": False, 
                     "message": "Points already awarded for this session"
-                    }), 400
+                }), 400
             
             # Get the reservation type for a better message
-        reservation_info = getprocess(
+            reservation_info = getprocess(
                 "SELECT reservation_type FROM reservations WHERE id = ?",
-                        (reservation_id,)
-                    )
-        if not reservation_info or len(reservation_info) == 0:
+                (reservation_id,)
+            )
+            if not reservation_info or len(reservation_info) == 0:
                 return jsonify({"success": False, "message": "Reservation not found"}), 404
-            
-                reservation_type = reservation_info[0].get('reservation_type', 'session')
                 
+            reservation_type = reservation_info[0].get('reservation_type', 'session')
         else:
             reservation_type = "session"
         
@@ -2012,10 +2011,10 @@ def award_points():
         # Mark reservation as having points awarded if applicable
         if reservation_id:
             try:
-                    postprocess(
-                        "UPDATE reservations SET points_awarded = 1 WHERE id = ?",
-                            (reservation_id,)
-                        )
+                postprocess(
+                    "UPDATE reservations SET points_awarded = 1 WHERE id = ?",
+                    (reservation_id,)
+                )
             except Exception as e:
                 print(f"Warning: Could not mark reservation as having points awarded: {e}")
                 # Continue anyway - this is not critical
@@ -3186,8 +3185,8 @@ def update_reservation_status_endpoint():
             
             # Update login_time in reservations table
             postprocess(
-                "UPDATE reservations SET login_time = ? WHERE id = ?",
-                (login_time, reservation_id)
+            "UPDATE reservations SET login_time = ? WHERE id = ?",
+            (login_time, reservation_id)
             )
         
         # Set logout_time and update session history if status is Logged Out
@@ -3680,18 +3679,18 @@ def check_upcoming_reservations():
                     )
             
             # Check for sit-in opportunities
-                cursor.execute("""
+            cursor.execute("""
                 SELECT lc.*, s.email, s.student_idno
                 FROM lab_computers lc
                 LEFT JOIN students s ON s.current_computer = lc.id
                 WHERE lc.status = 'Available'
                 AND lc.is_available_for_sit_in = TRUE
             """)
-
-                available_computers = cursor.fetchall()
+            
+            available_computers = cursor.fetchall()
             
             # Get students waiting for sit-in
-                cursor.execute("""
+            cursor.execute("""
                 SELECT s.*, COUNT(r.id) as reservation_count
                 FROM students s
                 LEFT JOIN reservations r ON s.student_idno = r.student_idno
@@ -3701,10 +3700,10 @@ def check_upcoming_reservations():
                 ORDER BY reservation_count ASC, s.waiting_since ASC
             """)
             
-                waiting_students = cursor.fetchall()    
+            waiting_students = cursor.fetchall()
             
             # Match available computers with waiting students
-        for computer in available_computers:
+            for computer in available_computers:
                 if waiting_students:
                     student = waiting_students.pop(0)
                     
@@ -3745,7 +3744,7 @@ def check_upcoming_reservations():
                             f"Computer #{computer['computer_number']} is now available for sit-in. Please proceed to the computer lab."
                         )
             
-        conn.commit()
+            conn.commit()
             
     except Exception as e:
         print(f"Error in check_upcoming_reservations: {str(e)}")
@@ -4002,13 +4001,3 @@ def create_reservation_route():
     except Exception as e:
         app.logger.error(f"Error creating reservation: {str(e)}")
         return jsonify({"success": False, "message": f"Error creating reservation: {str(e)}"}), 500
-
-
-
-if __name__ == '__main__':
-    # Initialize tables and start schedulers before running the app
-    initialize_tables()
-    start_all_schedulers()
-    
-    port = int(os.environ.get('PORT', 5000))
-    socketio.run(app, debug=True, host='0.0.0.0', port=port)

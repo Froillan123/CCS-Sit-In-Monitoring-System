@@ -520,7 +520,7 @@
                             <th>Student Name</th>
                             <th>Lab Name</th>
                             <th>Purpose</th>
-                            <th>Reservation Date</th>
+                            <th>Date</th>
                             <th>Login Time</th>
                             <th>Logout Time</th>
                             <th>Session</th>
@@ -582,17 +582,18 @@
                         </div>
                     </div>
                     
+                    <!-- Replace the export buttons with explicit onclick handlers -->
                     <div class="export-buttons">
                         <button class="btn btn-export csv">
                             <i class="fas fa-file-csv"></i> CSV
                         </button>
-                        <button class="btn btn-export pdf">
+                        <button class="btn btn-export pdf"">
                             <i class="fas fa-file-pdf"></i> PDF
                         </button>
-                        <button class="btn btn-export excel">
+                        <button class="btn btn-export excel"">
                             <i class="fas fa-file-excel"></i> Excel
                         </button>
-                        <button class="btn btn-export print">
+                        <button class="btn btn-export print"">
                             <i class="fas fa-print"></i> Print
                         </button>
                     </div>
@@ -607,9 +608,8 @@
                                 <th>Student Name</th>
                                 <th>Lab</th>
                                 <th>Purpose</th>
-                                <th>Reservation Date</th>
-                                <th>Login Time</th>
-                                <th>Logout Time</th>
+                                <th>Date</th>
+                                <th>Time Slot</th>
                             </tr>
                         </thead>
                         <tbody id="reservationsTableBody">
@@ -630,7 +630,7 @@
                             <th>Student Name</th>
                             <th>Lab Name</th>
                             <th>Purpose</th>
-                            <th>Reservation Date</th>
+                            <th>Date</th>
                             <th>Login Time</th>
                             <th>Logout Time</th>
                             <th>Status</th>
@@ -893,7 +893,7 @@
 
                             <div class="form-group">
                                 <label for="end-time">End Time:</label>
-                                <input type="time" id="end-time" required>
+                                <input type="time" id="end-time">
                             </div>
 
                             <div class="form-group">
@@ -996,10 +996,10 @@
                             <th>Name</th>
                             <th>Course</th>
                             <th>Laboratory</th>
-                            <th>Computer</th>
                             <th>Purpose</th>
                             <th>Date</th>
                             <th>Time Slot</th>
+                            <th>Type</th>
                             <th>Status</th>
                         </tr>
                     </thead>
@@ -1775,11 +1775,15 @@ function renderReservationsTable(reservations) {
     tbody.innerHTML = '';
     
     if (reservations.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="no-data">No matching reservations found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="no-data">No matching reservations found</td></tr>';
         return;
     }
     
     reservations.forEach(reservation => {
+        // Format the time slot properly
+        const timeSlot = reservation.time_slot || (reservation.login_time ? 
+            (formatTime(reservation.login_time) + (reservation.logout_time ? ' - ' + formatTime(reservation.logout_time) : '')) : '-');
+            
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${reservation.student_id || 'N/A'}</td>
@@ -1787,8 +1791,7 @@ function renderReservationsTable(reservations) {
             <td>${reservation.lab_name || 'N/A'}</td>
             <td>${reservation.purpose || 'N/A'}</td>
             <td>${formatDate(reservation.reservation_date)}</td>
-            <td>${formatTime(reservation.login_time)}</td>
-            <td>${formatTime(reservation.logout_time)}</td>
+            <td>${timeSlot}</td>
         `;
         tbody.appendChild(row);
     });
@@ -1908,7 +1911,7 @@ function applyFilters() {
     
     renderReservationsTable(filteredReservations);
 }
-// Updated exportToCSV function without filters
+// Updated exportToCSV function with simplified columns
 async function exportToCSV() {
     try {
         if (filteredReservations.length === 0) {
@@ -1916,15 +1919,17 @@ async function exportToCSV() {
             return;
         }
         
-        // Create CSV content with header (removed filters info)
+        // Create CSV content with header
         let csv = 'University of Cebu Main College of Computer Studies Computer Laboratory Sit-in Monitoring System Report\n\n';
-        csv += 'Student ID,Student Name,Lab,Purpose,Reservation Date,Login Time,Logout Time\n';
+        csv += 'Student ID,Student Name,Lab,Purpose,Date,Time Slot\n';
         
         // Add data rows
         filteredReservations.forEach(reservation => {
+            const timeSlot = reservation.time_slot || (reservation.login_time ? 
+                (formatTime(reservation.login_time) + (reservation.logout_time ? ' - ' + formatTime(reservation.logout_time) : '')) : '-');
+                
             csv += `"${reservation.student_id || ''}","${reservation.student_name || ''}","${reservation.lab_name || ''}",`;
-            csv += `"${reservation.purpose || ''}","${formatDate(reservation.reservation_date)}",`;
-            csv += `"${formatTime(reservation.login_time)}","${formatTime(reservation.logout_time)}"\n`;
+            csv += `"${reservation.purpose || ''}","${formatDate(reservation.reservation_date)}","${timeSlot}"\n`;
         });
         
         // Create download link
@@ -1943,7 +1948,7 @@ async function exportToCSV() {
     }
 }
 
-// Updated exportToPDF function without filters
+// Updated exportToPDF function with simplified columns and specified purple color
 async function exportToPDF() {
     try {
         if (filteredReservations.length === 0) {
@@ -1954,41 +1959,49 @@ async function exportToPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         
-        // Add university header (simplified without filters)
+        // Add university header
         doc.setFontSize(12);
         doc.setTextColor(0, 0, 0);
         doc.text('University of Cebu Main', 14, 10);
         doc.text('College of Computer Studies', 14, 16);
         doc.text('Computer Laboratory Sit-in Monitoring System Report', 14, 22);
         
-        // Add generation date only
+        // Add generation date
         doc.setFontSize(10);
         doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
         
-        // Prepare table data
-        const headers = ['Student ID', 'Name', 'Lab', 'Purpose', 'Date', 'Login', 'Logout'];
-        const data = filteredReservations.map(reservation => [
-            reservation.student_id || 'N/A',
-            reservation.student_name || 'N/A',
-            reservation.lab_name || 'N/A',
-            reservation.purpose || 'N/A',
-            formatDate(reservation.reservation_date),
-            formatTime(reservation.login_time),
-            formatTime(reservation.logout_time)
-        ]);
+        // Prepare table data with specified columns
+        const headers = ['Student ID', 'Student Name', 'Lab', 'Purpose', 'Date', 'Time Slot'];
+        const data = filteredReservations.map(reservation => {
+            const timeSlot = reservation.time_slot || (reservation.login_time ? 
+                (formatTime(reservation.login_time) + (reservation.logout_time ? ' - ' + formatTime(reservation.logout_time) : '')) : '-');
+                
+            return [
+                reservation.student_id || 'N/A',
+                reservation.student_name || 'N/A',
+                reservation.lab_name || 'N/A',
+                reservation.purpose || 'N/A',
+                formatDate(reservation.reservation_date),
+                timeSlot
+            ];
+        });
         
-        // Add table
+        // Convert HSL color to RGB
+        // hsl(273, 77%, 65%) in RGB is approximately [166, 106, 217]
+        const purpleColor = [166, 106, 217];
+        
+        // Add table with the specified purple color
         doc.autoTable({
             head: [headers],
             body: data,
-            startY: 40, // Adjusted start position
+            startY: 40,
             styles: {
                 fontSize: 8,
                 cellPadding: 2,
                 overflow: 'linebreak'
             },
             headStyles: {
-                fillColor: [41, 128, 185],
+                fillColor: purpleColor,
                 textColor: 255,
                 fontStyle: 'bold'
             }
@@ -2003,7 +2016,7 @@ async function exportToPDF() {
     }
 }
 
-// Updated exportToExcel function without filters
+// Updated exportToExcel function with simplified columns
 async function exportToExcel() {
     try {
         if (filteredReservations.length === 0) {
@@ -2011,20 +2024,24 @@ async function exportToExcel() {
             return;
         }
         
-        // Prepare data with header (simplified)
+        // Prepare data with header
         const data = [
             ['University of Cebu Main College of Computer Studies Computer Laboratory Sit-in Monitoring System Report'],
             [''],
-            ['Student ID', 'Student Name', 'Lab', 'Purpose', 'Reservation Date', 'Login Time', 'Logout Time'],
-            ...filteredReservations.map(reservation => [
-                reservation.student_id || 'N/A',
-                reservation.student_name || 'N/A',
-                reservation.lab_name || 'N/A',
-                reservation.purpose || 'N/A',
-                formatDate(reservation.reservation_date),
-                formatTime(reservation.login_time),
-                formatTime(reservation.logout_time)
-            ])
+            ['Student ID', 'Student Name', 'Lab', 'Purpose', 'Date', 'Time Slot'],
+            ...filteredReservations.map(reservation => {
+                const timeSlot = reservation.time_slot || (reservation.login_time ? 
+                    (formatTime(reservation.login_time) + (reservation.logout_time ? ' - ' + formatTime(reservation.logout_time) : '')) : '-');
+                    
+                return [
+                    reservation.student_id || 'N/A',
+                    reservation.student_name || 'N/A',
+                    reservation.lab_name || 'N/A',
+                    reservation.purpose || 'N/A',
+                    formatDate(reservation.reservation_date),
+                    timeSlot
+                ];
+            })
         ];
         
         // Create worksheet
@@ -2032,7 +2049,7 @@ async function exportToExcel() {
         
         // Merge header cells
         if (!ws['!merges']) ws['!merges'] = [];
-        ws['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } });
+        ws['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } });
         
         // Create workbook
         const wb = XLSX.utils.book_new();
@@ -2046,7 +2063,8 @@ async function exportToExcel() {
         alert('Failed to export to Excel: ' + error.message);
     }
 }
-// Updated printReport function without filters
+
+// Updated printReport function with simplified columns
 function printReport() {
     try {
         if (filteredReservations.length === 0) {
@@ -2054,7 +2072,7 @@ function printReport() {
             return;
         }
         
-        // Create print window content (simplified)
+        // Create print window content with the specified columns
         let printContent = `
             <style>
                 body { font-family: Arial, sans-serif; margin: 20px; }
@@ -2062,7 +2080,7 @@ function printReport() {
                 .university-header { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
                 .report-title { font-size: 14px; margin-bottom: 15px; }
                 table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                th { background-color: #2980b9; color: white; text-align: left; padding: 8px; }
+                th { background-color: hsl(273, 77%, 65%); color: white; text-align: left; padding: 8px; }
                 td { padding: 8px; border-bottom: 1px solid #ddd; }
                 .footer { margin-top: 20px; font-size: 12px; color: #777; text-align: center; }
             </style>
@@ -2078,16 +2096,18 @@ function printReport() {
                         <th>Student Name</th>
                         <th>Lab</th>
                         <th>Purpose</th>
-                        <th>Reservation Date</th>
-                        <th>Login Time</th>
-                        <th>Logout Time</th>
+                        <th>Date</th>
+                        <th>Time Slot</th>
                     </tr>
                 </thead>
                 <tbody>
         `;
         
-        // Add rows
+        // Add rows with specified columns
         filteredReservations.forEach(reservation => {
+            const timeSlot = reservation.time_slot || (reservation.login_time ? 
+                (formatTime(reservation.login_time) + (reservation.logout_time ? ' - ' + formatTime(reservation.logout_time) : '')) : '-');
+                
             printContent += `
                 <tr>
                     <td>${reservation.student_id || 'N/A'}</td>
@@ -2095,8 +2115,7 @@ function printReport() {
                     <td>${reservation.lab_name || 'N/A'}</td>
                     <td>${reservation.purpose || 'N/A'}</td>
                     <td>${formatDate(reservation.reservation_date)}</td>
-                    <td>${formatTime(reservation.login_time)}</td>
-                    <td>${formatTime(reservation.logout_time)}</td>
+                    <td>${timeSlot}</td>
                 </tr>
             `;
         });
@@ -2654,4 +2673,3 @@ document.addEventListener('DOMContentLoaded', function() {
     <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 </body>
 </html>
-</rewritten_file>

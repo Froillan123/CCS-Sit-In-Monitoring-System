@@ -1439,7 +1439,7 @@ margin-right: 0.5rem;
 }
 
 .logout-btn {
-    background-color: #dc3545;
+    background-color: #dc3545; /* Red for sit-ins by default */
     color: white;
     border: none;
     padding: 5px 10px;
@@ -3610,5 +3610,15 @@ tr[data-foul-language="true"] {
 .status-completed {
     background-color: rgba(33, 150, 243, 0.2);
     color: #1976d2;
+}
+
+/* Reservation logout button (yellow) */
+tr[data-is-reservation="true"] .logout-btn {
+    background-color: #f0ad4e;
+    color: white;
+}
+
+tr[data-is-reservation="true"] .logout-btn:hover:not(:disabled) {
+    background-color: #ec971f;
 }
 

@@ -623,3 +623,123 @@ tr.fade-out {
     }
 }
 
+/* Badges for reservation types */
+.reservation-badge {
+    background-color: #f0ad4e; /* Yellow */
+    color: white;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    display: inline-block;
+}
+
+.sit-in-badge {
+    background-color: #dc3545; /* Red */
+    color: white;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    display: inline-block;
+}
+
+/* Logout button colors based on data-is-reservation attribute */
+tr[data-is-reservation="true"] .logout-btn {
+    background-color: #f0ad4e; /* Yellow for reservations */
+}
+
+tr[data-is-reservation="true"] .logout-btn:hover:not(:disabled) {
+    background-color: #ec971f; /* Darker yellow on hover */
+}
+
+tr[data-is-reservation="false"] .logout-btn {
+    background-color: #dc3545; /* Red for sit-ins */
+}
+
+tr[data-is-reservation="false"] .logout-btn:hover:not(:disabled) {
+    background-color: #c82333; /* Darker red on hover */
+}
+
+/* Add styles for the different button types */
+.logout-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+}
+
+.logout-btn.reservation-btn {
+    background-color: #FFC107; /* Yellow for reservations */
+    color: #333;
+}
+
+.logout-btn.reservation-btn:hover {
+    background-color: #FFB300;
+    transform: translateY(-2px);
+}
+
+.logout-btn.sit-in-btn {
+    background-color: #F44336; /* Red for sit-ins */
+    color: white;
+}
+
+.logout-btn.sit-in-btn:hover {
+    background-color: #E53935;
+    transform: translateY(-2px);
+}
+
+/* Badges for reservation types */
+.reservation-badge, .sit-in-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.reservation-badge {
+    background-color: #FFF8E1; /* Light yellow */
+    color: #FF8F00;
+    border: 1px solid #FFE082;
+}
+
+.sit-in-badge {
+    background-color: #FFEBEE; /* Light red */
+    color: #D32F2F;
+    border: 1px solid #FFCDD2;
+}
+
+/* Filter buttons for sit-in types */
+.sit-in-filters {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding: 10px 0;
+}
+
+.filter-btn {
+    padding: 8px 15px;
+    background-color: #f4f4f4;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    color: #333;
+}
+
+.filter-btn:hover {
+    background-color: #e9e9e9;
+    transform: translateY(-2px);
+}
+
+.filter-btn.active {
+    background-color: #8a2be2; /* Purple color to match the theme */
+    color: white;
+    border-color: #7c24c7;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+

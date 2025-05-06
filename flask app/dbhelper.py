@@ -375,16 +375,79 @@ def update_student_sessions(student_idno, sessions_left):
     sql = "UPDATE students SET sessions_left = ? WHERE idno = ?"
     return postprocess(sql, (sessions_left, student_idno))
 
-def create_reservation(student_idno: str, student_name: str, lab_id: str, 
-                      purpose: str, reservation_date: str, login_time: str, 
-                      status: str = "Pending") -> bool:
-    sql = """
-        INSERT INTO reservations 
-        (student_idno, student_name, lab_id, purpose, reservation_date, login_time, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+def create_reservation(student_idno, lab_id, purpose, reservation_date, 
+                      time_slot=None, computer_id=None, status="Pending", 
+                      reservation_type="reservation"):
+    """Create a new reservation in the consolidated reservations table
+    reservation_type can be: 'sit-in' or 'reservation'
     """
-    return postprocess(sql, (student_idno, student_name, lab_id, purpose, reservation_date, login_time, status))
-
+    try:
+        conn = sqlite3.connect('student.db')
+        cursor = conn.cursor()
+        
+        # Get student name
+        cursor.execute("SELECT firstname || ' ' || lastname as student_name FROM students WHERE idno = ?", 
+                      (student_idno,))
+        student = cursor.fetchone()
+        if not student:
+            print(f"Student with ID {student_idno} not found")
+            return False
+        
+        student_name = student[0]
+        
+        # Get computer number if computer_id is provided
+        computer_number = None
+        if computer_id:
+            cursor.execute("SELECT computer_number FROM lab_computers WHERE id = ?", (computer_id,))
+            computer = cursor.fetchone()
+            if computer:
+                computer_number = computer[0]
+        
+        # For sit-ins, get an available computer if none is assigned
+        if reservation_type == 'sit-in' and not computer_id:
+            cursor.execute('''
+                SELECT id, computer_number 
+                FROM lab_computers 
+                WHERE lab_id = ? AND status = 'Available' 
+                ORDER BY computer_number 
+                LIMIT 1
+            ''', (lab_id,))
+            available_computer = cursor.fetchone()
+            if available_computer:
+                computer_id = available_computer[0]
+                computer_number = available_computer[1]
+        
+        # Insert reservation
+        cursor.execute('''
+            INSERT INTO reservations 
+            (student_idno, student_name, lab_id, computer_id, computer_number, purpose, 
+            reservation_date, time_slot, status, reservation_type, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ''', (student_idno, student_name, lab_id, computer_id, computer_number, 
+              purpose, reservation_date, time_slot, status, reservation_type))
+        
+        reservation_id = cursor.lastrowid
+        conn.commit()
+        
+        # If computer was assigned, update its status
+        if computer_id and status == 'Approved':
+            update_computer_status(computer_id, 'In Use', student_idno)
+        
+        # Add notification
+        notification_title = "New Reservation" if reservation_type == "reservation" else "New Sit-In"
+        notification_message = f"Your {reservation_type} request has been submitted and is pending approval."
+        add_reservation_notification(student_idno, reservation_id, notification_title, 
+                                    notification_message, "status_update")
+        
+        return reservation_id
+    except Exception as e:
+        print(f"Error creating reservation: {e}")
+        if conn:
+            conn.rollback()
+        return False
+    finally:
+        if conn:
+            conn.close()
 
 
 def get_student_session_history(student_idno: str, limit: int = 30) -> list:
@@ -692,9 +755,12 @@ def has_points_for_reservation(student_idno, reservation_id):
 # Function to count the number of sit-ins a student has completed
 def get_student_sitin_count(student_idno):
     sql = """
-    SELECT COUNT(*) as sitin_count
-    FROM reservations 
-    WHERE student_idno = ? AND status = 'Logged Out'
+    SELECT 
+        (SELECT COUNT(*) FROM reservations 
+         WHERE student_idno = ? 
+         AND (status = 'Logged Out' OR status = 'Closed')
+         AND reservation_type = 'sit-in')
+        as sitin_count
     """
     result = getprocess(sql, (student_idno,))
     return result[0]['sitin_count'] if result else 0
@@ -754,6 +820,7 @@ def create_student_reservation_table():
             time_slot TEXT NOT NULL,
             status TEXT DEFAULT 'Pending',
             feedback_submitted INTEGER DEFAULT 0,
+            points_awarded INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (student_idno) REFERENCES students(idno),
             FOREIGN KEY (lab_id) REFERENCES laboratories(id),
@@ -768,32 +835,213 @@ def create_student_reservation_table():
         if conn:
             conn.close()
 
-# Function to create a new student reservation
-def create_student_reservation(student_idno, lab_id, computer_id, purpose, reservation_date, time_slot):
-    sql = """
-        INSERT INTO student_reservation 
-        (student_idno, lab_id, computer_id, purpose, reservation_date, time_slot, status)
-        VALUES (?, ?, ?, ?, ?, ?, 'Pending')
-    """
-    return postprocess(sql, (student_idno, lab_id, computer_id, purpose, reservation_date, time_slot))
+# Create logged_out_student_reservation table for completed reservations
+def create_logged_out_student_reservation_table():
+    try:
+        conn = sqlite3.connect('student.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS logged_out_student_reservation (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            original_id INTEGER,
+            student_idno TEXT NOT NULL,
+            lab_id INTEGER NOT NULL,
+            computer_id INTEGER,
+            purpose TEXT NOT NULL,
+            reservation_date TEXT NOT NULL,
+            time_slot TEXT NOT NULL,
+            login_time TEXT,
+            logout_time TEXT,
+            status TEXT DEFAULT 'Logged Out',
+            feedback_submitted INTEGER DEFAULT 0,
+            points_awarded INTEGER DEFAULT 0,
+            created_at TIMESTAMP,
+            logged_out_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (student_idno) REFERENCES students(idno),
+            FOREIGN KEY (lab_id) REFERENCES laboratories(id),
+            FOREIGN KEY (computer_id) REFERENCES lab_computers(id)
+        )''')
+        
+        conn.commit()
+        print("Logged out student reservation table created or already exists")
+    except Exception as e:
+        print(f"Error creating logged out student reservation table: {e}")
+    finally:
+        if conn:
+            conn.close()
 
-# Function to get student reservations by student ID
-def get_student_reservations(student_idno):
+# Function to move a logged out reservation to the logged_out_student_reservation table
+def move_to_logged_out_reservations(reservation_id, logout_time):
+    try:
+        # First, get the reservation data
+        sql_get = """
+            SELECT * FROM student_reservation
+            WHERE id = ?
+        """
+        reservation = getprocess(sql_get, (reservation_id,))
+        
+        if not reservation or len(reservation) == 0:
+            print(f"Reservation with ID {reservation_id} not found")
+            return False
+            
+        reservation = reservation[0]
+        
+        # Insert into logged_out_student_reservation
+        sql_insert = """
+            INSERT INTO logged_out_student_reservation
+            (original_id, student_idno, lab_id, computer_id, purpose, reservation_date, 
+            time_slot, login_time, logout_time, status, feedback_submitted, points_awarded, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Logged Out', ?, ?, ?)
+        """
+        
+        params = (
+            reservation_id,
+            reservation['student_idno'],
+            reservation['lab_id'],
+            reservation['computer_id'],
+            reservation['purpose'],
+            reservation['reservation_date'],
+            reservation['time_slot'],
+            reservation.get('login_time', None),
+            logout_time,
+            reservation['feedback_submitted'],
+            reservation.get('points_awarded', 0),
+            reservation['created_at']
+        )
+        
+        if not postprocess(sql_insert, params):
+            print(f"Failed to insert into logged_out_student_reservation table")
+            return False
+            
+        # Delete from student_reservation
+        sql_delete = """
+            DELETE FROM student_reservation
+            WHERE id = ?
+        """
+        
+        if not postprocess(sql_delete, (reservation_id,)):
+            print(f"Failed to delete from student_reservation table")
+            return False
+            
+        return True
+    except Exception as e:
+        print(f"Error moving reservation to logged_out table: {e}")
+        return False
+
+# Function to get student's logged out reservations
+def get_student_logged_out_reservations(student_idno):
     sql = """
-        SELECT sr.*, l.lab_name, lc.computer_number
-        FROM student_reservation sr
-        JOIN laboratories l ON sr.lab_id = l.id
-        LEFT JOIN lab_computers lc ON sr.computer_id = lc.id
-        WHERE sr.student_idno = ?
-        ORDER BY sr.created_at DESC
+        SELECT lo.*, l.lab_name, lc.computer_number
+        FROM logged_out_student_reservation lo
+        JOIN laboratories l ON lo.lab_id = l.id
+        LEFT JOIN lab_computers lc ON lo.computer_id = lc.id
+        WHERE lo.student_idno = ?
+        ORDER BY lo.logged_out_at DESC
     """
     return getprocess(sql, (student_idno,))
+
+# Function to create a new student reservation
+def create_student_reservation(student_idno, lab_id, computer_id, purpose, reservation_date, time_slot):
+    # Check if the student exists and get their name
+    student = get_student_by_idno(student_idno)
+    if not student:
+        print(f"Student with ID {student_idno} not found")
+        return False
+    
+    student_name = f"{student['firstname']} {student['lastname']}"
+    
+    # Use the consolidated reservations table instead of student_reservation
+    sql = """
+        INSERT INTO reservations 
+        (student_idno, student_name, lab_id, computer_id, purpose, reservation_date, 
+         time_slot, status, reservation_type)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+    return postprocess(sql, (
+        student_idno,
+        student_name,
+        lab_id,
+        computer_id, 
+        purpose, 
+        reservation_date, 
+        time_slot, 
+        'Pending',
+        'reservation'  # Set reservation_type to 'reservation'
+    ))
+
+# Get reservations by student ID
+def get_student_reservations(student_idno, include_logged_out=False):
+    """Get all reservations for a student
+    Parameters:
+        student_idno: The student ID number
+        include_logged_out: Whether to include logged out reservations
+    """
+    try:
+        print(f"Getting reservations for student: {student_idno}, include_logged_out: {include_logged_out}")
+        
+        status_condition = "" if include_logged_out else "AND r.status != 'Logged Out'"
+        
+        sql = f"""
+            SELECT 
+                r.id, 
+                r.student_idno, 
+                r.lab_id, 
+                r.computer_id, 
+                r.purpose, 
+                r.reservation_date, 
+                r.time_slot, 
+                r.login_time, 
+                r.logout_time, 
+                r.status, 
+                r.reservation_type,
+                r.created_at,
+                l.lab_name, 
+                lc.computer_number,
+                CASE 
+                    WHEN r.login_time IS NOT NULL AND r.logout_time IS NULL THEN 'Active Now' 
+                    ELSE r.status 
+                END AS display_status
+            FROM 
+                reservations r
+            JOIN 
+                laboratories l ON r.lab_id = l.id
+            LEFT JOIN 
+                lab_computers lc ON r.computer_id = lc.id
+            WHERE 
+                r.student_idno = ? {status_condition}
+            ORDER BY 
+                r.created_at DESC
+        """
+        
+        reservations = getprocess(sql, (student_idno,))
+        print(f"Found {len(reservations)} reservations for student {student_idno}")
+        
+        # Format dates for better display
+        for res in reservations:
+            # Make sure all reservations have reservation_type
+            if 'reservation_type' not in res or not res['reservation_type']:
+                res['reservation_type'] = 'reservation'
+                
+            # Make sure all the required fields exist
+            if 'lab_name' not in res or not res['lab_name']:
+                res['lab_name'] = 'Unknown Lab'
+                
+            # Ensure status is not null
+            if 'status' not in res or not res['status']:
+                res['status'] = 'Pending'
+        
+        return reservations
+    except Exception as e:
+        print(f"Error getting student reservations: {e}")
+        import traceback
+        traceback.print_exc()
+        return []
 
 # Function to check if a student has a pending reservation
 def has_pending_student_reservation(student_idno):
     sql = """
         SELECT COUNT(*) as count
-        FROM student_reservation
+        FROM reservations
         WHERE student_idno = ? AND status = 'Pending'
     """
     result = getprocess(sql, (student_idno,))
@@ -820,10 +1068,17 @@ def get_available_time_slots(lab_id, reservation_date):
     # Return all time slots with their status
     time_slots = []
     for schedule in schedules:
+        # Check if end_time exists - it's now optional
+        if schedule['end_time']:
+            time_slot = f"{schedule['start_time']} - {schedule['end_time']}"
+        else:
+            # If no end_time is provided, just use the start_time alone
+            time_slot = schedule['start_time']
+            
         time_slots.append({
             'start_time': schedule['start_time'],
-            'end_time': schedule['end_time'],
-            'time_slot': f"{schedule['start_time']} - {schedule['end_time']}",
+            'end_time': schedule.get('end_time', ''),  # Handle missing end_time
+            'time_slot': time_slot,
             'status': schedule['status']
         })
     
@@ -841,19 +1096,29 @@ def get_available_computers(lab_id):
 
 # Function to update student reservation status
 def update_student_reservation_status(reservation_id, status):
-    sql = """
-        UPDATE student_reservation
-        SET status = ?
-        WHERE id = ?
-    """
-    return postprocess(sql, (status, reservation_id))
+    """Update the status of a student reservation"""
+    try:
+        query = "UPDATE reservations SET status = ? WHERE id = ?"
+        result = postprocess(query, (status, reservation_id))
+        
+        if result:
+            print(f"Updated reservation {reservation_id} status to {status}")
+            return True
+        else:
+            print(f"Failed to update reservation {reservation_id} status")
+            return False
+    except Exception as e:
+        print(f"Error updating student reservation status: {e}")
+        return False
 
 # Initialize all tables when module is loaded
 def initialize_tables():
+    """Initialize all necessary tables"""
+    create_reservations_table()
     create_lab_computers_table()
-    create_student_reservation_table()
-    create_points_tables()
     create_reservation_notifications_table()
+    create_points_tables()
+    return True
 
 # Initialize lab computers for a lab
 def initialize_lab_computers(lab_id, computer_count=50):
@@ -938,7 +1203,7 @@ def update_computer_status(computer_id, status, student_idno=None):
             conn.close()
 
 # Add or update lab schedule
-def add_or_update_lab_schedule(lab_id, day_of_week, start_time, end_time, status, subject_code=None, subject_name=None, reason=None, schedule_id=None):
+def add_or_update_lab_schedule(lab_id, day_of_week, start_time, end_time=None, status='Available', subject_code=None, subject_name=None, reason=None, schedule_id=None):
     try:
         conn = sqlite3.connect('student.db')
         cursor = conn.cursor()
@@ -1322,11 +1587,229 @@ def drop_and_recreate_lab_schedules():
         if 'conn' in locals() and conn:
             conn.close()
 
-def create_reservation_notifications_table():
-    """Create the reservation_notifications table if it doesn't exist"""
+def create_reservations_table():
+    """Create a new consolidated reservations table that handles both sit-ins and lab reservations"""
     try:
         conn = sqlite3.connect('student.db')
         cursor = conn.cursor()
+        
+        # Create the reservations table if it doesn't exist
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS reservations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_idno TEXT NOT NULL,
+            student_name TEXT NOT NULL,
+            lab_id INTEGER NOT NULL,
+            computer_id INTEGER,
+            computer_number INTEGER,
+            purpose TEXT NOT NULL,
+            reservation_date TEXT NOT NULL,
+            time_slot TEXT,
+            login_time TEXT,
+            logout_time TEXT,
+            status TEXT DEFAULT 'Pending', -- Pending, Approved, Rejected, Logged Out
+            reservation_type TEXT NOT NULL DEFAULT 'sit-in', -- 'sit-in' or 'reservation'
+            session_number INTEGER,
+            points_awarded INTEGER DEFAULT 0,
+            feedback_submitted INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (student_idno) REFERENCES students(idno),
+            FOREIGN KEY (lab_id) REFERENCES laboratories(id),
+            FOREIGN KEY (computer_id) REFERENCES lab_computers(id)
+        )''')
+        
+        # Create indices for better performance
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_reservations_student_idno ON reservations(student_idno)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_reservations_status ON reservations(status)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_reservations_date ON reservations(reservation_date)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_reservations_type ON reservations(reservation_type)')
+        
+        conn.commit()
+        print("Consolidated reservations table created or already exists")
+        return True
+    except Exception as e:
+        print(f"Error creating reservations table: {e}")
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+# Function to create reservation notifications table with corrected foreign key
+def create_reservation_notifications_table():
+    """Create the reservation notifications table if it doesn't exist"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS reservation_notifications (
+                    id SERIAL PRIMARY KEY,
+                    student_idno VARCHAR(50) NOT NULL,
+                    reservation_id INTEGER,
+                    title VARCHAR(255) NOT NULL,
+                    message TEXT NOT NULL,
+                    type VARCHAR(50) NOT NULL,
+                    is_read INTEGER DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (student_idno) REFERENCES students(student_idno),
+                    FOREIGN KEY (reservation_id) REFERENCES reservations(id)
+                )
+            """)
+            
+            # Add notification_sent column to reservations table if it doesn't exist
+            cursor.execute("""
+                DO $$ 
+                BEGIN 
+                    IF NOT EXISTS (
+                        SELECT 1 
+                        FROM information_schema.columns 
+                        WHERE table_name = 'reservations' 
+                        AND column_name = 'notification_sent'
+                    ) THEN
+                        ALTER TABLE reservations ADD COLUMN notification_sent BOOLEAN DEFAULT FALSE;
+                    END IF;
+                END $$;
+            """)
+            
+            # Add is_waiting_for_sit_in and waiting_since columns to students table if they don't exist
+            cursor.execute("""
+                DO $$ 
+                BEGIN 
+                    IF NOT EXISTS (
+                        SELECT 1 
+                        FROM information_schema.columns 
+                        WHERE table_name = 'students' 
+                        AND column_name = 'is_waiting_for_sit_in'
+                    ) THEN
+                        ALTER TABLE students ADD COLUMN is_waiting_for_sit_in BOOLEAN DEFAULT FALSE;
+                    END IF;
+                    
+                    IF NOT EXISTS (
+                        SELECT 1 
+                        FROM information_schema.columns 
+                        WHERE table_name = 'students' 
+                        AND column_name = 'waiting_since'
+                    ) THEN
+                        ALTER TABLE students ADD COLUMN waiting_since TIMESTAMP;
+                    END IF;
+                END $$;
+            """)
+            
+            # Add is_available_for_sit_in column to lab_computers table if it doesn't exist
+            cursor.execute("""
+                DO $$ 
+                BEGIN 
+                    IF NOT EXISTS (
+                        SELECT 1 
+                        FROM information_schema.columns 
+                        WHERE table_name = 'lab_computers' 
+                        AND column_name = 'is_available_for_sit_in'
+                    ) THEN
+                        ALTER TABLE lab_computers ADD COLUMN is_available_for_sit_in BOOLEAN DEFAULT TRUE;
+                    END IF;
+                END $$;
+            """)
+            
+            conn.commit()
+            return True
+    except Exception as e:
+        print(f"Error creating reservation notifications table: {str(e)}")
+        return False
+
+# Migrate data from old tables to new consolidated table
+def migrate_reservations_data():
+    """Migrate data from student_reservation and logged_out_student_reservation to the new reservations table"""
+    try:
+        conn = sqlite3.connect('student.db')
+        cursor = conn.cursor()
+        
+        # Check if old tables exist
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('student_reservation', 'logged_out_student_reservation')")
+        tables = cursor.fetchall()
+        table_names = [table[0] for table in tables]
+        
+        if 'student_reservation' in table_names:
+            print("Migrating data from student_reservation table")
+            
+            # Get student names for each reservation
+            cursor.execute('''
+                SELECT sr.id, sr.student_idno, s.firstname || ' ' || s.lastname as student_name, 
+                       sr.lab_id, sr.computer_id, lc.computer_number, sr.purpose, sr.reservation_date, 
+                       sr.time_slot, NULL as login_time, NULL as logout_time, sr.status, 
+                       'reservation' as reservation_type, NULL as session_number, 
+                       sr.points_awarded, sr.feedback_submitted, sr.created_at
+                FROM student_reservation sr
+                JOIN students s ON sr.student_idno = s.idno
+                LEFT JOIN lab_computers lc ON sr.computer_id = lc.id
+            ''')
+            
+            student_reservations = cursor.fetchall()
+            
+            # Insert into new reservations table
+            for res in student_reservations:
+                cursor.execute('''
+                    INSERT INTO reservations 
+                    (id, student_idno, student_name, lab_id, computer_id, computer_number, purpose, 
+                     reservation_date, time_slot, login_time, logout_time, status, reservation_type, 
+                     session_number, points_awarded, feedback_submitted, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', res)
+            
+            print(f"Migrated {len(student_reservations)} records from student_reservation")
+        
+        if 'logged_out_student_reservation' in table_names:
+            print("Migrating data from logged_out_student_reservation table")
+            
+            # Get student names for each logged out reservation
+            cursor.execute('''
+                SELECT losr.original_id, losr.student_idno, s.firstname || ' ' || s.lastname as student_name, 
+                       losr.lab_id, losr.computer_id, lc.computer_number, losr.purpose, losr.reservation_date, 
+                       losr.time_slot, losr.login_time, losr.logout_time, losr.status, 
+                       'reservation' as reservation_type, NULL as session_number, 
+                       losr.points_awarded, losr.feedback_submitted, losr.created_at
+                FROM logged_out_student_reservation losr
+                JOIN students s ON losr.student_idno = s.idno
+                LEFT JOIN lab_computers lc ON losr.computer_id = lc.id
+            ''')
+            
+            logged_out_reservations = cursor.fetchall()
+            
+            # Insert into new reservations table
+            for res in logged_out_reservations:
+                cursor.execute('''
+                    INSERT INTO reservations 
+                    (id, student_idno, student_name, lab_id, computer_id, computer_number, purpose, 
+                     reservation_date, time_slot, login_time, logout_time, status, reservation_type, 
+                     session_number, points_awarded, feedback_submitted, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', res)
+            
+            print(f"Migrated {len(logged_out_reservations)} records from logged_out_student_reservation")
+        
+        conn.commit()
+        
+        return True
+    except Exception as e:
+        print(f"Error migrating reservation data: {e}")
+        if conn:
+            conn.rollback()
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+# Script to create a separate notifications table when executed directly
+def create_notifications_tables_script():
+    """Create the reservation_notifications table with the correct reservation ID foreign key
+    This function is meant to be called directly from the command line.
+    """
+    try:
+        print("Creating notifications table...")
+        conn = sqlite3.connect('student.db')
+        cursor = conn.cursor()
+        
+        # Create the notifications table (drop if exists)
+        cursor.execute('DROP TABLE IF EXISTS reservation_notifications')
+        
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS reservation_notifications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1338,11 +1821,11 @@ def create_reservation_notifications_table():
             is_read INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (student_idno) REFERENCES students(idno),
-            FOREIGN KEY (reservation_id) REFERENCES student_reservation(id) ON DELETE CASCADE
+            FOREIGN KEY (reservation_id) REFERENCES reservations(id) ON DELETE CASCADE
         )''')
         
         conn.commit()
-        print("Reservation notifications table created or already exists")
+        print("Reservation notifications table created successfully!")
         return True
     except Exception as e:
         print(f"Error creating reservation notifications table: {e}")
@@ -1351,6 +1834,7 @@ def create_reservation_notifications_table():
         if conn:
             conn.close()
 
+# Update the function to add a reservation notification to work with the new table
 def add_reservation_notification(student_idno, reservation_id, title, message, notification_type):
     """Add a new reservation notification for a student
     notification_type can be: 'status_update', 'upcoming', 'system'
@@ -1362,51 +1846,151 @@ def add_reservation_notification(student_idno, reservation_id, title, message, n
     """
     return postprocess(sql, (student_idno, reservation_id, title, message, notification_type))
 
-def get_student_notifications(student_idno, limit=20):
-    """Get notifications for a student, including reservation notifications"""
-    sql = """
-        SELECT * FROM reservation_notifications
-        WHERE student_idno = ?
-        ORDER BY created_at DESC
-        LIMIT ?
+# Get reservations by student ID
+def get_student_reservations(student_idno, include_logged_out=False):
+    """Get all reservations for a student
+    Parameters:
+        student_idno: The student ID number
+        include_logged_out: Whether to include logged out reservations
     """
-    return getprocess(sql, (student_idno, limit))
+    try:
+        print(f"Getting reservations for student: {student_idno}, include_logged_out: {include_logged_out}")
+        
+        status_condition = "" if include_logged_out else "AND r.status != 'Logged Out'"
+        
+        sql = f"""
+            SELECT 
+                r.id, 
+                r.student_idno, 
+                r.lab_id, 
+                r.computer_id, 
+                r.purpose, 
+                r.reservation_date, 
+                r.time_slot, 
+                r.login_time, 
+                r.logout_time, 
+                r.status, 
+                r.reservation_type,
+                r.created_at,
+                l.lab_name, 
+                lc.computer_number,
+                CASE 
+                    WHEN r.login_time IS NOT NULL AND r.logout_time IS NULL THEN 'Active Now' 
+                    ELSE r.status 
+                END AS display_status
+            FROM 
+                reservations r
+            JOIN 
+                laboratories l ON r.lab_id = l.id
+            LEFT JOIN 
+                lab_computers lc ON r.computer_id = lc.id
+            WHERE 
+                r.student_idno = ? {status_condition}
+            ORDER BY 
+                r.created_at DESC
+        """
+        
+        reservations = getprocess(sql, (student_idno,))
+        print(f"Found {len(reservations)} reservations for student {student_idno}")
+        
+        # Format dates for better display
+        for res in reservations:
+            # Make sure all reservations have reservation_type
+            if 'reservation_type' not in res or not res['reservation_type']:
+                res['reservation_type'] = 'reservation'
+                
+            # Make sure all the required fields exist
+            if 'lab_name' not in res or not res['lab_name']:
+                res['lab_name'] = 'Unknown Lab'
+                
+            # Ensure status is not null
+            if 'status' not in res or not res['status']:
+                res['status'] = 'Pending'
+        
+        return reservations
+    except Exception as e:
+        print(f"Error getting student reservations: {e}")
+        import traceback
+        traceback.print_exc()
+        return []
 
-def mark_notification_read(notification_id):
-    """Mark a notification as read"""
-    sql = """
-        UPDATE reservation_notifications
-        SET is_read = 1
-        WHERE id = ?
-    """
-    return postprocess(sql, (notification_id,))
+# Update the initialize_tables function to use the new consolidated tables
+def initialize_tables():
+    """Initialize all necessary tables"""
+    create_reservations_table()
+    create_lab_computers_table()
+    create_reservation_notifications_table()
+    create_points_tables()
+    return True
 
-def mark_all_notifications_read(student_idno):
-    """Mark all notifications for a student as read"""
-    sql = """
-        UPDATE reservation_notifications
-        SET is_read = 1
-        WHERE student_idno = ? AND is_read = 0
-    """
-    return postprocess(sql, (student_idno,))
-
-def get_unread_notifications_count(student_idno):
-    """Get count of unread notifications for a student"""
-    sql = """
-        SELECT COUNT(*) as count FROM reservation_notifications
-        WHERE student_idno = ? AND is_read = 0
-    """
-    result = getprocess(sql, (student_idno,))
-    return result[0]['count'] if result else 0
-
-# Function to get computer by number
+# Function to get a computer by its number in a specific lab
 def get_computer_by_number(lab_id, computer_number):
-    """Get computer ID by lab ID and computer number"""
-    sql = """
-        SELECT id, computer_number, status
-        FROM lab_computers
-        WHERE lab_id = ? AND computer_number = ?
-        LIMIT 1
+    """Get computer details by lab ID and computer number"""
+    try:
+        sql = """
+            SELECT * FROM lab_computers 
+            WHERE lab_id = ? AND computer_number = ?
+        """
+        result = getprocess(sql, (lab_id, computer_number))
+        return result[0] if result and len(result) > 0 else None
+    except Exception as e:
+        print(f"Error in get_computer_by_number: {e}")
+        return None
+
+# Function to get student notifications
+def get_student_notifications(student_idno, limit=20, include_read=False, reservation_type=None):
+    """Get notifications for a student with options to include read notifications and limit count
+    
+    Parameters:
+    student_idno (str): The student ID number
+    limit (int): Maximum number of notifications to return
+    include_read (bool): Whether to include already read notifications
+    reservation_type (str): Optional filter by reservation type ('reservation' or 'sit-in')
     """
-    result = getprocess(sql, (lab_id, computer_number))
-    return result[0] if result else None
+    try:
+        read_condition = "" if include_read else "AND is_read = 0"
+        
+        # Add reservation type filter if specified
+        reservation_type_condition = ""
+        params = [student_idno]
+        
+        if reservation_type:
+            # Join with the reservations table to filter by reservation_type
+            reservation_type_condition = """
+                AND EXISTS (
+                    SELECT 1 FROM reservations r 
+                    WHERE r.id = reservation_notifications.reservation_id 
+                    AND r.reservation_type = ?
+                )
+            """
+            params.append(reservation_type)
+        
+        params.append(limit)
+        
+        sql = f"""
+            SELECT 
+                rn.*,
+                r.reservation_type,
+                r.status as reservation_status
+            FROM 
+                reservation_notifications rn
+            LEFT JOIN
+                reservations r ON rn.reservation_id = r.id
+            WHERE 
+                rn.student_idno = ? 
+                {read_condition}
+                {reservation_type_condition}
+            ORDER BY 
+                rn.created_at DESC
+            LIMIT ?
+        """
+        return getprocess(sql, tuple(params))
+    except Exception as e:
+        print(f"Error getting student notifications: {e}")
+        return []
+
+if __name__ == "__main__":
+    # This code will run when the script is executed directly
+    print("Creating notification tables...")
+    create_notifications_tables_script()
+    print("Done!")

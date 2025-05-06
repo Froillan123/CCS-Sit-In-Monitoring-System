@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function () {
             updateUserCount();
         } else if (page === 'sit-in') {
             // Fetch current sit-ins
-            fetchAndDisplayCurrentSitIn();
+            loadCurrentSitIns();
         } else if (page === 'records') {
             // Fetch sit-in records
             fetchAndDisplaySitInRecords();
@@ -1052,6 +1052,7 @@ document.addEventListener('DOMContentLoaded', function () {
             
             const newRow = document.createElement('tr');
             newRow.setAttribute('data-reservation-id', reservation.id);
+            newRow.setAttribute('data-is-reservation', reservation.reservation_type === 'reservation');
             
             newRow.innerHTML = `
                 <td>${reservation.student_idno}</td>
@@ -1123,9 +1124,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 function handleLogout(reservationId) {
+    // Find the row element to determine if it's a reservation or sit-in
+    const row = document.querySelector(`tr[data-reservation-id="${reservationId}"]`);
+    const isReservation = row && row.getAttribute('data-is-reservation') === 'true';
+    const reservationType = isReservation ? 'reservation' : 'sit-in';
+    
     Swal.fire({
         title: 'Confirm Logout',
-        text: 'Are you sure you want to log out this student?',
+        text: `Are you sure you want to log out this ${reservationType}?`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
@@ -1136,7 +1142,7 @@ function handleLogout(reservationId) {
             // Show loading
             Swal.fire({
                 title: 'Processing...',
-                text: 'Logging out student...',
+                text: `Logging out ${reservationType}...`,
                 allowOutsideClick: false,
                 didOpen: () => {
                     Swal.showLoading();
@@ -1150,7 +1156,7 @@ function handleLogout(reservationId) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // After successful logout, prompt to award points
+                    // Always prompt to award points after successful logout
                     Swal.fire({
                         title: 'Reward Student',
                         text: 'Would you like to award 1 point to this student?',
@@ -1162,187 +1168,60 @@ function handleLogout(reservationId) {
                         cancelButtonText: 'No'
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            // Get the reservation data to extract student ID
-                            fetch(`/get_reservation/${reservationId}`)
-                                .then(response => {
-                                    if (!response.ok) {
-                                        throw new Error(`HTTP error! Status: ${response.status}`);
-                                    }
-                                    return response.json();
+                            // Award points directly using the student ID from the logout data
+                            if (data.student_idno) {
+                                fetch('/award_points', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        student_idno: data.student_idno,
+                                        reservation_id: reservationId
+                                    })
                                 })
-                                .then(reservationData => {
-                                    if (reservationData.success && reservationData.reservation) {
-                                        // Award points
-                                        const studentIdno = reservationData.reservation.student_idno;
-                                        
-                                        if (!studentIdno) {
-                                            throw new Error('Unable to retrieve student ID from reservation');
-                                        }
-                                        
-                                        fetch('/award_points', {
-                                            method: 'POST',
-                                            headers: {
-                                                'Content-Type': 'application/json',
-                                            },
-                                            body: JSON.stringify({
-                                                student_idno: studentIdno,
-                                                reservation_id: reservationId,
-                                                reason: 'Reward for lab session'
-                                            })
-                                        })
-                                        .then(response => {
-                                            if (!response.ok) {
-                                                throw new Error(`HTTP error! Status: ${response.status}`);
-                                            }
-                                            return response.json();
-                                        })
-                                        .then(awardData => {
-                                            if (awardData.success) {
-                                                Swal.fire({
-                                                    title: 'Points Awarded!',
-                                                    text: awardData.message,
-                                                    icon: 'success'
-                                                }).then(() => {
-                                                    // Refresh page or table
-                                                    refreshCurrentTab();
-                                                });
-                                            } else {
-                                                Swal.fire({
-                                                    title: 'Error!',
-                                                    text: awardData.message || 'Failed to award points',
-                                                    icon: 'error'
-                                                }).then(() => {
-                                                    // Refresh page or table anyway
-                                                    refreshCurrentTab();
-                                                });
-                                            }
-                                        })
-                                        .catch(error => {
-                                            console.error('Error awarding points:', error);
-                                            Swal.fire({
-                                                title: 'Error!',
-                                                text: 'An error occurred while awarding points: ' + error.message,
-                                                icon: 'error'
-                                            }).then(() => {
-                                                refreshCurrentTab();
-                                            });
-                                        });
-                                    } else {
-                                        // If we can't get the reservation data, try a direct award using information from 
-                                        // the student logout data
-                                        if (data.student_idno) {
-                                            // Try to award points directly using the student ID from the logout data
-                                            fetch('/award_points', {
-                                                method: 'POST',
-                                                headers: {
-                                                    'Content-Type': 'application/json',
-                                                },
-                                                body: JSON.stringify({
-                                                    student_idno: data.student_idno,
-                                                    reservation_id: reservationId,
-                                                    reason: 'Reward for lab session'
-                                                })
-                                            })
-                                            .then(response => response.json())
-                                            .then(awardData => {
-                                                if (awardData.success) {
-                                                    Swal.fire({
-                                                        title: 'Points Awarded!',
-                                                        text: awardData.message,
-                                                        icon: 'success'
-                                                    }).then(() => {
-                                                        refreshCurrentTab();
-                                                    });
-                                                } else {
-                                                    Swal.fire({
-                                                        title: 'Error!',
-                                                        text: awardData.message || 'Failed to award points',
-                                                        icon: 'error'
-                                                    }).then(() => {
-                                                        refreshCurrentTab();
-                                                    });
-                                                }
-                                            })
-                                            .catch(error => {
-                                                console.error('Error in backup award points:', error);
-                                                Swal.fire({
-                                                    title: 'Error!',
-                                                    text: 'Failed to get student information for awarding points',
-                                                    icon: 'error'
-                                                }).then(() => {
-                                                    refreshCurrentTab();
-                                                });
-                                            });
-                                        } else {
-                                            Swal.fire({
-                                                title: 'Error!',
-                                                text: reservationData.message || 'Failed to get student information',
-                                                icon: 'error'
-                                            }).then(() => {
-                                                refreshCurrentTab();
-                                            });
-                                        }
-                                    }
-                                })
-                                .catch(error => {
-                                    console.error('Error getting reservation:', error);
-                                    // Try a fallback approach if we have student info in the logout data
-                                    if (data.student_idno) {
-                                        // Try to award points directly using the student ID from the logout data
-                                        fetch('/award_points', {
-                                            method: 'POST',
-                                            headers: {
-                                                'Content-Type': 'application/json',
-                                            },
-                                            body: JSON.stringify({
-                                                student_idno: data.student_idno,
-                                                reservation_id: reservationId,
-                                                reason: 'Reward for lab session'
-                                            })
-                                        })
-                                        .then(response => response.json())
-                                        .then(awardData => {
-                                            if (awardData.success) {
-                                                Swal.fire({
-                                                    title: 'Points Awarded!',
-                                                    text: awardData.message,
-                                                    icon: 'success'
-                                                }).then(() => {
-                                                    refreshCurrentTab();
-                                                });
-                                            } else {
-                                                Swal.fire({
-                                                    title: 'Error!',
-                                                    text: awardData.message || 'Failed to award points',
-                                                    icon: 'error'
-                                                }).then(() => {
-                                                    refreshCurrentTab();
-                                                });
-                                            }
-                                        })
-                                        .catch(error => {
-                                            console.error('Error in fallback award points:', error);
-                                            Swal.fire({
-                                                title: 'Error!',
-                                                text: 'An error occurred while awarding points',
-                                                icon: 'error'
-                                            }).then(() => {
-                                                refreshCurrentTab();
-                                            });
+                                .then(response => response.json())
+                                .then(awardData => {
+                                    if (awardData.success) {
+                                        Swal.fire({
+                                            title: 'Points Awarded!',
+                                            text: awardData.message,
+                                            icon: 'success'
+                                        }).then(() => {
+                                            window.location.reload();
                                         });
                                     } else {
                                         Swal.fire({
                                             title: 'Error!',
-                                            text: 'An error occurred while getting student information: ' + error.message,
+                                            text: awardData.message || 'Failed to award points',
                                             icon: 'error'
                                         }).then(() => {
-                                            refreshCurrentTab();
+                                            window.location.reload();
                                         });
                                     }
+                                })
+                                .catch(error => {
+                                    console.error('Error in award points:', error);
+                                    Swal.fire({
+                                        title: 'Error!',
+                                        text: 'Failed to award points: ' + error.message,
+                                        icon: 'error'
+                                    }).then(() => {
+                                        window.location.reload();
+                                    });
                                 });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: 'Could not retrieve student information',
+                                    icon: 'error'
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            }
                         } else {
-                            // If points not awarded, just refresh
-                            refreshCurrentTab();
+                            // User chose not to award points - still refresh the page
+                            window.location.reload();
                         }
                     });
                 } else {
@@ -1350,6 +1229,8 @@ function handleLogout(reservationId) {
                         title: 'Error!',
                         text: data.message || 'Failed to log out student',
                         icon: 'error'
+                    }).then(() => {
+                        window.location.reload();
                     });
                 }
             })
@@ -1357,8 +1238,10 @@ function handleLogout(reservationId) {
                 console.error('Error logging out student:', error);
                 Swal.fire({
                     title: 'Error!',
-                    text: 'An error occurred while logging out the student',
+                    text: 'Failed to log out student: ' + error.message,
                     icon: 'error'
+                }).then(() => {
+                    window.location.reload();
                 });
             });
         }
@@ -1367,6 +1250,26 @@ function handleLogout(reservationId) {
 
 // Function to award a point to a student after logout
 function awardPointToStudent(studentIdno, reservationId) {
+    // Show confirmation dialog
+    if (!confirm('Are you sure you want to award points to this student?')) {
+        return;
+    }
+    
+    // Find the row and update its appearance
+    const row = document.querySelector(`tr[data-id="${reservationId}"]`);
+    if (row) {
+        // Disable buttons to prevent double-clicking
+        const buttons = row.querySelectorAll('button');
+        buttons.forEach(btn => {
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Processing...`;
+        });
+        
+        // Add processing class to row
+        row.classList.add('processing');
+    }
+    
+    // Send request to award points
     fetch('/award_points', {
         method: 'POST',
         headers: {
@@ -1374,56 +1277,31 @@ function awardPointToStudent(studentIdno, reservationId) {
         },
         body: JSON.stringify({
             student_idno: studentIdno,
-            reservation_id: reservationId,
-            reason: 'Reward for lab session'
+            reservation_id: reservationId
         })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Show success message with point information
-            Swal.fire({
-                title: 'Point Awarded!',
-                html: `
-                    <div class="points-info">
-                        <p>${data.message}</p>
-                        <p>Student now has <strong>${data.sessions_left}</strong> sessions left.</p>
-                    </div>
-                `,
-                icon: 'success',
-                confirmButtonText: 'OK'
-            }).then(() => {
-                // Refresh the current sit-in list
-                fetchAndDisplayCurrentSitIn();
-                
-                // Also update the leaderboard if visible
-                if (document.getElementById('leaderboard-top-3')) {
-                    fetchLeaderboard();
-                }
-            });
+            showToast(data.message || 'Points awarded successfully', 'success');
+            // Refresh the page to update the student list
+            window.location.reload();
         } else {
-            Swal.fire({
-                title: 'Error!',
-                text: data.message || 'Failed to award point to student.',
-                icon: 'error',
-                confirmButtonText: 'OK'
-            }).then(() => {
-                // Refresh anyway
-                fetchAndDisplayCurrentSitIn();
-            });
+            showToast(data.message || 'Failed to award points', 'error');
+            // Refresh the page anyway after a brief delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
         }
     })
     .catch(error => {
-        console.error('Error awarding point:', error);
-        Swal.fire({
-            title: 'Error!',
-            text: 'An error occurred while awarding the point. Please try again.',
-            icon: 'error',
-            confirmButtonText: 'OK'
-        }).then(() => {
-            // Refresh anyway
-            fetchAndDisplayCurrentSitIn();
-        });
+        console.error('Error awarding points:', error);
+        showToast('An error occurred while awarding points', 'error');
+        
+        // Refresh the page after error too
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
     });
 }
 
@@ -1466,69 +1344,118 @@ function fetchAndDisplayCurrentSitIn() {
             tableBody.innerHTML = '';
 
             if (data.success && data.data && data.data.length > 0) {
-                data.data.forEach(reservation => {
-                    const row = document.createElement('tr');
-                    row.setAttribute('data-reservation-id', reservation.id);
-                    row.setAttribute('data-is-reservation', reservation.reservation_type === 'reservation');
-                    
-                    // Create badge for reservation type
-                    let typeBadge = '';
-                    if (reservation.reservation_type === 'reservation') {
-                        typeBadge = '<span class="reservation-badge">Reservation</span>';
-                    } else {
-                        typeBadge = '<span class="sit-in-badge">Sit In</span>';
-                    }
-                    
-                    row.innerHTML = `
-                        <td>${reservation.student_idno}</td>
-                        <td>${reservation.student_name}</td>
-                        <td>${reservation.lab_name}</td>
-                        <td>${reservation.purpose}</td>
-                        <td>${reservation.reservation_date}</td>
-                        <td>${reservation.login_time}</td>
-                        <td>${reservation.logout_time || 'N/A'}</td>
-                        <td>${reservation.session_number || 'N/A'}</td>
-                        <td class="status">${reservation.status}</td>
-                        <td>${typeBadge}</td>
-                        <td>
-                            <button class="logout-btn" data-reservation-id="${reservation.id}">Logout</button>
-                        </td>
-                    `;
-                    tableBody.appendChild(row);
-                });
+                // Filter out any logged out reservations just to be safe
+                const activeSitIns = data.data.filter(reservation => reservation.status !== 'Logged Out');
+                
+                if (activeSitIns.length > 0) {
+                    activeSitIns.forEach(reservation => {
+                        const row = document.createElement('tr');
+                        row.setAttribute('data-reservation-id', reservation.id);
+                        row.setAttribute('data-is-reservation', reservation.reservation_type === 'reservation');
+                        
+                        // Create badge for reservation type
+                        let typeBadge = '';
+                        if (reservation.reservation_type === 'reservation') {
+                            typeBadge = '<span class="reservation-badge">Reservation</span>';
+                        } else {
+                            typeBadge = '<span class="sit-in-badge">Sit In</span>';
+                        }
+                        
+                        row.innerHTML = `
+                            <td>${reservation.student_idno}</td>
+                            <td>${reservation.student_name}</td>
+                            <td>${reservation.lab_name}</td>
+                            <td>${reservation.purpose}</td>
+                            <td>${reservation.reservation_date}</td>
+                            <td>${reservation.login_time}</td>
+                            <td class="logout-time">${reservation.logout_time || 'N/A'}</td>
+                            <td>${reservation.session_number || 'N/A'}</td>
+                            <td class="status">${reservation.status}</td>
+                            <td>${typeBadge}</td>
+                            <td>
+                                <button class="logout-btn" data-reservation-id="${reservation.id}">Logout</button>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                } else {
+                    showNoSitInsMessage(tableBody);
+                }
             } else {
-                // Display "No student sitting in" row with styling and icon
-                const emptyRow = document.createElement('tr');
-                emptyRow.innerHTML = `
-                    <td colspan="11" style="
-                        text-align: center;
-                        padding: 30px 40px;
-                        color: #888;
-                        font-size: 17px;
-                        transition: all 0.3s ease;
-                    ">
-                        <i class="fas fa-chair" style="margin-right: 10px; color: #ccc; font-size: 18px;"></i>
-                        No student is currently sitting in.
-                    </td>
-                `;
-                tableBody.appendChild(emptyRow);
+                showNoSitInsMessage(tableBody);
+            }
+            
+            // Add event listeners to all logout buttons
+            document.querySelectorAll('.logout-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const reservationId = this.getAttribute('data-reservation-id');
+                    handleLogout(reservationId);
+                });
+            });
+            
+            // Apply the currently active filter after loading data
+            const activeFilter = document.querySelector('.sit-in-filters .filter-btn.active');
+            if (activeFilter) {
+                const filter = activeFilter.getAttribute('data-filter');
+                setTimeout(() => {
+                    applySitInFilter(filter);
+                }, 10);
             }
         })
         .catch(error => {
             console.error('Error fetching current sit-ins:', error);
             const tableBody = document.querySelector('#reservations-table tbody');
-            if (tableBody) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="11" class="text-center error">
-                            Failed to load reservations: ${error.message || 'Failed to fetch'}
-                        </td>
-                    </tr>
-                `;
-            }
-            Swal.fire('Error', 'Failed to load current sit-ins', 'error');
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="11" style="text-align: center; padding: 20px;">
+                        Error loading current sit-ins. Please try again.
+                    </td>
+                </tr>
+            `;
         });
 }
+
+// Helper function to show "No students" message
+function showNoSitInsMessage(tableBody) {
+    // Display "No student sitting in" row with styling and icon
+    const emptyRow = document.createElement('tr');
+    emptyRow.innerHTML = `
+        <td colspan="11" style="
+            text-align: center;
+            padding: 30px 40px;
+            color: #888;
+            font-size: 17px;
+            transition: all 0.3s ease;
+        ">
+            <i class="fas fa-chair" style="margin-right: 10px; color: #ccc; font-size: 18px;"></i>
+            No student is currently sitting in.
+        </td>
+    `;
+    tableBody.appendChild(emptyRow);
+}
+
+// Socket event handler for reservation updates
+socket.on('reservation_updated', function (data) {
+    const row = document.querySelector(`tr[data-reservation-id="${data.reservation_id}"]`);
+    if (row && data.status === 'Logged Out') {
+        // When a reservation is logged out, remove it from the current sit-ins table
+        row.remove();
+        
+        // Check if there are no rows left
+        const tableBody = document.querySelector('#reservations-table tbody');
+        if (tableBody && tableBody.querySelectorAll('tr').length === 0) {
+            showNoSitInsMessage(tableBody);
+        }
+    } else if (row) {
+        // Update other data that may have changed
+        if (row.querySelector('.logout-time')) {
+            row.querySelector('.logout-time').textContent = data.logout_time || 'N/A';
+        }
+        if (row.querySelector('.status')) {
+            row.querySelector('.status').textContent = data.status;
+        }
+    }
+});
 
 // Optional: Add new rows in real-time when a new sit-in is approved
 socket.on('new_sitin', function (reservation) {
@@ -1543,6 +1470,16 @@ socket.on('new_sitin', function (reservation) {
 
         const newRow = document.createElement('tr');
         newRow.setAttribute('data-reservation-id', reservation.id);
+        newRow.setAttribute('data-is-reservation', reservation.reservation_type === 'reservation');
+        
+        // Create badge for reservation type
+        let typeBadge = '';
+        if (reservation.reservation_type === 'reservation') {
+            typeBadge = '<span class="reservation-badge">Reservation</span>';
+        } else {
+            typeBadge = '<span class="sit-in-badge">Sit In</span>';
+        }
+        
         newRow.innerHTML = `
             <td>${reservation.student_idno}</td>
             <td>${reservation.student_name}</td>
@@ -1551,8 +1488,9 @@ socket.on('new_sitin', function (reservation) {
             <td>${reservation.reservation_date}</td>
             <td>${reservation.login_time}</td>
             <td class="logout-time">N/A</td>
-            <td>Session ${reservation.session_number}</td>
+            <td>${reservation.session_number || 'N/A'}</td>
             <td class="status">${reservation.status}</td>
+            <td>${typeBadge}</td>
             <td>
                 <button class="logout-btn" data-reservation-id="${reservation.id}">Logout</button>
             </td>
@@ -3785,6 +3723,14 @@ function setupEventListeners() {
             }
         });
     }
+    
+    // Set up click handler for sit-in-report tab
+    const sitInReportTab = document.querySelector('[data-page="sit-in-report"]');
+    if (sitInReportTab) {
+        sitInReportTab.addEventListener('click', function() {
+            populateReservationsTable();
+        });
+    }
 }
 
 // Initialize management page components
@@ -3880,20 +3826,24 @@ function displayLogs(logs) {
     // Populate the table with log data
     logs.forEach(log => {
         const statusClass = getStatusClass(log.status);
+        const computerDisplay = log.computer_number ? `PC #${log.computer_number}` : 'N/A';
+        const typeBadge = log.reservation_type === 'reservation' ? 
+            '<span class="reservation-badge">Reservation</span>' : 
+            '<span class="sit-in-badge">Sit In</span>';
         
         const row = document.createElement('tr');
         row.innerHTML = `
             <td data-label="Student ID">${log.student_idno}</td>
             <td data-label="Name">${log.student_name}</td>
-            <td data-label="Course">${log.course || ''} ${log.year_level ? '(' + log.year_level + ')' : ''}</td>
+            <td data-label="Course">${log.course || 'N/A'}</td>
             <td data-label="Laboratory">${log.lab_name}</td>
-            <td data-label="Computer">PC #${log.computer_number || 'N/A'}</td>
+
             <td data-label="Purpose">${log.purpose}</td>
-            <td data-label="Date">${log.reservation_date}</td>
+            <td data-label="Date">${formatDate(log.reservation_date)}</td>
             <td data-label="Time Slot">${log.time_slot || 'N/A'}</td>
+            <td data-label="Type">${typeBadge}</td>
             <td data-label="Status"><span class="log-status ${statusClass}">${log.status}</span></td>
         `;
-        
         tableBody.appendChild(row);
     });
 }
@@ -4742,76 +4692,94 @@ function loadCurrentSitIns() {
             tableBody.innerHTML = '';
             
             if (data.success && data.data && data.data.length > 0) {
-                data.data.forEach(reservation => {
-                    const row = document.createElement('tr');
-                    row.setAttribute('data-reservation-id', reservation.id);
-                    row.setAttribute('data-is-reservation', reservation.reservation_type === 'reservation');
-                    
-                    // Determine status class
-                    let statusClass = 'status-approved';
-                    if (reservation.status === 'Pending') {
-                        statusClass = 'status-pending';
-                    } else if (reservation.status === 'Logged Out') {
-                        statusClass = 'status-completed';
-                    }
-                    
-                    // Create badge for reservation type
-                    let typeBadge = '';
-                    if (reservation.reservation_type === 'reservation') {
-                        typeBadge = '<span class="reservation-badge">Reservation</span>';
-                    } else {
-                        typeBadge = '<span class="sit-in-badge">Sit In</span>';
-                    }
-                    
-                    row.innerHTML = `
-                        <td>${reservation.student_idno}</td>
-                        <td>${reservation.student_name}</td>
-                        <td>${reservation.lab_name}</td>
-                        <td>${reservation.purpose}</td>
-                        <td>${reservation.reservation_date}</td>
-                        <td>${reservation.login_time}</td>
-                        <td>${reservation.logout_time || 'N/A'}</td>
-                        <td>${reservation.session_number || 'N/A'}</td>
-                        <td class="${statusClass}">${reservation.status}</td>
-                        <td>${typeBadge}</td>
-                        <td>
-                            <button class="logout-btn" data-reservation-id="${reservation.id}" onclick="handleLogout(${reservation.id})">Logout</button>
-                        </td>
-                    `;
-                    tableBody.appendChild(row);
-                });
+                // Filter out any logged out reservations just to be safe
+                const activeSitIns = data.data.filter(reservation => reservation.status !== 'Logged Out');
+                
+                if (activeSitIns.length > 0) {
+                    activeSitIns.forEach(reservation => {
+                        const row = document.createElement('tr');
+                        row.setAttribute('data-reservation-id', reservation.id);
+                        row.setAttribute('data-is-reservation', reservation.reservation_type === 'reservation');
+                        
+                        // Create badge for reservation type
+                        let typeBadge = '';
+                        if (reservation.reservation_type === 'reservation') {
+                            typeBadge = '<span class="reservation-badge">Reservation</span>';
+                        } else {
+                            typeBadge = '<span class="sit-in-badge">Sit In</span>';
+                        }
+                        
+                        row.innerHTML = `
+                            <td>${reservation.student_idno}</td>
+                            <td>${reservation.student_name}</td>
+                            <td>${reservation.lab_name}</td>
+                            <td>${reservation.purpose}</td>
+                            <td>${reservation.reservation_date}</td>
+                            <td>${reservation.login_time}</td>
+                            <td class="logout-time">${reservation.logout_time || 'N/A'}</td>
+                            <td>${reservation.session_number || 'N/A'}</td>
+                            <td class="status">${reservation.status}</td>
+                            <td>${typeBadge}</td>
+                            <td>
+                                <button class="logout-btn" data-reservation-id="${reservation.id}">Logout</button>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                } else {
+                    showNoSitInsMessage(tableBody);
+                }
             } else {
-                // Display "No student sitting in" row with styling and icon
-                const emptyRow = document.createElement('tr');
-                emptyRow.innerHTML = `
-                    <td colspan="11" style="
-                        text-align: center;
-                        padding: 30px 40px;
-                        color: #888;
-                        font-size: 17px;
-                        transition: all 0.3s ease;
-                    ">
-                        <i class="fas fa-chair" style="margin-right: 10px; color: #ccc; font-size: 18px;"></i>
-                        No student is currently sitting in.
-                    </td>
-                `;
-                tableBody.appendChild(emptyRow);
+                showNoSitInsMessage(tableBody);
+            }
+            
+            // Add event listeners to all logout buttons
+            document.querySelectorAll('.logout-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const reservationId = this.getAttribute('data-reservation-id');
+                    handleLogout(reservationId);
+                });
+            });
+            
+            // Apply the currently active filter after loading data
+            const activeFilter = document.querySelector('.sit-in-filters .filter-btn.active');
+            if (activeFilter) {
+                const filter = activeFilter.getAttribute('data-filter');
+                setTimeout(() => {
+                    applySitInFilter(filter);
+                }, 10);
             }
         })
         .catch(error => {
             console.error('Error fetching current sit-ins:', error);
-            
             const tableBody = document.querySelector('#reservations-table tbody');
-            if (tableBody) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="11" class="text-center error">
-                            Failed to load reservations: ${error.message || 'Failed to fetch'}
-                        </td>
-                    </tr>
-                `;
-            }
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="11" style="text-align: center; padding: 20px;">
+                        Error loading current sit-ins. Please try again.
+                    </td>
+                </tr>
+            `;
         });
+}
+
+// Helper function to show "No students" message
+function showNoSitInsMessage(tableBody) {
+    // Display "No student sitting in" row with styling and icon
+    const emptyRow = document.createElement('tr');
+    emptyRow.innerHTML = `
+        <td colspan="11" style="
+            text-align: center;
+            padding: 30px 40px;
+            color: #888;
+            font-size: 17px;
+            transition: all 0.3s ease;
+        ">
+            <i class="fas fa-chair" style="margin-right: 10px; color: #ccc; font-size: 18px;"></i>
+            No student is currently sitting in.
+        </td>
+    `;
+    tableBody.appendChild(emptyRow);
 }
 
 // Add filter buttons for sit-in type to the UI
@@ -4855,6 +4823,11 @@ function applySitInFilter(filter) {
     const rows = document.querySelectorAll('#reservations-table tbody tr');
     
     rows.forEach(row => {
+        // Skip the empty message row
+        if (row.querySelector('td[colspan]')) {
+            return;
+        }
+        
         const isReservation = row.getAttribute('data-is-reservation') === 'true';
         
         if (filter === 'all') {
@@ -4907,18 +4880,334 @@ function formatTime(timeString) {
 
 // Helper function to refresh the current active tab
 function refreshCurrentTab() {
-    // Determine which tab is active and refresh accordingly
-    if (document.querySelector('#currentSitInSection').style.display !== 'none') {
-        // Current Sit-In tab is active
-        fetchAndDisplayCurrentSitIn();
-    } else if (document.querySelector('#sitInRecordsSection').style.display !== 'none') {
+    // Check which hash/page is active
+    const currentHash = window.location.hash.substring(1) || 'dashboard';
+    
+    if (currentHash === 'sit-in') {
+        // Refresh the sit-in page
+        loadCurrentSitIns();
+        
+        // Reapply the active filter
+        const activeFilter = document.querySelector('.sit-in-filters .filter-btn.active');
+        if (activeFilter) {
+            const filter = activeFilter.getAttribute('data-filter');
+            setTimeout(() => {
+                applySitInFilter(filter);
+            }, 300); // Wait for the data to load
+        }
+    } else if (currentHash === 'records') {
         // Sit-In Records tab is active
         fetchAndDisplaySitInRecords();
-    } else if (document.querySelector('#reservationsSection').style.display !== 'none') {
+    } else if (currentHash === 'reservation-request') {
         // Reservations tab is active
-        fetchAndDisplayReservations();
+        fetchReservationRequests();
     } else {
-        // Default: refresh the page as fallback
+        // For other pages, refresh the entire page as fallback
         location.reload();
     }
 }
+
+/**
+ * This is a wrapper function that calls loadCurrentSitIns.
+ * This maintains backward compatibility with any code that calls this function.
+ */
+function fetchAndDisplayCurrentSitIn() {
+    loadCurrentSitIns();
+}
+
+// Updated exportToCSV function with simplified columns
+async function exportToCSV() {
+    try {
+        if (filteredReservations.length === 0) {
+            alert('No data to export');
+            return;
+        }
+        
+        // Create CSV content with header
+        let csv = 'University of Cebu Main College of Computer Studies Computer Laboratory Sit-in Monitoring System Report\n\n';
+        csv += 'Student ID,Student Name,Lab,Purpose,Date,Time Slot\n';
+        
+        // Add data rows
+        filteredReservations.forEach(reservation => {
+            const timeSlot = reservation.time_slot || (reservation.login_time ? 
+                (formatTime(reservation.login_time) + (reservation.logout_time ? ' - ' + formatTime(reservation.logout_time) : '')) : '-');
+                
+            csv += `"${reservation.student_id || ''}","${reservation.student_name || ''}","${reservation.lab_name || ''}",`;
+            csv += `"${reservation.purpose || ''}","${formatDate(reservation.reservation_date)}","${timeSlot}"\n`;
+        });
+        
+        // Create download link
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `sit-in-report_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+    } catch (error) {
+        console.error('Error exporting to CSV:', error);
+        alert('Failed to export to CSV: ' + error.message);
+    }
+}
+
+// Updated exportToPDF function with simplified columns and specified purple color
+async function exportToPDF() {
+    try {
+        if (filteredReservations.length === 0) {
+            alert('No data to export');
+            return;
+        }
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Add university header
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.text('University of Cebu Main', 14, 10);
+        doc.text('College of Computer Studies', 14, 16);
+        doc.text('Computer Laboratory Sit-in Monitoring System Report', 14, 22);
+        
+        // Add generation date
+        doc.setFontSize(10);
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+        
+        // Prepare table data with specified columns
+        const headers = ['Student ID', 'Student Name', 'Lab', 'Purpose', 'Date', 'Time Slot'];
+        const data = filteredReservations.map(reservation => {
+            const timeSlot = reservation.time_slot || (reservation.login_time ? 
+                (formatTime(reservation.login_time) + (reservation.logout_time ? ' - ' + formatTime(reservation.logout_time) : '')) : '-');
+                
+            return [
+                reservation.student_id || 'N/A',
+                reservation.student_name || 'N/A',
+                reservation.lab_name || 'N/A',
+                reservation.purpose || 'N/A',
+                formatDate(reservation.reservation_date),
+                timeSlot
+            ];
+        });
+        
+        // Convert HSL color to RGB
+        // hsl(273, 77%, 65%) in RGB is approximately [166, 106, 217]
+        const purpleColor = [166, 106, 217];
+        
+        // Add table with the specified purple color
+        doc.autoTable({
+            head: [headers],
+            body: data,
+            startY: 40,
+            styles: {
+                fontSize: 8,
+                cellPadding: 2,
+                overflow: 'linebreak'
+            },
+            headStyles: {
+                fillColor: purpleColor,
+                textColor: 255,
+                fontStyle: 'bold'
+            }
+        });
+        
+        // Save the PDF
+        doc.save(`sit-in-report_${new Date().toISOString().slice(0, 10)}.pdf`);
+        
+    } catch (error) {
+        console.error('Error exporting to PDF:', error);
+        alert('Failed to export to PDF: ' + error.message);
+    }
+}
+
+// Updated exportToExcel function with simplified columns
+async function exportToExcel() {
+    try {
+        if (filteredReservations.length === 0) {
+            alert('No data to export');
+            return;
+        }
+        
+        // Prepare data with header
+        const data = [
+            ['University of Cebu Main College of Computer Studies Computer Laboratory Sit-in Monitoring System Report'],
+            [''],
+            ['Student ID', 'Student Name', 'Lab', 'Purpose', 'Date', 'Time Slot'],
+            ...filteredReservations.map(reservation => {
+                const timeSlot = reservation.time_slot || (reservation.login_time ? 
+                    (formatTime(reservation.login_time) + (reservation.logout_time ? ' - ' + formatTime(reservation.logout_time) : '')) : '-');
+                    
+                return [
+                    reservation.student_id || 'N/A',
+                    reservation.student_name || 'N/A',
+                    reservation.lab_name || 'N/A',
+                    reservation.purpose || 'N/A',
+                    formatDate(reservation.reservation_date),
+                    timeSlot
+                ];
+            })
+        ];
+        
+        // Create worksheet
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        
+        // Merge header cells
+        if (!ws['!merges']) ws['!merges'] = [];
+        ws['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } });
+        
+        // Create workbook
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Sit-In Report');
+        
+        // Generate Excel file
+        XLSX.writeFile(wb, `sit-in-report_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        
+    } catch (error) {
+        console.error('Error exporting to Excel:', error);
+        alert('Failed to export to Excel: ' + error.message);
+    }
+}
+
+// Updated printReport function with simplified columns
+function printReport() {
+    try {
+        if (filteredReservations.length === 0) {
+            alert('No data to print');
+            return;
+        }
+        
+        // Create print window content with the specified columns
+        let printContent = `
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                .header { text-align: center; margin-bottom: 15px; }
+                .university-header { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+                .report-title { font-size: 14px; margin-bottom: 15px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                th { background-color: hsl(273, 77%, 65%); color: white; text-align: left; padding: 8px; }
+                td { padding: 8px; border-bottom: 1px solid #ddd; }
+                .footer { margin-top: 20px; font-size: 12px; color: #777; text-align: center; }
+            </style>
+            <div class="header">
+                <div class="university-header">University of Cebu Main</div>
+                <div class="university-header">College of Computer Studies</div>
+                <div class="report-title">Computer Laboratory Sit-in Monitoring System Report</div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Student Name</th>
+                        <th>Lab</th>
+                        <th>Purpose</th>
+                        <th>Date</th>
+                        <th>Time Slot</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        // Add rows with specified columns
+        filteredReservations.forEach(reservation => {
+            const timeSlot = reservation.time_slot || (reservation.login_time ? 
+                (formatTime(reservation.login_time) + (reservation.logout_time ? ' - ' + formatTime(reservation.logout_time) : '')) : '-');
+                
+            printContent += `
+                <tr>
+                    <td>${reservation.student_id || 'N/A'}</td>
+                    <td>${reservation.student_name || 'N/A'}</td>
+                    <td>${reservation.lab_name || 'N/A'}</td>
+                    <td>${reservation.purpose || 'N/A'}</td>
+                    <td>${formatDate(reservation.reservation_date)}</td>
+                    <td>${timeSlot}</td>
+                </tr>
+            `;
+        });
+        
+        printContent += `
+                </tbody>
+            </table>
+            <div class="footer">
+                Generated on: ${new Date().toLocaleString()}
+            </div>
+        `;
+        
+        // Open print window
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        
+        // Wait for content to load before printing
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 500);
+        
+    } catch (error) {
+        console.error('Error printing report:', error);
+        alert('Failed to print report: ' + error.message);
+    }
+}
+
+// Modified setupEventListeners to avoid conflicts with direct onclick handlers
+function setupEventListeners() {
+    // Wait for elements to exist before adding event listeners
+    const csvBtn = document.querySelector('.btn-export.csv');
+    const pdfBtn = document.querySelector('.btn-export.pdf');
+    const excelBtn = document.querySelector('.btn-export.excel');
+    const printBtn = document.querySelector('.btn-export.print');
+    
+    // Only add event listeners if buttons don't have onclick attributes
+    if (csvBtn && !csvBtn.hasAttribute('onclick')) {
+        csvBtn.addEventListener('click', exportToCSV);
+    }
+    
+    if (pdfBtn && !pdfBtn.hasAttribute('onclick')) {
+        pdfBtn.addEventListener('click', exportToPDF);
+    }
+    
+    if (excelBtn && !excelBtn.hasAttribute('onclick')) {
+        excelBtn.addEventListener('click', exportToExcel);
+    }
+    
+    if (printBtn && !printBtn.hasAttribute('onclick')) {
+        printBtn.addEventListener('click', printReport);
+    }
+    
+    // Load reservations when sit-in-report page is shown
+    const sitInReportTab = document.querySelector('[data-page="sit-in-report"]');
+    if (sitInReportTab) {
+        sitInReportTab.addEventListener('click', function() {
+            populateReservationsTable();
+        });
+    }
+}
+
+// Render the filtered data to the table
+function renderReservationsTable(reservations) {
+    const tbody = document.getElementById('reservationsTableBody');
+    tbody.innerHTML = '';
+    
+    if (reservations.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="no-data">No matching reservations found</td></tr>';
+        return;
+    }
+    
+    reservations.forEach(reservation => {
+        // Format the time slot properly
+        const timeSlot = reservation.time_slot || (reservation.login_time ? 
+            (formatTime(reservation.login_time) + (reservation.logout_time ? ' - ' + formatTime(reservation.logout_time) : '')) : '-');
+            
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${reservation.student_id || 'N/A'}</td>
+            <td>${reservation.student_name || 'N/A'}</td>
+            <td>${reservation.lab_name || 'N/A'}</td>
+            <td>${reservation.purpose || 'N/A'}</td>
+            <td>${formatDate(reservation.reservation_date)}</td>
+            <td>${timeSlot}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+                
